@@ -31,3 +31,6 @@ cms/uploads/*
 !cms/uploads/.gitkeep
 cms/data/*.sqlite-shm
 cms/data/*.sqlite-wal
+
+# Архив для деплоя
+cms/cms.zip
