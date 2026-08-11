@@ -1,0 +1,31 @@
+.meeting-card {
+    border-top: 4px solid #198754;
+}
+
+.meeting-card .card-footer {
+    background-color: transparent;
+    border-top: 1px solid rgba(0, 0, 0, .05);
+}
+
+.roles-matrix th,
+.roles-matrix td {
+    white-space: nowrap;
+}
+
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 575.98px) {
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    .meeting-card .card-footer .btn {
+        flex: 1 1 auto;
+    }
+
+    h1 {
+        font-size: 1.4rem;
+    }
+}

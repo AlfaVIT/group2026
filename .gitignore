@@ -24,3 +24,10 @@ Thumbs.db
 dist/
 build/
 coverage/
+
+# База данных и загруженные файлы CMS
+cms/data/*.sqlite*
+cms/uploads/*
+!cms/uploads/.gitkeep
+cms/data/*.sqlite-shm
+cms/data/*.sqlite-wal
