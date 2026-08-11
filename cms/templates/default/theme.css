@@ -1,37 +1,336 @@
+/* =========================================================
+   Тема «Духовный свет» — шаблон default
+   Глубокий синий, золото, тёплые светлые тона
+   ========================================================= */
+
 :root {
-    --cms-brand: #2c6e49;
-    --cms-brand-soft: #e7f2ec;
-    --cms-accent: #b5651d;
-    --cms-bg: #f7f8f5;
-    --cms-card-border: #e3e8e2;
-    --cms-header-bg: #1f4d37;
-    --cms-footer-bg: #1f4d37;
+    --cms-navy: #1e3a5f;
+    --cms-navy-deep: #152b46;
+    --cms-gold: #b08a2e;
+    --cms-gold-bright: #c9a54a;
+    --cms-gold-soft: #ead9a6;
+    --cms-cream: #f6f1e6;
+    --cms-card: #fffdf6;
+    --cms-line: #e6dbbd;
+    --cms-text: #33405a;
+
+    --bs-body-font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --bs-body-color: var(--cms-text);
+    --bs-body-bg: var(--cms-cream);
+    --bs-primary: var(--cms-navy);
+    --bs-primary-rgb: 30, 58, 95;
+    --bs-link-color: var(--cms-navy);
+    --bs-link-hover-color: var(--cms-gold);
+    --bs-link-color-rgb: 30, 58, 95;
+    --bs-link-hover-color-rgb: 176, 138, 46;
 }
 
 body {
-    background-color: var(--cms-bg);
+    background-color: var(--cms-cream);
 }
 
-.navbar-dark.bg-dark,
-footer.bg-dark {
-    background-color: var(--cms-header-bg) !important;
+h1, h2, h3, h4, h5, h6,
+.navbar-brand,
+.auth-brand .title {
+    font-family: Georgia, "Times New Roman", "PT Serif", "Liberation Serif", serif;
+    color: var(--cms-navy-deep);
 }
 
-.card {
-    border-color: var(--cms-card-border);
-}
-
-.btn-primary {
-    --bs-btn-bg: var(--cms-brand);
-    --bs-btn-border-color: var(--cms-brand);
-    --bs-btn-hover-bg: #22573a;
-    --bs-btn-hover-border-color: #22573a;
+h1, h2, h3, h4 {
+    letter-spacing: .01em;
 }
 
 a {
-    color: var(--cms-brand);
+    color: var(--cms-navy);
 }
 
 a:hover {
-    color: var(--cms-accent);
+    color: var(--cms-gold);
+}
+
+/* --- Верхняя золотая полоса и шапка --- */
+
+.cms-topbar {
+    height: 5px;
+    background: linear-gradient(90deg, var(--cms-gold) 0%, var(--cms-gold-bright) 50%, var(--cms-gold) 100%);
+}
+
+.navbar-dark.bg-dark {
+    background-color: var(--cms-navy) !important;
+    box-shadow: 0 2px 14px -6px rgba(21, 43, 70, .5);
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, .82);
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus {
+    color: var(--cms-gold-bright);
+}
+
+.navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: 1.18rem;
+    letter-spacing: .02em;
+}
+
+.navbar-brand .cms-cross {
+    color: var(--cms-gold-bright);
+}
+
+/* --- Подвал --- */
+
+footer.bg-dark {
+    background-color: var(--cms-navy) !important;
+    border-top: 3px solid var(--cms-gold);
+}
+
+.cms-foot-title {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: .95rem;
+    color: var(--cms-gold-bright);
+}
+
+footer .cms-cross {
+    color: var(--cms-gold);
+}
+
+/* --- Карточки --- */
+
+.card {
+    background-color: var(--cms-card);
+    border: 1px solid var(--cms-line);
+    border-radius: .9rem;
+    box-shadow: 0 1px 2px rgba(31, 48, 71, .05), 0 12px 28px -16px rgba(31, 48, 71, .3);
+}
+
+.card-header {
+    background: linear-gradient(180deg, #fcf8ea 0%, #f5edD2 100%);
+    border-bottom: 1px solid var(--cms-line);
+    color: var(--cms-navy-deep);
+    font-weight: 600;
+}
+
+.card-footer {
+    background: rgba(240, 232, 210, .35);
+    border-top: 1px solid var(--cms-line);
+}
+
+.meeting-card {
+    border-top: 4px solid var(--cms-gold);
+}
+
+/* --- Кнопки --- */
+
+.btn-primary {
+    --bs-btn-bg: var(--cms-navy);
+    --bs-btn-border-color: var(--cms-navy);
+    --bs-btn-hover-bg: var(--cms-navy-deep);
+    --bs-btn-hover-border-color: var(--cms-navy-deep);
+    --bs-btn-active-bg: var(--cms-navy-deep);
+    --bs-btn-active-border-color: var(--cms-navy-deep);
+    --bs-btn-focus-shadow-rgb: 30, 58, 95;
+    --bs-btn-disabled-bg: #6d7f96;
+    --bs-btn-disabled-border-color: #6d7f96;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--cms-navy);
+    --bs-btn-border-color: var(--cms-navy);
+    --bs-btn-hover-bg: var(--cms-navy);
+    --bs-btn-hover-border-color: var(--cms-navy);
+    --bs-btn-active-bg: var(--cms-navy);
+    --bs-btn-active-border-color: var(--cms-navy);
+    --bs-btn-focus-shadow-rgb: 30, 58, 95;
+}
+
+.btn-outline-secondary {
+    --bs-btn-hover-bg: #e9e2cd;
+    --bs-btn-hover-border-color: #c8b98d;
+    --bs-btn-active-bg: #e9e2cd;
+    --bs-btn-active-border-color: #c8b98d;
+    --bs-btn-focus-shadow-rgb: 138, 128, 100;
+}
+
+/* --- Формы --- */
+
+.form-control,
+.form-select {
+    border-color: #d8ccab;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--cms-gold);
+    box-shadow: 0 0 0 .25rem rgba(176, 138, 46, .15);
+}
+
+.form-check-input:checked {
+    background-color: var(--cms-navy);
+    border-color: var(--cms-navy);
+}
+
+.form-check-input:focus {
+    border-color: var(--cms-gold);
+    box-shadow: 0 0 0 .25rem rgba(176, 138, 46, .15);
+}
+
+/* --- Таблицы --- */
+
+.table {
+    --bs-table-hover-bg: rgba(176, 138, 46, .06);
+}
+
+.table thead th {
+    color: var(--cms-navy-deep);
+    font-size: .78rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+/* --- Аккордеон (прошедшие встречи) --- */
+
+.accordion {
+    --bs-accordion-border-color: var(--cms-line);
+    --bs-accordion-bg: var(--cms-card);
+    --bs-accordion-active-bg: #f6efd8;
+    --bs-accordion-active-color: var(--cms-navy-deep);
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 .25rem rgba(176, 138, 46, .15);
+    border-radius: .9rem;
+    overflow: hidden;
+}
+
+/* --- Вкладки (настройки) --- */
+
+.nav-tabs {
+    border-bottom-color: var(--cms-line);
+}
+
+.nav-tabs .nav-link {
+    color: var(--cms-navy);
+    border-radius: .6rem .6rem 0 0;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: var(--cms-line) var(--cms-line) transparent;
+    color: var(--cms-gold);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--cms-card);
+    border-color: var(--cms-line) var(--cms-line) var(--cms-card);
+    color: var(--cms-navy-deep);
+    font-weight: 600;
+}
+
+/* --- Выпадающее меню --- */
+
+.dropdown-menu {
+    --bs-dropdown-border-color: var(--cms-line);
+    --bs-dropdown-border-radius: .7rem;
+    --bs-dropdown-link-hover-bg: #f3ecd7;
+    --bs-dropdown-link-active-bg: var(--cms-navy);
+    box-shadow: 0 10px 28px -12px rgba(31, 48, 71, .35);
+}
+
+/* --- Уведомления --- */
+
+.alert {
+    border-radius: .75rem;
+}
+
+/* --- Заголовки-акценты --- */
+
+.h5.text-success {
+    color: var(--cms-navy-deep) !important;
+}
+
+/* --- Страницы входа и восстановления --- */
+
+.auth-body {
+    background:
+        radial-gradient(900px 420px at 50% -120px, #dbe6f2 0%, rgba(219, 230, 242, 0) 60%),
+        var(--cms-cream);
+    min-height: 100vh;
+}
+
+.auth-card {
+    border-radius: 1rem;
+    border: 1px solid var(--cms-line);
+    box-shadow: 0 22px 50px -22px rgba(31, 48, 71, .4);
+}
+
+.auth-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: .45rem;
+    margin-bottom: 1.25rem;
+}
+
+.auth-brand .cms-cross {
+    color: var(--cms-gold);
+}
+
+.auth-brand .title {
+    font-family: Georgia, "Times New Roman", "PT Serif", serif;
+    font-size: 1.5rem;
+    color: var(--cms-navy-deep);
+    letter-spacing: .03em;
+    margin: 0;
+}
+
+.auth-brand .rule {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    width: 100%;
+}
+
+.auth-brand .rule::before,
+.auth-brand .rule::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+}
+
+.auth-brand .rule::before {
+    background: linear-gradient(90deg, transparent, var(--cms-gold-soft));
+}
+
+.auth-brand .rule::after {
+    background: linear-gradient(90deg, var(--cms-gold-soft), transparent);
+}
+
+.auth-brand .subtitle {
+    color: var(--cms-text);
+    opacity: .75;
+    font-size: .9rem;
+    margin: 0;
+}
+
+/* --- Крест (декор) --- */
+
+.cms-cross {
+    display: inline-block;
+    line-height: 0;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 575.98px) {
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    .navbar-brand .cms-cross {
+        width: 18px !important;
+        height: 18px !important;
+    }
 }

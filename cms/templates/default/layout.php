@@ -15,10 +15,12 @@ $themeCss = theme_asset('theme.css');
     <?php endif; ?>
 </head>
 <body class="d-flex flex-column min-vh-100">
+<div class="cms-topbar"></div>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
     <div class="container">
-        <a class="navbar-brand fw-semibold" href="<?= url('home') ?>">
-            <?= e(Setting::siteName()) ?>
+        <a class="navbar-brand" href="<?= url('home') ?>">
+            <?php partial('cross', ['width' => 22]); ?>
+            <span><?= e(Setting::siteName()) ?></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                 aria-controls="mainNav" aria-expanded="false" aria-label="Меню">
@@ -80,9 +82,12 @@ $themeCss = theme_asset('theme.css');
     <?= $content ?>
 </main>
 
-<footer class="bg-dark text-light py-3 mt-auto">
+<footer class="bg-dark text-light py-4 mt-auto">
     <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2 small text-light-emphasis">
-        <span>© <?= date('Y') ?> <?= e(Setting::siteName()) ?></span>
+        <span class="cms-foot-title">
+            <?php partial('cross', ['width' => 16]); ?>
+            <?= e(Setting::siteName()) ?>
+        </span>
         <span>Координация деятельности группы катехизации</span>
     </div>
 </footer>

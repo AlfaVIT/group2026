@@ -1,5 +1,6 @@
 <?php
 $flash = get_flash();
+$themeCss = theme_asset('theme.css');
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -9,12 +10,19 @@ $flash = get_flash();
     <title>Новый пароль — <?= e(Setting::siteName()) ?></title>
     <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
+    <?php if ($themeCss): ?>
+        <link rel="stylesheet" href="<?= e($themeCss) ?>">
+    <?php endif; ?>
 </head>
-<body class="bg-light">
-<main class="container" style="max-width: 420px; padding-top: 12vh;">
-    <div class="card shadow-sm">
+<body class="auth-body">
+<main class="container" style="max-width: 430px; padding-top: 9vh;">
+    <div class="card auth-card">
         <div class="card-body p-4">
-            <h1 class="h4 mb-1">Новый пароль</h1>
+            <div class="auth-brand">
+                <?php partial('cross', ['width' => 34]); ?>
+                <h1 class="title">Новый пароль</h1>
+                <div class="rule"></div>
+            </div>
 
             <?php if ($flash): ?>
                 <div class="alert alert-<?= e($flash['type']) ?> py-2 small"><?= $flash['message'] ?></div>
