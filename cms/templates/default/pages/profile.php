@@ -10,6 +10,10 @@
                     <dd class="col-sm-8"><span class="badge <?= role_badge_class($user['role']) ?>"><?= e($user['role']) ?></span></dd>
                     <dt class="col-sm-4 text-body-secondary">Email</dt>
                     <dd class="col-sm-8"><?= e($user['email']) ?></dd>
+                    <dt class="col-sm-4 text-body-secondary">Telegram</dt>
+                    <dd class="col-sm-8"><?= telegram_nick($user['telegram']) !== ''
+                        ? '<a href="' . e(telegram_link($user['telegram'])) . '" target="_blank" rel="noopener">@' . e(telegram_nick($user['telegram'])) . '</a>'
+                        : '—' ?></dd>
                     <dt class="col-sm-4 text-body-secondary">Телефон</dt>
                     <dd class="col-sm-8"><?= e($user['phone']) ?: '—' ?></dd>
                     <dt class="col-sm-4 text-body-secondary">День рождения</dt>

@@ -42,6 +42,13 @@ $tabs = [
             <div class="form-text">Новые темы размещаются в каталоге templates/</div>
         </div>
 
+        <div class="col-md-6">
+            <label class="form-label" for="mail_from">Email отправителя писем</label>
+            <input class="form-control" type="email" id="mail_from" name="mail_from"
+                   value="<?= e($mailFrom) ?>">
+            <div class="form-text">Используется в письмах восстановления пароля</div>
+        </div>
+
         <div class="col-12">
             <button class="btn btn-primary" type="submit">Сохранить настройки</button>
         </div>
@@ -59,6 +66,7 @@ $tabs = [
                 <th>Участник</th>
                 <th>Роль</th>
                 <th>Телефон</th>
+                <th>Telegram</th>
                 <th>День рождения</th>
                 <th>Активен</th>
                 <th class="text-end">Действия</th>
@@ -73,6 +81,13 @@ $tabs = [
                     </td>
                     <td><span class="badge <?= role_badge_class($u['role']) ?>"><?= e($u['role']) ?></span></td>
                     <td class="small"><?= e($u['phone']) ?: '—' ?></td>
+                    <td class="small">
+                        <?php if (telegram_nick($u['telegram']) !== ''): ?>
+                            <a href="<?= e(telegram_link($u['telegram'])) ?>" target="_blank" rel="noopener">@<?= e(telegram_nick($u['telegram'])) ?></a>
+                        <?php else: ?>
+                            —
+                        <?php endif; ?>
+                    </td>
                     <td class="small"><?= $u['birthday'] ? e(date('d.m.Y', strtotime($u['birthday']))) : '—' ?></td>
                     <td>
                         <?php if ($u['is_active']): ?>

@@ -31,6 +31,7 @@ class SettingsController
             'themes' => theme_list(),
             'siteName' => Setting::siteName(),
             'theme' => Setting::theme(),
+            'mailFrom' => mail_from(),
         ]);
     }
 
@@ -41,6 +42,7 @@ class SettingsController
         if ($section === 'general') {
             $siteName = input('site_name');
             $theme = input('theme');
+            $mailFrom = mb_strtolower(trim(input('mail_from')));
             if (mb_strlen($siteName) < 2) {
                 set_flash('Укажите название сайта', 'danger');
                 redirect(url('settings'));
@@ -48,8 +50,13 @@ class SettingsController
             if (!in_array($theme, theme_list(), true)) {
                 $theme = DEFAULT_THEME;
             }
+            if (!filter_var($mailFrom, FILTER_VALIDATE_EMAIL)) {
+                set_flash('Укажите корректный email отправителя', 'danger');
+                redirect(url('settings'));
+            }
             Setting::set('site_name', $siteName);
             Setting::set('theme', $theme);
+            Setting::set('mail_from', $mailFrom);
             set_flash('Настройки сохранены');
         }
 

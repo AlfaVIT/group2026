@@ -51,6 +51,13 @@ $isEdit = (bool)$user;
         <input class="form-control" type="email" id="email" name="email" required value="<?= e($data['email'] ?? '') ?>">
     </div>
 
+    <div class="col-md-6">
+        <label class="form-label" for="telegram">Ник в Telegram</label>
+        <input class="form-control" type="text" id="telegram" name="telegram" maxlength="64"
+               value="<?= e($data['telegram'] ?? '') ?>" placeholder="@username">
+        <div class="form-text">Можно указать @username, ник или ссылку t.me/...</div>
+    </div>
+
     <div class="col-md-3">
         <label class="form-label" for="role">Роль</label>
         <select class="form-select" id="role" name="role">

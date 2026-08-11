@@ -220,3 +220,39 @@ function yandex_maps_link(array $place): string
     }
     return 'https://yandex.ru/maps/?text=' . urlencode($q);
 }
+
+function telegram_nick(string $value): string
+{
+    $v = trim($value);
+    if ($v === '') {
+        return '';
+    }
+    $v = ltrim($v, '@');
+    if (preg_match('~t\.me/([A-Za-z0-9_]+)~', $v, $m)) {
+        $v = $m[1];
+    }
+    return $v;
+}
+
+function telegram_link(string $value): string
+{
+    $nick = telegram_nick($value);
+    return $nick === '' ? '' : 'https://t.me/' . urlencode($nick);
+}
+
+function mail_from(): string
+{
+    return (string)Setting::get('mail_from', 'noreply@example.com');
+}
+
+function send_email(string $to, string $subject, string $html): bool
+{
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    $from = mail_from();
+    $headers = 'From: ' . $from . "\r\n"
+        . 'Content-Type: text/html; charset=UTF-8' . "\r\n"
+        . 'MIME-Version: 1.0' . "\r\n";
+    return (bool)@mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $html, $headers);
+}

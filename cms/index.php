@@ -39,6 +39,8 @@ $routes = [
     'profile'         => ['ProfileController', 'index', ['any']],
     'profile_save'    => ['ProfileController', 'save', ['any']],
     'login'           => ['AuthController', 'login', ['public']],
+    'forgot'          => ['AuthController', 'forgot', ['public']],
+    'reset'           => ['AuthController', 'reset', ['public']],
     'logout'          => ['AuthController', 'logout', ['any']],
 ];
 
@@ -96,6 +98,8 @@ if ($isPost) {
         'settings_save' => 'save',
         'profile_save' => 'save',
         'login' => 'login',
+        'forgot' => 'forgot',
+        'reset' => 'reset',
         'logout' => 'logout',
         'meeting_delete' => 'delete',
         'place_delete' => 'delete',

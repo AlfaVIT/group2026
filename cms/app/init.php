@@ -18,3 +18,5 @@ mb_internal_encoding('UTF-8');
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+
+run_migrations();

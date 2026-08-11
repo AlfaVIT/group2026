@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone TEXT DEFAULT '',
     birthday TEXT DEFAULT '',
     email TEXT NOT NULL UNIQUE,
+    telegram TEXT DEFAULT '',
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'СестраБрат',
     is_active INTEGER NOT NULL DEFAULT 1,
@@ -107,12 +108,53 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 SQL;
 
     $pdo->exec($schema);
 
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '2')");
+}
+
+function run_migrations(): void
+{
+    if (!is_file(DB_PATH)) {
+        return;
+    }
+    try {
+        $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
+        if ($version >= 2) {
+            return;
+        }
+
+        $cols = array_column(Db::fetchAll('PRAGMA table_info(users)'), 'name');
+        if (!in_array('telegram', $cols, true)) {
+            Db::q("ALTER TABLE users ADD COLUMN telegram TEXT DEFAULT ''");
+        }
+        Db::q('CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            used INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )');
+        Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
+        Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '2')");
+        Db::q("UPDATE settings SET value = '2' WHERE key = 'schema_version'");
+    } catch (Throwable $e) {
+    }
 }
 
 function install_create_admin(array $data): array

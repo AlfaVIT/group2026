@@ -16,7 +16,7 @@ class UserController
         unset($_SESSION['user_form']);
         $data = $prev ?? $user ?? [
             'address_term' => 'брат', 'name' => '', 'phone' => '', 'birthday' => '',
-            'email' => '', 'role' => 'СестраБрат', 'is_active' => 1,
+            'email' => '', 'telegram' => '', 'role' => 'СестраБрат', 'is_active' => 1,
         ];
 
         view('user_edit', [
@@ -35,6 +35,7 @@ class UserController
         $phone = input('phone');
         $birthday = input('birthday');
         $email = mb_strtolower(trim(input('email')));
+        $telegram = trim(input('telegram'));
         $role = input('role');
         $isActive = isset($_POST['is_active']) ? 1 : 0;
         $password = (string)($_POST['password'] ?? '');
@@ -49,6 +50,9 @@ class UserController
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Укажите корректный email';
+        }
+        if (mb_strlen($telegram) > 64) {
+            $errors[] = 'Ник в Telegram не длиннее 64 символов';
         }
         if (!in_array($role, ROLES, true)) {
             $errors[] = 'Некорректная роль';
@@ -73,8 +77,8 @@ class UserController
         if ($errors) {
             $_SESSION['user_form'] = [
                 'address_term' => $addressTerm, 'name' => $name, 'phone' => $phone,
-                'birthday' => $birthday, 'email' => $email, 'role' => $role,
-                'is_active' => $isActive,
+                'birthday' => $birthday, 'email' => $email, 'telegram' => $telegram,
+                'role' => $role, 'is_active' => $isActive,
             ];
             set_flash(implode('<br>', $errors), 'danger');
             redirect(url('user_edit', ['id' => $id ?: null]));
@@ -86,6 +90,7 @@ class UserController
             'phone' => $phone,
             'birthday' => $birthday,
             'email' => $email,
+            'telegram' => $telegram,
             'role' => $role,
             'is_active' => $isActive,
         ];
