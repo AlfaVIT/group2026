@@ -1,0 +1,26 @@
+# Зависимости
+node_modules/
+vendor/
+venv/
+.venv/
+
+# Логи и временные файлы
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Настройки окружения
+.env
+.env.local
+.env.*.local
+
+# Редакторы
+.idea/
+.vscode/
+*.swp
+
+# Сборка
+dist/
+build/
+coverage/
