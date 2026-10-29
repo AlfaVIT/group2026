@@ -1,0 +1,163 @@
+/* --- Тёмная схема оформления --- */
+
+html[data-theme="dark"] {
+    --cms-navy: #4a6fa5;
+    --cms-navy-deep: #d4def0;
+    --cms-gold: #c9a54a;
+    --cms-gold-bright: #d9b96a;
+    --cms-gold-soft: #5a4a1e;
+    --cms-cream: #131a26;
+    --cms-card: #1c2434;
+    --cms-line: #2d3a52;
+    --cms-text: #d7deea;
+
+    --bs-body-bg: var(--cms-cream);
+    --bs-body-color: var(--cms-text);
+    --bs-secondary-color: #96a4bd;
+    --bs-tertiary-color: #7c8ba6;
+    --bs-secondary-bg: #232e41;
+    --bs-tertiary-bg: #212b3d;
+    --bs-border-color: var(--cms-line);
+    --bs-card-bg: var(--cms-card);
+    --bs-card-color: var(--cms-text);
+    --bs-link-color: #9db9e8;
+    --bs-link-hover-color: var(--cms-gold-bright);
+    --bs-link-color-rgb: 157, 185, 232;
+    --bs-emphasis-color: #f2f5fa;
+}
+
+html[data-theme="dark"] body {
+    background-color: var(--cms-cream);
+    color: var(--cms-text);
+}
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 {
+    color: var(--cms-navy-deep);
+}
+
+html[data-theme="dark"] .card-header {
+    background: linear-gradient(180deg, #25314a 0%, #1f2a40 100%);
+}
+
+html[data-theme="dark"] .card-footer {
+    background: rgba(45, 58, 82, .4);
+}
+
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select {
+    background-color: var(--cms-card);
+    border-color: #3d4d6b;
+    color: var(--cms-text);
+}
+
+html[data-theme="dark"] .form-control:disabled,
+html[data-theme="dark"] .form-select:disabled {
+    background-color: var(--cms-secondary-bg);
+}
+
+html[data-theme="dark"] .accordion {
+    --bs-accordion-active-bg: #2a3a52;
+}
+
+html[data-theme="dark"] .dropdown-menu {
+    --bs-dropdown-bg: var(--cms-card);
+    --bs-dropdown-link-hover-bg: #2a3a52;
+    --bs-dropdown-link-color: var(--cms-text);
+    --bs-dropdown-link-hover-color: var(--cms-text);
+}
+
+html[data-theme="dark"] .btn-outline-secondary {
+    --bs-btn-color: #b8c4d9;
+    --bs-btn-border-color: #3d4d6b;
+    --bs-btn-hover-bg: #2a3a52;
+    --bs-btn-hover-border-color: #4a5d80;
+    --bs-btn-active-bg: #2a3a52;
+    --bs-btn-active-border-color: #4a5d80;
+}
+
+html[data-theme="dark"] .btn-outline-secondary.active {
+    --bs-btn-active-bg: #2a3a52;
+    --bs-btn-active-color: var(--cms-gold-bright);
+}
+
+html[data-theme="dark"] .table {
+    --bs-table-color: var(--cms-text);
+    --bs-table-striped-bg: rgba(255, 255, 255, .02);
+}
+
+html[data-theme="dark"] .auth-body {
+    background:
+        radial-gradient(900px 420px at 50% -120px, #22304a 0%, rgba(34, 48, 74, 0) 60%),
+        var(--cms-cream);
+}
+
+html[data-theme="dark"] .auth-brand .subtitle {
+    color: #b8c4d9;
+}
+
+html[data-theme="dark"] .cms-bd-tabs .nav-link {
+    border-color: #4a5d80;
+}
+
+html[data-theme="dark"] .tag-badge {
+    background: linear-gradient(180deg, #4a3d14 0%, #5a4a1e 100%);
+    color: var(--cms-gold-bright);
+    border-color: #6b5620;
+}
+
+html[data-theme="dark"] .cms-pwd-btn {
+    color: var(--cms-gold-bright);
+}
+
+html[data-theme="dark"] .service-content {
+    color: #d7deea;
+}
+
+html[data-theme="dark"] .service-content blockquote {
+    border-left-color: rgba(201, 165, 74, .45);
+    color: #aeb9cc;
+}
+
+html[data-theme="dark"] .service-content code {
+    background: rgba(201, 165, 74, .12);
+}
+
+html[data-theme="dark"] .material-content {
+    color: #d7deea;
+}
+
+html[data-theme="dark"] .text-bg-light {
+    background-color: #2a3550 !important;
+    color: #d7deea !important;
+    border-color: #3d4d6b !important;
+}
+
+html[data-theme="dark"] .nav-tabs .nav-link.active {
+    background-color: var(--cms-card);
+}
+
+html[data-theme="dark"] .cms-contact-row a {
+    color: #9db9e8;
+}
+
+/* Текст вечерни — светлая «бумага», чтобы не сливался с тёмным фоном */
+html[data-theme="dark"] .cms-vespers-text {
+    background: #f6f3e9;
+    color: #26221a;
+    padding: 1.25rem;
+    border-radius: .6rem;
+}
+
+html[data-theme="dark"] .cms-vespers-text h1.H1,
+html[data-theme="dark"] .cms-vespers-text h2.H2,
+html[data-theme="dark"] .cms-vespers-text h3.H3,
+html[data-theme="dark"] .cms-vespers-text h4.H4,
+html[data-theme="dark"] .cms-vespers-text h5,
+html[data-theme="dark"] .cms-vespers-text .cms-vespers-reader {
+    color: #1b2a4a;
+}

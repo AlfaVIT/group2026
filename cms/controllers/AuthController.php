@@ -4,11 +4,27 @@ class AuthController
 {
     public function login(): void
     {
+        $this->ensure_valid_session();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = input('email');
-            $user = Db::fetch('SELECT id, email, role FROM users WHERE lower(email) = lower(?)', [$email]);
-            $error = 'Неверный email или пароль';
+            $user = Db::fetch(
+                'SELECT id, email, login, role FROM users WHERE lower(email) = lower(?) OR (login != \'\' AND lower(login) = lower(?))',
+                [$email, $email]
+            );
+            $error = 'Неверный логин или пароль';
             if ($user && Auth::attempt($email, (string)($_POST['password'] ?? ''))) {
+                log_visit((int)$user['id']);
+                if (isset($_POST['remember'])) {
+                    $p = session_get_cookie_params();
+                    setcookie(session_name(), session_id(), [
+                        'expires' => time() + 30 * 86400,
+                        'path' => $p['path'],
+                        'domain' => $p['domain'],
+                        'secure' => $p['secure'],
+                        'httponly' => $p['httponly'],
+                        'samesite' => $p['samesite'] ?? 'Lax',
+                    ]);
+                }
                 set_flash('Добро пожаловать!');
                 redirect(url('home'));
             }
@@ -28,6 +44,20 @@ class AuthController
         redirect(url('login'));
     }
 
+    /**
+     * Гарантирует валидную сессию после смены версии PHP. Каталог сессий привязан
+     * к версии PHP, поэтому у пользователя мог остаться устаревший cookie (его id
+     * не соответствует текущему шестнадцатеричному формату) — в этом случае сессия
+     * и защитная метка пересоздаются, чтобы форма ей всегда соответствовала.
+     */
+    private function ensure_valid_session(): void
+    {
+        if (!preg_match('/^[a-f0-9]+$/', session_id())) {
+            session_regenerate_id(true);
+            $_SESSION['csrf'] = bin2hex(random_bytes(16));
+        }
+    }
+
     public function page_install(): void
     {
         require BASE_PATH . '/install.php';
@@ -35,9 +65,13 @@ class AuthController
 
     public function forgot(): void
     {
+        $this->ensure_valid_session();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = mb_strtolower(trim(input('email')));
-            $user = Db::fetch('SELECT * FROM users WHERE lower(email) = lower(?) AND is_active = 1', [$email]);
+            $user = Db::fetch(
+                'SELECT * FROM users WHERE lower(email) = lower(?) AND is_active = 1',
+                [$email]
+            );
             if ($user) {
                 $token = bin2hex(random_bytes(32));
                 Db::q('DELETE FROM password_resets WHERE user_id = ?', [$user['id']]);
@@ -68,6 +102,7 @@ class AuthController
 
     public function reset(): void
     {
+        $this->ensure_valid_session();
         $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
         $row = Db::fetch(
             'SELECT pr.*, u.email FROM password_resets pr

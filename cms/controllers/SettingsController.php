@@ -22,12 +22,33 @@ class SettingsController
              ORDER BY m.date DESC LIMIT 100'
         );
 
+        $meetingParticipants = [];
+        if ($meetings) {
+            $ids = implode(',', array_map('intval', array_column($meetings, 'id')));
+            $ph = implode(',', array_fill(0, count(ATTENDANCE_ROLES), '?'));
+            $marked = [];
+            foreach (Db::fetchAll(
+                "SELECT a.meeting_id, COUNT(*) AS cnt
+                 FROM attendance a JOIN users u ON u.id = a.user_id
+                 WHERE a.meeting_id IN ($ids) AND a.status = 'present' AND u.role IN ($ph)
+                 GROUP BY a.meeting_id",
+                ATTENDANCE_ROLES
+            ) as $row) {
+                $marked[(int)$row['meeting_id']] = (int)$row['cnt'];
+            }
+            foreach ($meetings as $m) {
+                $meetingParticipants[$m['id']] = ($marked[$m['id']] ?? 0)
+                    + count_meeting_guests((string)$m['guests']);
+            }
+        }
+
         view('settings', [
             'title' => 'Настройки',
             'tab' => $tab,
             'users' => $users,
             'places' => $places,
             'meetings' => $meetings,
+            'meetingParticipants' => $meetingParticipants,
             'themes' => theme_list(),
             'siteName' => Setting::siteName(),
             'theme' => Setting::theme(),

@@ -75,9 +75,10 @@ a:hover {
     gap: .6rem;
     font-size: 1.18rem;
     letter-spacing: .02em;
+    color: var(--cms-gold-bright);
 }
 
-.navbar-brand .cms-cross {
+.navbar-brand .cms-fish {
     color: var(--cms-gold-bright);
 }
 
@@ -97,7 +98,7 @@ footer.bg-dark {
     color: var(--cms-gold-bright);
 }
 
-footer .cms-cross {
+footer .cms-fish {
     color: var(--cms-gold);
 }
 
@@ -245,6 +246,29 @@ footer .cms-cross {
     border-radius: .75rem;
 }
 
+#cms-toasts {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    max-width: min(380px, calc(100vw - 2rem));
+}
+
+.cms-toast {
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .25s ease, transform .25s ease;
+}
+
+.cms-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* --- Заголовки-акценты --- */
 
 .h5.text-success {
@@ -275,7 +299,7 @@ footer .cms-cross {
     margin-bottom: 1.25rem;
 }
 
-.auth-brand .cms-cross {
+.auth-brand .cms-fish {
     color: var(--cms-gold);
 }
 
@@ -316,12 +340,119 @@ footer .cms-cross {
     margin: 0;
 }
 
-/* --- Крест (декор) --- */
+/* --- Рыбка (декор) --- */
 
-.cms-cross {
+.cms-fish {
     display: inline-block;
     line-height: 0;
     flex: 0 0 auto;
+}
+
+/* --- Дни рождения --- */
+
+.cms-bd-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: .35rem;
+    padding-bottom: .25rem;
+}
+
+.cms-bd-tabs .nav-link {
+    white-space: nowrap;
+    padding: .32rem .8rem;
+    border-radius: 2rem;
+    font-size: .92rem;
+    color: var(--cms-navy);
+    background: transparent;
+    border: 1px solid rgba(176, 138, 46, .35);
+}
+
+.cms-bd-tabs .nav-link:hover,
+.cms-bd-tabs .nav-link.active {
+    background: var(--cms-gold);
+    border-color: var(--cms-gold);
+    color: #fff;
+}
+
+.bd-panel .cms-bd-row {
+    border-bottom: 1px dashed var(--cms-line);
+}
+
+.bd-panel .cms-bd-row:last-child {
+    border-bottom: 0;
+}
+
+/* --- Показ пароля --- */
+
+.cms-pwd {
+    position: relative;
+}
+
+.cms-pwd > input {
+    padding-right: 2.6rem;
+}
+
+.cms-pwd-btn {
+    position: absolute;
+    top: 50%;
+    right: .4rem;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    border: 0;
+    border-radius: .45rem;
+    background: transparent;
+    color: #8a7a4d;
+    line-height: 0;
+}
+
+.cms-pwd-btn:hover {
+    color: var(--cms-gold);
+    background: rgba(176, 138, 46, .14);
+}
+
+.cms-pwd-btn:focus-visible {
+    outline: 2px solid var(--cms-gold);
+    outline-offset: 1px;
+}
+
+/* --- Метка встречи --- */
+
+.tag-badge {
+    display: inline-block;
+    background: linear-gradient(180deg, #f3e7c3 0%, #ecd9a6 100%);
+    color: #6b5620;
+    border: 1px solid var(--cms-gold-soft);
+    font-weight: 600;
+    font-size: .72rem;
+    letter-spacing: .02em;
+    border-radius: 2rem;
+    padding: .22rem .7rem;
+    white-space: nowrap;
+}
+
+/* --- Казна --- */
+
+.balance-badge {
+    display: inline-block;
+    background: linear-gradient(180deg, var(--cms-navy) 0%, var(--cms-navy-deep) 100%);
+    color: var(--cms-gold-bright);
+    border-radius: 2rem;
+    padding: .3rem .8rem;
+    font-size: .85rem;
+    box-shadow: 0 4px 12px -6px rgba(21, 43, 70, .5);
+}
+
+.treasury-chart circle {
+    transition: r .15s ease, fill .15s ease;
+}
+
+.treasury-chart circle:hover {
+    r: 5;
 }
 
 @media (max-width: 575.98px) {
@@ -329,8 +460,341 @@ footer .cms-cross {
         font-size: 1rem;
     }
 
-    .navbar-brand .cms-cross {
+    .navbar-brand .cms-fish {
         width: 18px !important;
         height: 18px !important;
     }
+}
+
+.service-content {
+    font-size: 1.02rem;
+    line-height: 1.7;
+    color: #2c2c2c;
+}
+
+.service-content p {
+    margin-bottom: .9rem;
+}
+
+.service-content p:last-child {
+    margin-bottom: 0;
+}
+
+.service-content h3 {
+    margin: 1.4rem 0 .9rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--cms-gold-dark, #8a6d1d);
+}
+
+.service-content h3:first-child {
+    margin-top: 0;
+}
+
+.service-content blockquote {
+    margin: 0 0 .9rem 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid rgba(138, 109, 29, .35);
+    color: #555;
+}
+
+.service-content strong {
+    font-weight: 700;
+}
+
+.service-content code {
+    padding: .1rem .3rem;
+    background: rgba(138, 109, 29, .08);
+    border-radius: .3rem;
+    font-size: .92em;
+}
+
+.service-content em {
+    font-style: italic;
+}
+
+.service-assignee {
+    margin: -0.35rem 0 .9rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--cms-gold-dark, #8a6d1d);
+}
+
+/* --- Размер текста (настройка пользователя) --- */
+
+html[data-font-size="70"] {
+    font-size: 70%;
+}
+
+html[data-font-size="80"] {
+    font-size: 80%;
+}
+
+html[data-font-size="90"] {
+    font-size: 90%;
+}
+
+html[data-font-size="110"] {
+    font-size: 110%;
+}
+
+html[data-font-size="120"] {
+    font-size: 120%;
+}
+
+html[data-font-size="130"] {
+    font-size: 130%;
+}
+
+html[data-font-size="140"] {
+    font-size: 140%;
+}
+
+html[data-font-size="150"] {
+    font-size: 150%;
+}
+
+.cms-font-size .cms-a-btn {
+    font-family: Georgia, "Times New Roman", "PT Serif", serif;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: .45rem .85rem;
+}
+
+/* --- Материалы --- */
+
+.material-image {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    border-radius: .6rem;
+    border: 1px solid var(--cms-line);
+}
+
+.material-image-sm {
+    max-height: 120px;
+}
+
+.material-content {
+    color: #2c2c2c;
+    line-height: 1.65;
+}
+
+/* --- Скроллбары блоков --- */
+
+.cms-bd-tabs,
+.cms-cal-strip,
+.table-responsive,
+.cms-contacts {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cms-gold) rgba(176, 138, 46, .14);
+}
+
+.cms-bd-tabs::-webkit-scrollbar,
+.cms-cal-strip::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar,
+.cms-contacts::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.cms-bd-tabs::-webkit-scrollbar-track,
+.cms-cal-strip::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track,
+.cms-contacts::-webkit-scrollbar-track {
+    background: rgba(176, 138, 46, .12);
+    border-radius: 4px;
+}
+
+.cms-bd-tabs::-webkit-scrollbar-thumb,
+.cms-cal-strip::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb,
+.cms-contacts::-webkit-scrollbar-thumb {
+    background: var(--cms-gold);
+    border-radius: 4px;
+}
+
+.cms-bd-tabs::-webkit-scrollbar-thumb:hover,
+.cms-cal-strip::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.cms-contacts::-webkit-scrollbar-thumb:hover {
+    background: var(--cms-gold-bright);
+}
+
+/* --- Полоса дней месяца (календарь) --- */
+
+.cms-cal-strip-conteiner {
+    overflow: auto;
+}
+.cms-cal-strip {
+    display: flex;
+    gap: 3px;
+    width: 100%;
+    width: 850px;
+    margin-inline: auto;
+    flex-wrap: nowrap;
+}
+
+.cms-cal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 3px 0 2px;
+    border-radius: 8px;
+    border: 1px solid rgba(176, 138, 46, .25);
+    background: rgba(176, 138, 46, .06);
+    color: var(--cms-text);
+    text-decoration: none;
+}
+
+a.cms-cal-cell:hover {
+    background: rgba(176, 138, 46, .14);
+}
+
+.cms-cal-cell .cms-cal-d {
+    font-weight: 600;
+    font-size: .8rem;
+    line-height: 1.15;
+}
+
+.cms-cal-cell .cms-cal-w {
+    font-size: .6rem;
+    line-height: 1.15;
+    color: #8a7a4d;
+}
+
+.cms-cal-cell.has-meeting {
+    background: var(--cms-gold);
+    border-color: var(--cms-gold);
+    color: #fff;
+}
+
+.cms-cal-cell.has-meeting .cms-cal-w {
+    color: rgba(255, 255, 255, .85);
+}
+
+.cms-cal-cell.today {
+    outline: 2px solid var(--cms-navy);
+    outline-offset: 1px;
+}
+
+.cms-cal-cell.today.has-meeting {
+    outline-color: var(--cms-gold-bright);
+}
+
+.cms-cal-cell.selected {
+    box-shadow: 0 0 0 2px var(--cms-navy);
+}
+
+/* --- Текст вечерни (molitva.app) --- */
+
+.cms-vespers-frame {
+    display: block;
+    width: 100%;
+    min-height: 74vh;
+    margin: 0 auto;
+    border: 1px solid rgba(176, 138, 46, .35);
+    border-radius: .6rem;
+    background: #fff;
+}
+
+.cms-vespers-text {
+    max-width: 46rem;
+    margin: 0 auto;
+    color: #26221a;
+    line-height: 1.55;
+}
+
+.cms-vespers-text h1.H1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--cms-navy, #1b2a4a);
+    margin: 1.1rem 0 .5rem;
+    text-align: center;
+}
+
+.cms-vespers-text h2.H2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--cms-navy, #1b2a4a);
+    margin: 1.2rem 0 .4rem;
+    border-bottom: 1px solid rgba(176, 138, 46, .35);
+    padding-bottom: .2rem;
+}
+
+.cms-vespers-text h3.H3 {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--cms-navy, #1b2a4a);
+    margin: 1rem 0 .35rem;
+}
+
+.cms-vespers-text h4.H4,
+.cms-vespers-text h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cms-navy, #1b2a4a);
+    margin: .85rem 0 .3rem;
+}
+
+.cms-vespers-text p.P {
+    margin: 0 0 .45rem;
+}
+
+.cms-vespers-text .cms-vespers-reader {
+    margin: .5rem 0 .25rem;
+    font-weight: 600;
+    color: var(--cms-navy, #1b2a4a);
+}
+
+.cms-vespers-text .Red {
+    color: #a32626;
+    font-weight: 600;
+}
+
+.cms-vespers-text .Petit {
+    font-size: .9em;
+    opacity: .82;
+}
+
+.cms-vespers-text .PetitInline {
+    font-size: .9em;
+    opacity: .82;
+}
+
+.cms-vespers-text .Super {
+    vertical-align: super;
+    font-size: .72em;
+}
+
+.cms-vespers-text .main {
+    font-weight: 600;
+}
+
+.cms-vespers-text .minortext {
+    font-size: .92em;
+    opacity: .78;
+}
+
+.cms-vespers-text .normaltext {
+    font-size: 1em;
+}
+
+.cms-vespers-text .invert {
+    filter: invert(1);
+}
+
+/* --- Мини-карта Яндекс.Карт --- */
+
+.cms-mini-map {
+    display: block;
+    width: 100%;
+    height: 220px;
+    border: 1px solid rgba(176, 138, 46, .35);
+    border-radius: .6rem;
+    background: #eef1f5;
 }

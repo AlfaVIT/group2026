@@ -31,6 +31,11 @@ cms/uploads/*
 !cms/uploads/.gitkeep
 cms/data/*.sqlite-shm
 cms/data/*.sqlite-wal
+cms/data/cache/
 
 # Архив для деплоя
 cms/cms.zip
+
+# Учётные данные доступа к хостингу
+ftp.txt
+*.ftp.txt

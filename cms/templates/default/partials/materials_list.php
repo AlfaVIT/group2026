@@ -9,12 +9,16 @@ if (!$materials) {
     <ul class="list-unstyled small mb-0 mt-1">
         <?php foreach ($materials as $item): ?>
             <?php if (($item['type'] ?? '') === 'link'): ?>
-                <li class="mb-1">
-                    <a href="<?= e($item['url'] ?? '#') ?>" target="_blank" rel="noopener"
-                       class="text-decoration-none">
-                        <span class="badge bg-primary-subtle text-primary-emphasis me-1">ссылка</span>
-                        <?= e($item['title'] ?? $item['url']) ?>
-                    </a>
+                <?php $hasTitle = !empty($item['title']) && $item['title'] !== ($item['url'] ?? ''); ?>
+                <li class="mb-1 d-flex align-items-center flex-wrap gap-2">
+                    <span class="badge bg-primary-subtle text-primary-emphasis">ссылка</span>
+                    <?php if ($hasTitle): ?>
+                        <a href="<?= e($item['url'] ?? '#') ?>" target="_blank" rel="noopener"
+                           class="text-decoration-none fw-semibold"><?= e($item['title']) ?></a>
+                    <?php else: ?>
+                        <a href="<?= e($item['url'] ?? '#') ?>" target="_blank" rel="noopener"
+                           class="btn btn-sm btn-outline-primary py-0">Перейти</a>
+                    <?php endif; ?>
                 </li>
             <?php else: ?>
                 <li class="mb-1">

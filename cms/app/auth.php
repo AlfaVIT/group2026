@@ -27,9 +27,12 @@ class Auth
         return $u ? (int)$u['id'] : null;
     }
 
-    public static function attempt(string $email, string $password): bool
+    public static function attempt(string $identifier, string $password): bool
     {
-        $user = Db::fetch('SELECT * FROM users WHERE lower(email) = lower(?)', [$email]);
+        $user = Db::fetch(
+            'SELECT * FROM users WHERE lower(email) = lower(?) OR (login != \'\' AND lower(login) = lower(?))',
+            [$identifier, $identifier]
+        );
         if (!$user || !password_verify($password, $user['password_hash'])) {
             return false;
         }

@@ -30,9 +30,46 @@ $isEdit = (bool)$meeting;
         </select>
     </div>
 
-    <div class="col-12">
+    <div class="col-md-6">
+        <label class="form-label" for="meeting_type">Тип встречи</label>
+        <input class="form-control" type="text" id="meeting_type" name="meeting_type" list="meetingTypeList"
+               value="<?= e($data['meeting_type'] ?? '') ?>" placeholder="Выберите или введите значение">
+        <datalist id="meetingTypeList">
+            <?php foreach ($meetingTypes as $mt): ?>
+                <option value="<?= e($mt) ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
+    </div>
+
+    <div class="col-md-6">
         <label class="form-label" for="topic">Тема</label>
         <input class="form-control" type="text" id="topic" name="topic" value="<?= e($data['topic'] ?? '') ?>">
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="senior_user_id">Старший на встрече</label>
+        <select class="form-select" id="senior_user_id" name="senior_user_id">
+            <option value="">— не назначен —</option>
+            <?php foreach ($seniorCandidates as $sc): ?>
+                <option value="<?= (int)$sc['id'] ?>"
+                    <?= (int)($data['senior_user_id'] ?? 0) === (int)$sc['id'] ? 'selected' : '' ?>>
+                    <?= e(full_name($sc)) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <div class="form-text">Выбирается из очных участников встречи (включая гостей); можно не указывать.</div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="tag">Метка встречи</label>
+        <input class="form-control" type="text" id="tag" name="tag" maxlength="50" list="tagList"
+               value="<?= e($data['tag'] ?? '') ?>" placeholder="Например: катехизация, молитвенное собрание…">
+        <datalist id="tagList">
+            <?php foreach ($tags as $t): ?>
+                <option value="<?= e($t['tag']) ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
+        <div class="form-text">Выберите из ранее использованных меток или введите новое значение</div>
     </div>
 
     <div class="col-12">
@@ -69,17 +106,24 @@ $isEdit = (bool)$meeting;
 
     <div class="col-md-6">
         <label class="form-label" for="guests">Гости</label>
-        <input class="form-control" type="text" id="guests" name="guests" value="<?= e($data['guests'] ?? '') ?>"
-               placeholder="Имена гостей">
+        <select class="form-select" id="guests" name="guests[]" multiple size="5">
+            <?php if (!$guestUsers): ?>
+                <option value="" disabled>Нет учётных записей с ролью «Гость»</option>
+            <?php endif; ?>
+            <?php foreach ($guestUsers as $gu): ?>
+                <option value="<?= (int)$gu['id'] ?>"
+                    <?= in_array((string)$gu['id'], $guestIds, true) ? 'selected' : '' ?>>
+                    <?= e(full_name($gu)) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <div class="form-text">
+            Гости выбираются из учётных записей с ролью «Гость»; можно выбрать несколько
+            (с зажатой Ctrl или Shift).
+        </div>
     </div>
 
-    <div class="col-md-3">
-        <label class="form-label" for="participants_count">Количество участников</label>
-        <input class="form-control" type="number" id="participants_count" name="participants_count" min="0"
-               value="<?= e($data['participants_count'] ?? '') ?>">
-    </div>
-
-    <div class="col-md-3">
+    <div class="col-md-6">
         <label class="form-label" for="stream_url">Ссылка на трансляцию</label>
         <input class="form-control" type="url" id="stream_url" name="stream_url"
                value="<?= e($data['stream_url'] ?? '') ?>" placeholder="https://…">

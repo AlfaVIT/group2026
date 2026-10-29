@@ -7,6 +7,8 @@ require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/view.php';
 require_once __DIR__ . '/installer.php';
+require_once __DIR__ . '/vespers_text.php';
+require_once __DIR__ . '/telegram.php';
 
 foreach (glob(__DIR__ . '/../controllers/*.php') ?: [] as $controllerFile) {
     require_once $controllerFile;

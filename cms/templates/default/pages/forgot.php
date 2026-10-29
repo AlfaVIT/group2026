@@ -1,17 +1,22 @@
 <?php
 $flash = get_flash();
 $themeCss = theme_asset('theme.css');
+$schemeCss = theme_scheme_css();
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="<?= e(theme_scheme()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Восстановление пароля — <?= e(Setting::siteName()) ?></title>
+    <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
     <?php if ($themeCss): ?>
         <link rel="stylesheet" href="<?= e($themeCss) ?>">
+    <?php endif; ?>
+    <?php if ($schemeCss): ?>
+        <link rel="stylesheet" href="<?= e($schemeCss) ?>">
     <?php endif; ?>
 </head>
 <body class="auth-body">
@@ -19,7 +24,7 @@ $themeCss = theme_asset('theme.css');
     <div class="card auth-card">
         <div class="card-body p-4">
             <div class="auth-brand">
-                <?php partial('cross', ['width' => 34]); ?>
+                <?php partial('fish', ['width' => 34]); ?>
                 <h1 class="title">Восстановление пароля</h1>
                 <div class="rule"></div>
                 <p class="subtitle">Укажите email, на который зарегистрирована учётная запись</p>
@@ -33,7 +38,7 @@ $themeCss = theme_asset('theme.css');
                 <div class="alert alert-danger py-2 small"><?= e($error) ?></div>
             <?php endif; ?>
 
-            <form method="post" action="<?= url('forgot') ?>">
+            <form method="post" action="<?= url('forgot') ?>" data-no-ajax>
                 <?= csrf_field() ?>
                 <div class="mb-4">
                     <label class="form-label" for="email">Email</label>
@@ -48,5 +53,6 @@ $themeCss = theme_asset('theme.css');
     </div>
     <p class="text-center text-body-secondary small mt-3 mb-0">Координация деятельности группы катехизации</p>
 </main>
+<?php partial('cookie_banner'); ?>
 </body>
 </html>

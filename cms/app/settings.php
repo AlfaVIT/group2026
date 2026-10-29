@@ -31,7 +31,6 @@ class Setting
     public static function theme(): string
     {
         $theme = (string)self::get('theme', DEFAULT_THEME);
-        return is_dir(BASE_PATH . '/templates/' . $theme) && is_file(BASE_PATH . '/templates/' . $theme . '/layout.php')
-            ? $theme : DEFAULT_THEME;
+        return in_array($theme, THEMES, true) ? $theme : DEFAULT_THEME;
     }
 }

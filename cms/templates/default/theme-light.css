@@ -1,0 +1,75 @@
+/* --- Светлая схема оформления --- */
+
+html[data-theme="light"] {
+    --cms-navy: #1e3a5f;
+    --cms-navy-deep: #152b46;
+    --cms-gold: #b08a2e;
+    --cms-gold-bright: #c9a54a;
+    --cms-gold-soft: #e4d29a;
+    --cms-cream: #ffffff;
+    --cms-card: #ffffff;
+    --cms-line: #e2e6ee;
+    --cms-text: #34415a;
+
+    --bs-body-bg: var(--cms-cream);
+    --bs-body-color: var(--cms-text);
+    --bs-secondary-color: #66738c;
+    --bs-tertiary-color: #8a96ab;
+    --bs-secondary-bg: #f4f6fa;
+    --bs-tertiary-bg: #eef1f7;
+    --bs-border-color: var(--cms-line);
+    --bs-card-bg: var(--cms-card);
+    --bs-card-color: var(--cms-text);
+    --bs-link-color: #1e3a5f;
+    --bs-link-hover-color: #b08a2e;
+    --bs-link-color-rgb: 30, 58, 95;
+    --bs-emphasis-color: #1a2438;
+}
+
+html[data-theme="light"] body {
+    background-color: var(--cms-cream);
+    color: var(--cms-text);
+}
+
+html[data-theme="light"] .card-header {
+    background: linear-gradient(180deg, #ffffff 0%, #f4f6fa 100%);
+}
+
+html[data-theme="light"] .card-footer {
+    background: #f4f6fa;
+}
+
+html[data-theme="light"] .form-control,
+html[data-theme="light"] .form-select {
+    background-color: #ffffff;
+    border-color: #ccd4e2;
+    color: var(--cms-text);
+}
+
+html[data-theme="light"] .accordion {
+    --bs-accordion-active-bg: #eef1f7;
+}
+
+html[data-theme="light"] .dropdown-menu {
+    --bs-dropdown-bg: #ffffff;
+    --bs-dropdown-link-hover-bg: #eef1f7;
+    --bs-dropdown-link-color: var(--cms-text);
+}
+
+html[data-theme="light"] .auth-body {
+    background:
+        radial-gradient(900px 420px at 50% -120px, #eef3fa 0%, rgba(238, 243, 250, 0) 60%),
+        #ffffff;
+}
+
+html[data-theme="light"] .cms-bd-tabs .nav-link {
+    border-color: #c9d4e6;
+}
+
+html[data-theme="light"] .service-content blockquote {
+    border-left-color: rgba(176, 138, 46, .35);
+}
+
+html[data-theme="light"] .nav-tabs .nav-link.active {
+    background-color: #ffffff;
+}

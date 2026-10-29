@@ -13,7 +13,7 @@ foreach ($roles as $r) {
         <?php foreach (MEETING_ROLES as $roleName): ?>
             <?php if (empty($byRole[$roleName])): continue; endif; ?>
             <div class="border rounded-3 p-2 bg-body-tertiary">
-                <div class="small fw-semibold text-primary"><?= e($roleName) ?></div>
+                <div class="small fw-semibold text-primary"><?= e(role_label($roleName)) ?></div>
                 <?php foreach ($byRole[$roleName] as $person): ?>
                     <div class="small">
                         <?= e(full_name($person)) ?>

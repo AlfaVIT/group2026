@@ -16,7 +16,17 @@ if ($needsInstall) {
 
 $routes = [
     'home'            => ['HomeController', 'index', ['any']],
+    'calendar'        => ['HomeController', 'calendar', ['any']],
     'meeting'         => ['MeetingController', 'view', ['any']],
+    'meeting_ics'     => ['MeetingController', 'ics', ['any']],
+    'vespers'         => ['VespersController', 'view', ['any']],
+    'vespers_readers_save' => ['VespersController', 'saveReaders', ['assign_readers']],
+    'checklist_save'  => ['ChecklistController', 'save', ['mark_attendance']],
+    'materials'       => ['MaterialController', 'index', ['any']],
+    'material_save'   => ['MaterialController', 'save', ['any']],
+    'material_delete' => ['MaterialController', 'delete', ['any']],
+    'help'            => ['HelpController', 'index', ['any']],
+    'stats'           => ['StatsController', 'index', ['view_stats']],
     'meeting_edit'    => ['MeetingController', 'edit', ['manage_meetings']],
     'meeting_save'    => ['MeetingController', 'save', ['manage_meetings']],
     'meeting_delete'  => ['MeetingController', 'delete', ['manage_meetings']],
@@ -31,13 +41,23 @@ $routes = [
     'roles_save'      => ['RoleController', 'save', ['assign_roles']],
     'expense_add'     => ['ExpenseController', 'add', ['add_expense']],
     'expense_delete'  => ['ExpenseController', 'delete', ['any']],
-    'treasury'        => ['TreasuryController', 'index', ['view_treasury']],
+    'treasury'        => ['TreasuryController', 'index', ['view_treasury', 'view_treasury_graph']],
+    'treasury_report' => ['TreasuryController', 'report', ['view_treasury']],
+    'treasury_report_export' => ['TreasuryController', 'reportExport', ['view_treasury']],
     'treasury_save'   => ['TreasuryController', 'save', ['view_treasury']],
     'treasury_delete' => ['TreasuryController', 'delete', ['view_treasury']],
+    'expense_t_edit'  => ['TreasuryController', 'addExpense', ['view_treasury']],
+    'expense_t_del'   => ['TreasuryController', 'deleteExpense', ['view_treasury']],
     'settings'        => ['SettingsController', 'index', ['manage_settings']],
     'settings_save'   => ['SettingsController', 'save', ['manage_settings']],
+    'telegram'        => ['TelegramController', 'index', ['manage_settings']],
+    'telegram_save'   => ['TelegramController', 'save', ['manage_settings']],
+    'telegram_webhook' => ['TelegramController', 'webhook', ['manage_settings']],
+    'telegram_send'   => ['TelegramController', 'send', ['send_broadcast']],
     'profile'         => ['ProfileController', 'index', ['any']],
     'profile_save'    => ['ProfileController', 'save', ['any']],
+    'consent'         => ['ConsentController', 'index', ['everyone']],
+    'font_size_save'  => ['ProfileController', 'save', ['any']],
     'login'           => ['AuthController', 'login', ['public']],
     'forgot'          => ['AuthController', 'forgot', ['public']],
     'reset'           => ['AuthController', 'reset', ['public']],
@@ -60,6 +80,8 @@ if ($roles === ['public']) {
     if (Auth::check()) {
         redirect(url('home'));
     }
+} elseif ($roles === ['everyone']) {
+    // страница доступна и гостям, и авторизованным (например, текст соглашения)
 } else {
     $user = Auth::user();
     if (!$user) {
@@ -95,8 +117,18 @@ if ($isPost) {
         'expense_delete' => 'delete',
         'treasury_save' => 'save',
         'treasury_delete' => 'delete',
+        'expense_t_edit' => 'addExpense',
+        'expense_t_del' => 'deleteExpense',
         'settings_save' => 'save',
+        'telegram_save' => 'save',
+        'telegram_webhook' => 'webhook',
+        'telegram_send' => 'send',
         'profile_save' => 'save',
+        'font_size_save' => 'save',
+        'material_save' => 'save',
+        'material_delete' => 'delete',
+        'checklist_save' => 'save',
+        'vespers_readers_save' => 'saveReaders',
         'login' => 'login',
         'forgot' => 'forgot',
         'reset' => 'reset',

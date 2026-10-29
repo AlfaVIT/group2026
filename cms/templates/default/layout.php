@@ -1,17 +1,22 @@
 <?php
 $user = Auth::user();
 $themeCss = theme_asset('theme.css');
+$schemeCss = theme_scheme_css($user);
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="<?= e(user_theme($user)) ?>" data-font-size="<?= (int)user_font_size($user) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? Setting::siteName()) ?> — <?= e(Setting::siteName()) ?></title>
+    <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
     <?php if ($themeCss): ?>
         <link rel="stylesheet" href="<?= e($themeCss) ?>">
+    <?php endif; ?>
+    <?php if ($schemeCss): ?>
+        <link rel="stylesheet" href="<?= e($schemeCss) ?>">
     <?php endif; ?>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -19,7 +24,7 @@ $themeCss = theme_asset('theme.css');
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
     <div class="container">
         <a class="navbar-brand" href="<?= url('home') ?>">
-            <?php partial('cross', ['width' => 22]); ?>
+            <?php partial('fish', ['width' => 22]); ?>
             <span><?= e(Setting::siteName()) ?></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
@@ -29,11 +34,27 @@ $themeCss = theme_asset('theme.css');
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= url('home') ?>">Календарь встреч</a>
+                    <a class="nav-link" href="<?= url('home') ?>">Главная</a>
                 </li>
-                <?php if (Auth::can('view_treasury')): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?= url('calendar') ?>">Календарь встреч</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?= url('materials') ?>">Материалы</a>
+                </li>
+                <?php if (Auth::can('send_broadcast') || Auth::can('manage_settings')): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= url('telegram') ?>">Рассылка</a>
+                    </li>
+                <?php endif; ?>
+                <?php if (Auth::can('view_treasury') || Auth::can('view_treasury_graph')): ?>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= url('treasury') ?>">Казна</a>
+                    </li>
+                <?php endif; ?>
+                <?php if (Auth::can('view_stats')): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= url('stats') ?>">Статистика</a>
                     </li>
                 <?php endif; ?>
                 <?php if (Auth::can('manage_settings')): ?>
@@ -64,6 +85,16 @@ $themeCss = theme_asset('theme.css');
                         </li>
                     </ul>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center" href="<?= url('help') ?>" title="Справка" aria-label="Справка">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
@@ -85,15 +116,19 @@ $themeCss = theme_asset('theme.css');
 <footer class="bg-dark text-light py-4 mt-auto">
     <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2 small text-light-emphasis">
         <span class="cms-foot-title">
-            <?php partial('cross', ['width' => 16]); ?>
+            <?php partial('fish', ['width' => 16]); ?>
             <?= e(Setting::siteName()) ?>
         </span>
-        <span>Координация деятельности группы катехизации</span>
+        <span class="d-flex align-items-center gap-3">
+            <a class="text-light-emphasis text-decoration-none" href="<?= url('help') ?>">Справка</a>
+            <span>Координация деятельности группы катехизации</span>
+        </span>
     </div>
 </footer>
 
 <script src="<?= base_url() ?>/assets/vendor/jquery/jquery.min.js"></script>
 <script src="<?= base_url() ?>/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="<?= base_url() ?>/assets/js/app.js?=v=<?= filemtime(BASE_PATH . '/assets/js/app.js') ?>"></script>
+<?php partial('cookie_banner'); ?>
 </body>
 </html>

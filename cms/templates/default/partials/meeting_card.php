@@ -1,49 +1,66 @@
 <?php
 $meeting = $meeting;
 $roles = $roleAssignment[$meeting['id']] ?? [];
-$address = address_parts($meeting);
+$address = address_parts($meeting, true);
 $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($meeting);
 $my = $myAttendance[$meeting['id']] ?? null;
 ?>
-<div class="card h-100 shadow-sm meeting-card" id="meeting-<?= (int)$meeting['id'] ?>">
+<div class="card shadow-sm meeting-card" id="meeting-<?= (int)$meeting['id'] ?>">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span class="fw-semibold"><?= rdate($meeting['date']) ?></span>
-        <span class="small text-body-secondary"><?= e(date('H:i', strtotime($meeting['date']))) ?></span>
+        <span class="d-flex align-items-center gap-2">
+            <?php if ($meeting['tag'] !== ''): ?>
+                <span class="tag-badge"><?= e($meeting['tag']) ?></span>
+            <?php endif; ?>
+            <span class="small text-body-secondary"><?= e(date('H:i', strtotime($meeting['date']))) ?></span>
+        </span>
     </div>
     <div class="card-body">
-        <?php if ($meeting['topic'] !== ''): ?>
-            <h5 class="card-title"><?= e($meeting['topic']) ?></h5>
+        <?php $cardTitle = $meeting['meeting_type'] !== '' ? $meeting['meeting_type'] : $meeting['topic']; ?>
+        <?php if ($cardTitle !== ''): ?>
+            <h5 class="card-title"><?= e($cardTitle) ?></h5>
         <?php endif; ?>
 
-        <?php if ($meeting['place_title'] !== ''): ?>
-            <div class="small">
-                <span class="text-body-secondary">Место:</span>
-                <span class="fw-semibold"><?= e($meeting['place_title']) ?></span>
-                <?php if ($meeting['owner_name']): ?>
-                    <span class="text-body-secondary">(хозяин: <?= e(full_name(['address_term' => $meeting['owner_term'], 'name' => $meeting['owner_name']])) ?>)</span>
-                <?php endif; ?>
-            </div>
+        <?php if ($meeting['place_id']): ?>
             <?php if ($address): ?>
-                <div class="small text-body-secondary"><?= e(implode(', ', $address)) ?></div>
-            <?php endif; ?>
-            <?php if ($maps !== ''): ?>
                 <div class="small">
+                    <span class="text-body-secondary">Место:</span>
+                    <span><?= e(implode(', ', $address)) ?></span>
+                </div>
+            <?php endif; ?>
+            <?php $widget = yandex_map_widget($meeting); ?>
+            <?php if ($widget !== ''): ?>
+                <div class="mt-2">
+                    <iframe src="<?= e($widget) ?>" class="cms-mini-map" loading="lazy"
+                            title="Карта" allowfullscreen></iframe>
+                    <div class="small mt-1">
+                        <a href="<?= e($maps) ?>" target="_blank" rel="noopener" class="text-decoration-none">Открыть карту</a>
+                    </div>
+                </div>
+            <?php elseif ($maps !== ''): ?>
+                <div class="small mt-1">
                     <a href="<?= e($maps) ?>" target="_blank" rel="noopener" class="text-decoration-none">Показать на карте</a>
                 </div>
             <?php endif; ?>
         <?php endif; ?>
 
+        <?php if ($meeting['meeting_type'] !== '' && $meeting['topic'] !== ''): ?>
+            <div class="mt-2 small"><span class="text-body-secondary">Тема:</span> <?= e($meeting['topic']) ?></div>
+        <?php endif; ?>
+
         <?php partial('materials_list', ['meeting' => $meeting]); ?>
 
-        <?php if ($meeting['guests'] !== ''): ?>
+        <?php $guestNames = meeting_guest_names((string)$meeting['guests']); ?>
+        <?php if ($guestNames): ?>
             <div class="mt-2 small">
-                <span class="text-body-secondary">Гости:</span> <?= e($meeting['guests']) ?>
+                <span class="text-body-secondary">Гости:</span> <?= e(implode(', ', $guestNames)) ?>
             </div>
         <?php endif; ?>
 
-        <?php if ((int)$meeting['participants_count'] > 0): ?>
+        <?php $pc = (int)($attendanceSummary[$meeting['id']]['present'] ?? 0) + (int)($attendanceSummary[$meeting['id']]['guests'] ?? 0); ?>
+        <?php if ($pc > 0): ?>
             <div class="mt-1 small">
-                <span class="text-body-secondary">Участников:</span> <?= (int)$meeting['participants_count'] ?>
+                <span class="text-body-secondary">Участников:</span> <?= $pc ?>
             </div>
         <?php endif; ?>
 
@@ -66,14 +83,5 @@ $my = $myAttendance[$meeting['id']] ?? null;
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
         <a class="btn btn-sm btn-primary" href="<?= url('meeting', ['id' => $meeting['id']]) ?>">Подробнее</a>
-        <?php if (Auth::can('manage_meetings')): ?>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting_edit', ['id' => $meeting['id']]) ?>">Изменить</a>
-            <form method="post" action="<?= url('meeting_delete') ?>" class="d-inline"
-                  onsubmit="return confirm('Удалить встречу?');">
-                <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= (int)$meeting['id'] ?>">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
-            </form>
-        <?php endif; ?>
     </div>
 </div>

@@ -54,7 +54,7 @@ class PlaceController
             'floor' => input('floor'),
             'apartment' => input('apartment'),
             'intercom' => input('intercom'),
-            'geo_link' => input('geo_link'),
+            'geo_link' => expand_yandex_maps_link(input('geo_link')),
             'note' => input('note'),
         ];
 
@@ -83,9 +83,7 @@ class PlaceController
                     continue;
                 }
                 $tmp = $_FILES['photos']['tmp_name'][$i];
-                $info = finfo_open(FILEINFO_MIME_TYPE);
-                $mime = finfo_file($info, $tmp);
-                finfo_close($info);
+                $mime = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $tmp);
                 $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                 if (!in_array($mime, $allowed, true)) {
                     continue;

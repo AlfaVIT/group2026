@@ -8,7 +8,8 @@ class ExpenseController
         $amount = (float)str_replace([',', ' '], ['.', ''], input('amount'));
         $description = input('description');
 
-        if (!Db::fetch('SELECT id FROM meetings WHERE id = ?', [$meetingId])) {
+        $meeting = Db::fetch('SELECT id, meeting_type FROM meetings WHERE id = ?', [$meetingId]);
+        if (!$meeting) {
             http_response_code(404);
             exit('Встреча не найдена');
         }
@@ -22,6 +23,7 @@ class ExpenseController
             'user_id' => Auth::id(),
             'amount' => $amount,
             'description' => $description,
+            'article' => expense_article_for_meeting_type((string)$meeting['meeting_type']),
         ]);
 
         set_flash('Расход записан');

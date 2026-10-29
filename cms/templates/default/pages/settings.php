@@ -20,29 +20,29 @@ $tabs = [
 </ul>
 
 <?php if ($tab === 'general'): ?>
-    <form method="post" action="<?= url('settings_save') ?>" class="row g-3" style="max-width: 640px;">
+    <form method="post" action="<?= url('settings_save') ?>" class="row g-3">
         <?= csrf_field() ?>
         <input type="hidden" name="section" value="general">
 
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="form-label" for="site_name">Название сайта</label>
             <input class="form-control" type="text" id="site_name" name="site_name" required
                    value="<?= e($siteName) ?>">
         </div>
 
-        <div class="col-md-6">
-            <label class="form-label" for="theme">Шаблон (тема)</label>
+        <div class="col-md-4">
+            <label class="form-label" for="theme">Тема оформления</label>
             <select class="form-select" id="theme" name="theme">
                 <?php foreach ($themes as $themeName): ?>
                     <option value="<?= e($themeName) ?>" <?= $theme === $themeName ? 'selected' : '' ?>>
-                        <?= e($themeName) ?>
+                        <?= e(THEME_LABELS[$themeName] ?? $themeName) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
-            <div class="form-text">Новые темы размещаются в каталоге templates/</div>
+            <div class="form-text">Пользователи могут выбрать свою тему в профиле</div>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="form-label" for="mail_from">Email отправителя писем</label>
             <input class="form-control" type="email" id="mail_from" name="mail_from"
                    value="<?= e($mailFrom) ?>">
@@ -76,19 +76,27 @@ $tabs = [
             <?php foreach ($users as $u): ?>
                 <tr>
                     <td>
-                        <div><?= e(full_name($u)) ?></div>
-                        <div class="small text-body-secondary"><?= e($u['email']) ?></div>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if (avatar_url($u) !== ''): ?>
+                                <img class="cms-avatar" style="width:28px;height:28px;" src="<?= e(avatar_url($u)) ?>" alt="">
+                            <?php endif; ?>
+                            <span><?= e(full_name($u)) ?></span>
+                        </div>
+                        <div class="small text-body-secondary"><?= e($u['email'] !== '' ? $u['email'] : $u['login']) ?></div>
                     </td>
                     <td><span class="badge <?= role_badge_class($u['role']) ?>"><?= e($u['role']) ?></span></td>
-                    <td class="small"><?= e($u['phone']) ?: '—' ?></td>
+                    <td class="small"><?= (!empty($u['phone']) && empty($u['hide_phone'])) ? e($u['phone']) : '—' ?></td>
                     <td class="small">
                         <?php if (telegram_nick($u['telegram']) !== ''): ?>
                             <a href="<?= e(telegram_link($u['telegram'])) ?>" target="_blank" rel="noopener">@<?= e(telegram_nick($u['telegram'])) ?></a>
                         <?php else: ?>
                             —
                         <?php endif; ?>
+                        <?php if (!empty($u['telegram_chat_id'])): ?>
+                            <span class="badge text-bg-success ms-1">бот ✓</span>
+                        <?php endif; ?>
                     </td>
-                    <td class="small"><?= $u['birthday'] ? e(date('d.m.Y', strtotime($u['birthday']))) : '—' ?></td>
+                    <td class="small"><?= $u['birthday'] ? e(birthday_display($u['birthday'])) : '—' ?></td>
                     <td>
                         <?php if ($u['is_active']): ?>
                             <span class="badge text-bg-success">Да</span>
@@ -162,6 +170,7 @@ $tabs = [
             <tr>
                 <th>Дата</th>
                 <th>Тема</th>
+                <th>Метка</th>
                 <th>Место</th>
                 <th>Участников</th>
                 <th class="text-end">Действия</th>
@@ -172,8 +181,9 @@ $tabs = [
                 <tr>
                     <td class="small"><?= rdate($m['date']) ?></td>
                     <td><?= e($m['topic']) ?: '—' ?></td>
+                    <td><?= $m['tag'] !== '' ? '<span class="tag-badge">' . e($m['tag']) . '</span>' : '—' ?></td>
                     <td class="small"><?= e($m['place_title']) ?: '—' ?></td>
-                    <td class="small"><?= (int)$m['participants_count'] ?></td>
+                    <td class="small"><?= (int)($meetingParticipants[$m['id']] ?? 0) ?></td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting', ['id' => $m['id']]) ?>">Открыть</a>
                         <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting_edit', ['id' => $m['id']]) ?>">Изменить</a>

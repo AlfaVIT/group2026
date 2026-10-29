@@ -29,3 +29,44 @@
         font-size: 1.4rem;
     }
 }
+
+.cms-avatar {
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.cms-cookie {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 1rem;
+    z-index: 1090;
+    width: min(640px, calc(100% - 2rem));
+    padding: .9rem 1.1rem;
+    border-radius: .8rem;
+    background: #1c2434;
+    color: #eef2f8;
+    border: 1px solid rgba(255, 255, 255, .1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
+}
+
+.cms-cookie-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem;
+}
+
+.cms-cookie-text {
+    flex: 1 1 260px;
+    margin: 0;
+    font-size: .9rem;
+    line-height: 1.35;
+}
+
+.cms-cookie-accept {
+    flex-shrink: 0;
+}

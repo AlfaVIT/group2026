@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/app/init.php';
 
-if (CMS_INSTALLED) {
+if (CMS_INSTALLED && (int)(Db::value('SELECT COUNT(*) FROM users') ?? 0) > 0) {
     redirect(url('home'));
 }
 
@@ -12,16 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = install_create_admin([
         'address_term'      => input('address_term', 'брат'),
         'name'              => input('name'),
-        'phone'             => input('phone'),
-        'birthday'          => input('birthday'),
-        'email'             => input('email'),
+        'login_or_email'    => input('login_or_email'),
         'password'          => (string)($_POST['password'] ?? ''),
         'password_confirm'  => (string)($_POST['password_confirm'] ?? ''),
     ]);
     if ($errors) {
         $pageErrors = $errors;
     } else {
-        set_flash('Установка завершена. Войдите, используя указанный email и пароль.');
+        set_flash('Установка завершена. Войдите, используя указанный логин или email и пароль.');
         redirect(url('login'));
     }
 }
@@ -38,6 +36,7 @@ function render_install_page(array $errors): void
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Установка — Группа катехизации</title>
+        <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
         <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
         <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
         <link rel="stylesheet" href="<?= base_url() ?>/templates/default/theme.css">
@@ -47,12 +46,12 @@ function render_install_page(array $errors): void
         <div class="card auth-card">
             <div class="card-body p-4">
                 <div class="auth-brand">
-                    <svg class="cms-cross" viewBox="0 0 24 24" width="34" height="34" fill="none"
-                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                        <path d="M12 2.5v19"/>
-                        <path d="M8.2 5.2h7.6"/>
-                        <path d="M9.2 9.8h5.6"/>
-                        <path d="M9.4 13.9l5.2 4.5"/>
+                    <svg class="cms-fish" viewBox="0 0 24 24" width="34" height="34" fill="none"
+                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                         stroke-linejoin="round" aria-hidden="true">
+                        <path d="M2 7.5 5 12l-3 4.5"/>
+                        <path d="M11 5.5c4.2 0 7.3 2.4 8.4 6.5-1.1 4.1-4.2 6.5-8.4 6.5s-7.3-2.4-8.4-6.5c1.1-4.1 4.2-6.5 8.4-6.5z"/>
+                        <circle cx="16" cy="9.6" r="1.05" fill="currentColor" stroke="none"/>
                     </svg>
                     <h1 class="title">Установка системы</h1>
                     <div class="rule"></div>
@@ -63,7 +62,7 @@ function render_install_page(array $errors): void
                 <?php if ($errors): ?>
                     <div class="alert alert-danger"><?= implode('<br>', array_map('e', $errors)) ?></div>
                 <?php endif; ?>
-                <form method="post" action="<?= e(url('install')) ?>">
+                <form method="post" action="<?= e(url('install')) ?>" data-no-ajax>
                     <?= csrf_field() ?>
                     <div class="mb-3">
                         <label class="form-label">Обращение</label>
@@ -85,16 +84,13 @@ function render_install_page(array $errors): void
                         <input class="form-control" type="text" id="name" name="name" required value="<?= e(input('name')) ?>">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="phone">Телефон</label>
-                        <input class="form-control" type="text" id="phone" name="phone" value="<?= e(input('phone')) ?>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="birthday">День рождения</label>
-                        <input class="form-control" type="date" id="birthday" name="birthday" value="<?= e(input('birthday')) ?>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="email">Email (логин)</label>
-                        <input class="form-control" type="email" id="email" name="email" required value="<?= e(input('email')) ?>">
+                        <label class="form-label" for="login_or_email">Логин или email</label>
+                        <input class="form-control" type="text" id="login_or_email" name="login_or_email" required
+                               value="<?= e(input('login_or_email')) ?>"
+                               placeholder="Например: ivan или ivan@example.com">
+                        <div class="form-text">
+                            Можно указать email (логином станет часть до «@») или просто логин — тогда email останется пустым.
+                        </div>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6">
@@ -111,6 +107,9 @@ function render_install_page(array $errors): void
             </div>
         </div>
     </main>
+    <script src="<?= base_url() ?>/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="<?= base_url() ?>/assets/js/app.js"></script>
+    <?php partial('cookie_banner'); ?>
     </body>
     </html>
     <?php
