@@ -48,6 +48,12 @@ $routes = [
     'treasury_delete' => ['TreasuryController', 'delete', ['view_treasury']],
     'expense_t_edit'  => ['TreasuryController', 'addExpense', ['view_treasury']],
     'expense_t_del'   => ['TreasuryController', 'deleteExpense', ['view_treasury']],
+    'articles'        => ['ArticleController', 'index', ['manage_articles']],
+    'article_save'    => ['ArticleController', 'save', ['manage_articles']],
+    'article_update'  => ['ArticleController', 'update', ['manage_articles']],
+    'article_merge'   => ['ArticleController', 'merge', ['manage_articles']],
+    'article_dismiss' => ['ArticleController', 'dismiss', ['manage_articles']],
+    'article_suggest' => ['ArticleController', 'suggest', ['view_treasury', 'manage_articles']],
     'settings'        => ['SettingsController', 'index', ['manage_settings', 'manage_places']],
     'settings_save'   => ['SettingsController', 'save', ['manage_settings']],
     'telegram'        => ['TelegramController', 'index', ['manage_settings', 'send_broadcast']],
@@ -137,6 +143,10 @@ if ($isPost) {
         'place_delete' => 'delete',
         'photo_delete' => 'deletePhoto',
         'user_delete' => 'delete',
+        'article_save' => 'save',
+        'article_update' => 'update',
+        'article_merge' => 'merge',
+        'article_dismiss' => 'dismiss',
     ];
     if (isset($saveMethod[$page])) {
         $method = $saveMethod[$page];

@@ -150,15 +150,9 @@ class TreasuryController
             $meetingExpenses[$mid]['users'][$uid]['items'][] = $e;
         }
 
-        // Списки статей для выпадающих списков: варианты, различающиеся регистром
-        // и пробелами, показываем одной строкой
-        $purposes = array_values(collect_articles('treasury_entries', 'purpose'));
-        usort($purposes, fn($a, $b) => mb_strtolower($a) <=> mb_strtolower($b));
-
-        // Статьи расходов: три предустановленные + ранее использованные
-        $usedExpenseTypes = array_values(collect_articles('treasury_expenses', 'type'));
-        $expenseArticles = array_values(array_unique(array_merge(EXPENSE_ARTICLES, $usedExpenseTypes)));
-        usort($expenseArticles, fn($a, $b) => mb_strtolower($a) <=> mb_strtolower($b));
+        // Списки статей — из справочника (скрытые статьи не предлагаем)
+        $purposes = Article::names('income');
+        $expenseArticles = Article::names('expense');
 
         $chart = $this->buildChart();
 
@@ -179,6 +173,7 @@ class TreasuryController
             'users' => $users,
             'purposes' => $purposes,
             'expenseArticles' => $expenseArticles,
+            'suggestUrl' => url('article_suggest'),
             'filters' => ['from' => $start, 'to' => $end, 'purpose' => $purposeFilter],
             'expFilters' => ['from' => $expStart, 'to' => $expEnd, 'type' => $expType],
         ]);
@@ -590,6 +585,9 @@ class TreasuryController
             redirect(url('treasury'));
         }
 
+        // справочник: если статьи ещё нет — она появится, а написание станет единым
+        $purpose = Article::resolve('income', $purpose);
+
         Db::insert('treasury_entries', [
             'date' => $date,
             'period' => input('period'),
@@ -653,6 +651,9 @@ class TreasuryController
             set_flash('Опишите, на что потрачено', 'danger');
             redirect(url('treasury'));
         }
+
+        // справочник: если статьи ещё нет — она появится, а написание станет единым
+        $type = Article::resolve('expense', $type);
 
         Db::insert('treasury_expenses', [
             'date' => $date,

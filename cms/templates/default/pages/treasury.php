@@ -7,9 +7,14 @@ $canViewState = Auth::can('view_treasury') || Auth::can('view_treasury_graph');
         <h1 class="h3 mb-1">Казна</h1>
         <p class="text-body-secondary small mb-0">Состояние казны: поступления и расходы группы</p>
     </div>
-    <?php if ($isTreasurer): ?>
-        <a class="btn btn-sm btn-outline-primary" href="<?= url('treasury_report') ?>">Консолидированный отчёт</a>
-    <?php endif; ?>
+    <div class="d-flex flex-wrap gap-2">
+        <?php if (Auth::can('manage_articles')): ?>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= url('articles') ?>">Статьи</a>
+        <?php endif; ?>
+        <?php if ($isTreasurer): ?>
+            <a class="btn btn-sm btn-outline-primary" href="<?= url('treasury_report') ?>">Консолидированный отчёт</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <?php if ($canViewState): ?>
@@ -105,7 +110,11 @@ $canViewState = Auth::can('view_treasury') || Auth::can('view_treasury_graph');
                             <div class="col-12">
                                 <label class="form-label" for="t_purpose">Статья</label>
                                 <input class="form-control" type="text" id="t_purpose" name="purpose" list="purposeList" required
+                                       autocomplete="off"
+                                       data-article-suggest="income"
+                                       data-suggest-url="<?= e($suggestUrl) ?>"
                                        placeholder="Выберите или введите новое значение">
+                                <div class="article-suggest small mt-1" data-for="t_purpose"></div>
                                 <datalist id="purposeList">
                                     <?php foreach ($purposes as $p): ?>
                                         <option value="<?= e($p) ?>"></option>

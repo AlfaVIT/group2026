@@ -154,6 +154,24 @@ CREATE TABLE IF NOT EXISTS treasury_expenses (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS treasury_articles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    archived INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (kind, key)
+);
+
+CREATE TABLE IF NOT EXISTS treasury_article_pairs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    key_a TEXT NOT NULL,
+    key_b TEXT NOT NULL,
+    UNIQUE (kind, key_a, key_b)
+);
+
 CREATE TABLE IF NOT EXISTS materials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -194,7 +212,13 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '23')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '24')");
+
+    // предустановленные статьи расходов
+    foreach (EXPENSE_ARTICLES as $preset) {
+        $stmt = $pdo->prepare('INSERT OR IGNORE INTO treasury_articles (kind, key, name) VALUES (?, ?, ?)');
+        $stmt->execute(['expense', article_key($preset), $preset]);
+    }
 }
 
 function run_migrations(): void
@@ -204,12 +228,13 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 23) {
+        if ($version >= 24) {
             return;
         }
         if ($version >= 21) {
             migrate_v22();
             migrate_v23();
+            migrate_v24();
             return;
         }
 
@@ -357,6 +382,7 @@ function run_migrations(): void
         )');
         migrate_v22();
         migrate_v23();
+        migrate_v24();
     } catch (Throwable $e) {
     }
 }
@@ -395,6 +421,47 @@ function migrate_v23(): void
     }
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '23')");
     Db::q("UPDATE settings SET value = '23' WHERE key = 'schema_version'");
+}
+
+/** v24: справочник статей казны + пары «это разные статьи». */
+function migrate_v24(): void
+{
+    Db::q('CREATE TABLE IF NOT EXISTS treasury_articles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        key TEXT NOT NULL,
+        name TEXT NOT NULL,
+        archived INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+        UNIQUE (kind, key)
+    )');
+    Db::q('CREATE TABLE IF NOT EXISTS treasury_article_pairs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        key_a TEXT NOT NULL,
+        key_b TEXT NOT NULL,
+        UNIQUE (kind, key_a, key_b)
+    )');
+
+    // переносим существующие статьи из записей казны
+    foreach ([['income', 'treasury_entries', 'purpose'], ['expense', 'treasury_expenses', 'type']] as [$kind, $table, $column]) {
+        foreach (collect_articles($table, $column) as $key => $name) {
+            Db::q(
+                'INSERT OR IGNORE INTO treasury_articles (kind, key, name) VALUES (?, ?, ?)',
+                [$kind, $key, $name]
+            );
+        }
+    }
+    // предустановленные статьи расходов
+    foreach (EXPENSE_ARTICLES as $preset) {
+        Db::q(
+            'INSERT OR IGNORE INTO treasury_articles (kind, key, name) VALUES (?, ?, ?)',
+            ['expense', article_key($preset), $preset]
+        );
+    }
+
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '24')");
+    Db::q("UPDATE settings SET value = '24' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

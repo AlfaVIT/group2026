@@ -318,6 +318,50 @@
             }
             el.value = formatPhone(digits);
         });
+
+        // Подсказки по похожести для полей «Статья» (справочник казны).
+        var suggestTimers = {};
+        $(document).on('input', 'input[data-article-suggest]', function () {
+            var $input = $(this);
+            var inputId = this.id;
+            if (!inputId) {
+                return;
+            }
+            var $box = $('.article-suggest[data-for="' + inputId + '"]');
+            var url = $input.attr('data-suggest-url');
+            if (!$box.length || !url) {
+                return;
+            }
+            var kindSource = $input.attr('data-suggest-kind-source');
+            var kind = (kindSource && $('#' + kindSource).length)
+                ? $('#' + kindSource).val()
+                : ($input.attr('data-article-suggest') || 'income');
+            var q = this.value;
+
+            clearTimeout(suggestTimers[inputId]);
+            suggestTimers[inputId] = setTimeout(function () {
+                if (q.trim().length < 2) {
+                    $box.empty();
+                    return;
+                }
+                $.getJSON(url, { kind: kind, q: q }).done(function (data) {
+                    $box.empty();
+                    if (!data || !data.items) {
+                        return;
+                    }
+                    data.items.forEach(function (item) {
+                        $('<button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1"></button>')
+                            .text(item.name + ' · ' + item.score + '%')
+                            .on('click', function () {
+                                $input.val(item.name);
+                                $box.empty();
+                                $input.trigger('focus');
+                            })
+                            .appendTo($box);
+                    });
+                });
+            }, 250);
+        });
     });
 
     // Отметка присутствия за другого участника (Старший/Помощник):
