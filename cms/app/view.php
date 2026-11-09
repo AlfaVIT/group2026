@@ -21,6 +21,10 @@ function partial(string $name, array $data = []): void
 
 function theme_dir(): string
 {
+    // до установки БД ещё нет — настройки читать неоткуда (тема по умолчанию)
+    if (!CMS_INSTALLED) {
+        return DEFAULT_THEME;
+    }
     $t = Setting::theme();
     return is_dir(BASE_PATH . '/templates/' . $t) && is_file(BASE_PATH . '/templates/' . $t . '/layout.php')
         ? $t
@@ -34,6 +38,9 @@ function theme_list(): array
 
 function theme_scheme(): string
 {
+    if (!CMS_INSTALLED) {
+        return DEFAULT_THEME;
+    }
     $t = Setting::theme();
     return in_array($t, THEMES, true) ? $t : DEFAULT_THEME;
 }
@@ -68,4 +75,12 @@ function theme_asset(string $file): string
         return '';
     }
     return base_url() . '/' . $path . '?v=' . filemtime(BASE_PATH . '/' . $path);
+}
+
+/** URL файла из assets/ с меткой версии (иначе браузер держит старую копию до 7 дней). */
+function asset_url(string $file): string
+{
+    $file = ltrim($file, '/');
+    $disk = BASE_PATH . '/assets/' . $file;
+    return base_url() . '/assets/' . $file . (is_file($disk) ? '?v=' . filemtime($disk) : '');
 }

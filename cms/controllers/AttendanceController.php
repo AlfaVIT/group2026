@@ -6,7 +6,6 @@ class AttendanceController
     {
         $meetingId = (int)($_POST['meeting_id'] ?? 0);
         $status = input('status');
-        $reason = input('reason');
 
         if (!Db::fetch('SELECT id FROM meetings WHERE id = ?', [$meetingId])) {
             http_response_code(404);

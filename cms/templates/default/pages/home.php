@@ -35,6 +35,7 @@
     </div>
 
     <div class="col-lg-4">
+        <?php if ($canViewPd ?? true): ?>
         <?php $bdMonthsAll = [1 => 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
             'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         $cur = (int)date('n');
@@ -90,6 +91,7 @@
                 <?php endforeach; ?>
             </div>
         </div>
+        <?php endif; ?>
 
         <?php if ($contacts): ?>
         <div class="card shadow-sm mt-4">

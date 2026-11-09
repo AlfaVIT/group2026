@@ -308,9 +308,10 @@
             updateUserEditRequired();
         }
 
-        $(document).on('input', '[data-phone-mask]', function () {
+        $(document).on('input', '[data-phone-mask]', function (e) {
             var el = this;
-            var deletion = (el.inputType && el.inputType.indexOf('delete') !== -1);
+            var ev = e.originalEvent || {};
+            var deletion = typeof ev.inputType === 'string' && ev.inputType.indexOf('delete') !== -1;
             var digits = el.value.replace(/\D+/g, '');
             if (deletion) {
                 digits = digits.slice(0, -1);

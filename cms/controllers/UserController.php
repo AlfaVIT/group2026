@@ -170,7 +170,25 @@ class UserController
             http_response_code(404);
             exit('Пользователь не найден');
         }
+        $user = Db::fetch('SELECT avatar FROM users WHERE id = ?', [$id]);
+        $materialImages = array_column(
+            Db::fetchAll("SELECT image_path FROM materials WHERE user_id = ? AND image_path != ''", [$id]),
+            'image_path'
+        );
         Db::delete('users', ['id' => $id]);
+        // материалы удаляются каскадом — подчищаем их файлы и аватар
+        foreach ($materialImages as $file) {
+            $path = UPLOAD_DIR . '/' . $file;
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        if (!empty($user['avatar'])) {
+            $avatar = UPLOAD_DIR . '/avatars/' . $user['avatar'];
+            if (is_file($avatar)) {
+                @unlink($avatar);
+            }
+        }
         set_flash('Пользователь удалён', 'info');
         redirect(url('settings', ['tab' => 'users']));
     }

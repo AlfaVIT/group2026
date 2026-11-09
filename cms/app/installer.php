@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
     theme TEXT DEFAULT '',
     avatar TEXT DEFAULT '',
     personal_consent INTEGER NOT NULL DEFAULT 0,
+    remember_token TEXT DEFAULT '',
+    remember_expires TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -192,7 +194,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '21')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '22')");
 }
 
 function run_migrations(): void
@@ -202,7 +204,11 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
+        if ($version >= 22) {
+            return;
+        }
         if ($version >= 21) {
+            migrate_v22();
             return;
         }
 
@@ -348,31 +354,52 @@ function run_migrations(): void
             user_agent TEXT DEFAULT \'\',
             created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
         )');
-        Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '21')");
-        Db::q("UPDATE settings SET value = '21' WHERE key = 'schema_version'");
+        migrate_v22();
     } catch (Throwable $e) {
     }
 }
 
-function install_create_admin(array $data): array
+/** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */
+function migrate_v22(): void
+{
+    $cols = array_column(Db::fetchAll('PRAGMA table_info(users)'), 'name');
+    if (!in_array('remember_token', $cols, true)) {
+        Db::q("ALTER TABLE users ADD COLUMN remember_token TEXT DEFAULT ''");
+    }
+    if (!in_array('remember_expires', $cols, true)) {
+        Db::q('ALTER TABLE users ADD COLUMN remember_expires TEXT');
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '22')");
+    Db::q("UPDATE settings SET value = '22' WHERE key = 'schema_version'");
+}
+
+/** Проверка данных администратора без обращения к БД (можно вызывать до install_schema). */
+function install_validate_admin_data(array $data): array
 {
     $errors = [];
-    if (!in_array($data['address_term'], ADDRESS_TERMS, true)) {
+    if (!in_array($data['address_term'] ?? '', ADDRESS_TERMS, true)) {
         $errors[] = 'Выберите обращение (брат или сестра)';
     }
-    if (mb_strlen($data['name']) < 2) {
+    if (mb_strlen((string)($data['name'] ?? '')) < 2) {
         $errors[] = 'Укажите имя (не менее 2 символов)';
     }
-    $loe = resolve_login_email($data['login_or_email'] ?? '');
+    $loe = resolve_login_email((string)($data['login_or_email'] ?? ''));
     if ($loe['error']) {
         $errors[] = $loe['error'];
     }
-    if (mb_strlen($data['password']) < 6) {
+    if (mb_strlen((string)($data['password'] ?? '')) < 6) {
         $errors[] = 'Пароль должен быть не короче 6 символов';
     }
-    if ($data['password'] !== $data['password_confirm']) {
+    if (($data['password'] ?? '') !== ($data['password_confirm'] ?? '')) {
         $errors[] = 'Пароли не совпадают';
     }
+    return $errors;
+}
+
+function install_create_admin(array $data): array
+{
+    $errors = install_validate_admin_data($data);
+    $loe = resolve_login_email($data['login_or_email'] ?? '');
     if (!$errors && Db::fetch(
         "SELECT id FROM users WHERE lower(login) = lower(?) OR (email != '' AND lower(email) = lower(?))",
         [$loe['login'], $loe['email']]

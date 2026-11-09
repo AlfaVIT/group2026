@@ -34,6 +34,17 @@ class HomeController
             }
         }
 
+        // встреча может быть старше 30 последних — тогда ищем её по дате напрямую
+        if (!$selected && $sel) {
+            $selected = $this->meetingByDate($sel);
+            if ($selected) {
+                $extra = $this->withSummary([$selected]);
+                $data['attendanceSummary'] += $extra['attendanceSummary'];
+                $data['roleAssignment'] += $extra['roleAssignment'];
+                $data['myAttendance'] += $extra['myAttendance'];
+            }
+        }
+
         $stripMonth = $mParam
             ?? ($sel ? substr($sel, 0, 7) : ($selected ? substr($selected['date'], 0, 7) : null));
 
@@ -48,46 +59,53 @@ class HomeController
             $bdYears[$n] = $n >= $todayN ? $curY : $curY + 1;
         }
         $birthdays = [];
-        foreach (Db::fetchAll("SELECT name, avatar, birthday FROM users WHERE is_active = 1 AND birthday != ''") as $u) {
-            $b = $u['birthday'];
-            $noYear = !birthday_has_year($b);
-            $ts = strtotime($noYear ? '2000-' . substr($b, 5) : $b);
-            if ($ts === false) {
-                continue;
+        $canViewPd = Auth::can('view_pd');
+        if ($canViewPd) {
+            foreach (Db::fetchAll(
+                "SELECT name, avatar, birthday FROM users
+                 WHERE is_active = 1 AND personal_consent = 1 AND birthday != ''"
+            ) as $u) {
+                $b = $u['birthday'];
+                $noYear = !birthday_has_year($b);
+                $ts = strtotime($noYear ? '2000-' . substr($b, 5) : $b);
+                if ($ts === false) {
+                    continue;
+                }
+                $m = (int)date('n', $ts);
+                $day = (int)date('j', $ts);
+                $occY = $bdYears[$m];
+                $turns = $noYear ? null : ($occY - (int)date('Y', $ts));
+                if ($turns !== null && $turns < 0) {
+                    continue;
+                }
+                $status = 'upcoming';
+                if ($m === $todayN && $day === $todayJ) {
+                    $status = 'today';
+                } elseif ($m === $todayN && $day < $todayJ) {
+                    $status = 'passed';
+                }
+                $birthdays[$m][] = [
+                    'name'      => $u['name'],
+                    'avatarUrl' => avatar_url($u),
+                    'day'       => $day,
+                    'month'     => $monthNames[$m],
+                    'turns'     => $turns,
+                    'status'    => $status,
+                    'year'      => $occY,
+                ];
             }
-            $m = (int)date('n', $ts);
-            $day = (int)date('j', $ts);
-            $occY = $bdYears[$m];
-            $turns = $noYear ? null : ($occY - (int)date('Y', $ts));
-            if ($turns !== null && $turns < 0) {
-                continue;
-            }
-            $status = 'upcoming';
-            if ($m === $todayN && $day === $todayJ) {
-                $status = 'today';
-            } elseif ($m === $todayN && $day < $todayJ) {
-                $status = 'passed';
-            }
-            $birthdays[$m][] = [
-                'name'      => $u['name'],
-                'avatarUrl' => avatar_url($u),
-                'day'       => $day,
-                'month'     => $monthNames[$m],
-                'turns'     => $turns,
-                'status'    => $status,
-                'year'      => $occY,
-            ];
         }
         foreach ($birthdays as &$list) {
             usort($list, fn($a, $b) => $a['day'] <=> $b['day']);
         }
         unset($list);
 
-        $contacts = Db::fetchAll(
+        $contacts = $canViewPd ? Db::fetchAll(
             'SELECT name, address_term, avatar, phone, hide_phone, email, telegram
-             FROM users WHERE is_active = 1 AND hide_phone = 0 AND COALESCE(phone, \'\') != \'\'
+             FROM users
+             WHERE is_active = 1 AND personal_consent = 1 AND hide_phone = 0 AND COALESCE(phone, \'\') != \'\'
              ORDER BY name'
-        );
+        ) : [];
 
         view('home', [
             'title' => Setting::siteName(),
@@ -101,6 +119,7 @@ class HomeController
             'birthdays' => $birthdays,
             'bdYears' => $bdYears,
             'contacts' => $contacts,
+            'canViewPd' => $canViewPd,
         ]);
     }
 
@@ -190,6 +209,24 @@ class HomeController
             'roleAssignment' => $summary['roleAssignment'],
             'myAttendance' => $summary['myAttendance'],
         ]);
+    }
+
+    /** Встреча по конкретной дате (YYYY-MM-DD) — для выбора старой даты в календаре. */
+    private function meetingByDate(string $date): ?array
+    {
+        return Db::fetch(
+            'SELECT m.*, p.title AS place_title, p.region, p.district, p.locality, p.street,
+                    p.house, p.house_letter, p.entrance, p.floor, p.apartment, p.intercom,
+                    p.geo_link, p.note AS place_note,
+                    u.name AS owner_name, u.address_term AS owner_term
+             FROM meetings m
+             LEFT JOIN places p ON p.id = m.place_id
+             LEFT JOIN users u ON u.id = p.owner_id
+             WHERE substr(m.date, 1, 10) = :day
+             ORDER BY m.date ASC, m.id DESC
+             LIMIT 1',
+            [':day' => $date]
+        ) ?: null;
     }
 
     private function meetingsData(): array

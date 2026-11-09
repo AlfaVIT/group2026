@@ -10,8 +10,8 @@ $schemeCss = theme_scheme_css();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Вход — <?= e(Setting::siteName()) ?></title>
     <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
-    <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= e(asset_url('vendor/bootstrap/css/bootstrap.min.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('css/style.css')) ?>">
     <?php if ($themeCss): ?>
         <link rel="stylesheet" href="<?= e($themeCss) ?>">
     <?php endif; ?>

@@ -4,23 +4,32 @@ class SettingsController
 {
     public function index(): void
     {
-        $tab = $_GET['tab'] ?? 'general';
-        if (!in_array($tab, ['general', 'users', 'places', 'meetings'], true)) {
-            $tab = 'general';
+        $canManage = Auth::can('manage_settings');
+        $tabs = $canManage ? ['general', 'users', 'places', 'meetings'] : ['places'];
+        $tab = $_GET['tab'] ?? $tabs[0];
+        if (!in_array($tab, $tabs, true)) {
+            $tab = $tabs[0];
         }
 
-        $users = Db::fetchAll('SELECT * FROM users ORDER BY CASE role WHEN \'Старший\' THEN 0 WHEN \'Помощник\' THEN 1 WHEN \'Казначей\' THEN 2 ELSE 3 END, name');
+        // список пользователей содержит учётные данные — только администратору
+        $users = $canManage
+            ? Db::fetchAll('SELECT id, address_term, name, role, is_active, phone, email, telegram, login
+                            FROM users
+                            ORDER BY CASE role WHEN \'Старший\' THEN 0 WHEN \'Помощник\' THEN 1 WHEN \'Казначей\' THEN 2 ELSE 3 END, name')
+            : [];
         $places = Db::fetchAll(
             'SELECT p.*, u.name AS owner_name, u.address_term AS owner_term,
                     (SELECT COUNT(*) FROM place_photos ph WHERE ph.place_id = p.id) AS photos_count
              FROM places p LEFT JOIN users u ON u.id = p.owner_id
              ORDER BY p.title'
         );
-        $meetings = Db::fetchAll(
-            'SELECT m.*, p.title AS place_title
-             FROM meetings m LEFT JOIN places p ON p.id = m.place_id
-             ORDER BY m.date DESC LIMIT 100'
-        );
+        $meetings = $canManage
+            ? Db::fetchAll(
+                'SELECT m.*, p.title AS place_title
+                 FROM meetings m LEFT JOIN places p ON p.id = m.place_id
+                 ORDER BY m.date DESC LIMIT 100'
+            )
+            : [];
 
         $meetingParticipants = [];
         if ($meetings) {
@@ -45,6 +54,7 @@ class SettingsController
         view('settings', [
             'title' => 'Настройки',
             'tab' => $tab,
+            'canManage' => $canManage,
             'users' => $users,
             'places' => $places,
             'meetings' => $meetings,

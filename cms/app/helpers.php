@@ -51,6 +51,8 @@ const PERMISSIONS = [
     'view_treasury_graph' => ['Старший'],
     'manage_materials' => ['Старший', 'Помощник'],
     'view_stats'       => ['Старший', 'Помощник'],
+    // персональные данные участников (контакты, дни рождения) не показываются «Гостю»
+    'view_pd'          => ['Старший', 'Помощник', 'Казначей', 'СестраБрат'],
 ];
 
 function e(?string $value): string
@@ -302,7 +304,10 @@ function visitor_device(string $ua): string
     return $browser . ' · ' . $os;
 }
 
-/** Записывает посещение пользователя и хранит только последние 50 записей. */
+/**
+ * Записывает вход пользователя. Хранит последние 50 записей КАЖДОГО участника,
+ * иначе при 20 участниках история вытесняется за пару дней.
+ */
 function log_visit(int $userId): void
 {
     $ip = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '');
@@ -313,7 +318,12 @@ function log_visit(int $userId): void
         'ip' => $ip,
         'user_agent' => $ua,
     ]);
-    Db::q('DELETE FROM visits WHERE id NOT IN (SELECT id FROM visits ORDER BY id DESC LIMIT 50)');
+    Db::q(
+        'DELETE FROM visits
+         WHERE user_id = ?
+           AND id NOT IN (SELECT id FROM visits WHERE user_id = ? ORDER BY id DESC LIMIT 50)',
+        [$userId, $userId]
+    );
 }
 
 function rdate(string $date): string
@@ -961,8 +971,8 @@ function http_effective_url(string $url): string
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 8,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT => 12,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT => 6,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; cms-geolink/1.0)',
         ]);
         $body = @curl_exec($ch);
@@ -981,7 +991,7 @@ function http_effective_url(string $url): string
     $cur = $url;
     for ($i = 0; $i < 8; $i++) {
         $ctx = stream_context_create(['http' => [
-            'timeout' => 6,
+            'timeout' => 3,
             'follow_location' => 0,
             'header' => "User-Agent: Mozilla/5.0 (compatible; cms-geolink/1.0)\r\n",
         ]]);

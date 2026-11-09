@@ -22,6 +22,16 @@ if (!Telegram::configured()) {
     exit;
 }
 
+// Проверка секрета вебхука: без совпадения заголовка запрос игнорируется.
+$webhookSecret = (string)Setting::get('telegram_webhook_secret', '');
+if ($webhookSecret !== '') {
+    $got = (string)($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '');
+    if (!hash_equals($webhookSecret, $got)) {
+        http_response_code(403);
+        exit;
+    }
+}
+
 $raw = file_get_contents('php://input');
 $update = json_decode((string)$raw, true);
 if (!is_array($update)) {

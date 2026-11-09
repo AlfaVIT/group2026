@@ -1,5 +1,6 @@
 <?php
 $statuses = $attendanceSummary[$meeting['id']] ?? [];
+$myStatus = $myAttendance[$meeting['id']] ?? '';
 $present = (int)($statuses['present'] ?? 0);
 $online = (int)($statuses['online'] ?? 0);
 $absent = (int)($statuses['absent'] ?? 0);
@@ -10,7 +11,9 @@ $items = [
 ];
 ?>
 <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
-    <?php if (Auth::can('mark_attendance')): ?>
+    <?php /* быстрая отметка — только если участник ещё не отмечался,
+             чтобы случайный клик не перезаписал «отсутствую» с причиной */ ?>
+    <?php if (Auth::can('mark_attendance') && $myStatus === ''): ?>
         <form method="post" action="<?= url('attendance_save') ?>" class="d-inline"
               data-ajax-update="#meeting-<?= (int)$meeting['id'] ?>">
             <?= csrf_field() ?>

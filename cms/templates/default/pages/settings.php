@@ -1,10 +1,14 @@
 <?php
-$tabs = [
-    'general' => 'Общее',
-    'users' => 'Пользователи',
-    'places' => 'Места встреч',
-    'meetings' => 'Встречи',
-];
+$canManage = $canManage ?? Auth::can('manage_settings');
+$tabs = [];
+if ($canManage) {
+    $tabs['general'] = 'Общее';
+    $tabs['users'] = 'Пользователи';
+}
+$tabs['places'] = 'Места встреч';
+if ($canManage) {
+    $tabs['meetings'] = 'Встречи';
+}
 ?>
 <div class="mb-3">
     <h1 class="h3 mb-0">Настройки</h1>

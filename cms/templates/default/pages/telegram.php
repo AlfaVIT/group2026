@@ -8,11 +8,17 @@ $webhookUrl = $configured ? url('telegram_webhook') : '';
 
 <?php if (!$configured): ?>
     <div class="alert alert-warning">
-        Бот ещё не настроен: заполните токен ниже. Как создать бота: напишите
-        <b>@BotFather</b>, команда <code>/newbot</code>, затем скопируйте выданный токен.
+        <?php if ($canManage): ?>
+            Бот ещё не настроен: заполните токен ниже. Как создать бота: напишите
+            <b>@BotFather</b>, команда <code>/newbot</code>, затем скопируйте выданный токен.
+        <?php else: ?>
+            Бот ещё не настроен. Попросите администратора указать токен бота — после этого здесь
+            появится форма рассылки.
+        <?php endif; ?>
     </div>
 <?php endif; ?>
 
+<?php if ($canManage): ?>
 <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">Настройки бота</div>
     <div class="card-body">
@@ -36,8 +42,10 @@ $webhookUrl = $configured ? url('telegram_webhook') : '';
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <?php if ($configured): ?>
+    <?php if ($canManage): ?>
     <div class="card shadow-sm mb-4">
         <div class="card-header fw-semibold">Webhook</div>
         <div class="card-body">
@@ -59,6 +67,7 @@ $webhookUrl = $configured ? url('telegram_webhook') : '';
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="card shadow-sm mb-4">
         <div class="card-header fw-semibold">Подключение участников</div>

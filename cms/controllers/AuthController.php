@@ -15,15 +15,7 @@ class AuthController
             if ($user && Auth::attempt($email, (string)($_POST['password'] ?? ''))) {
                 log_visit((int)$user['id']);
                 if (isset($_POST['remember'])) {
-                    $p = session_get_cookie_params();
-                    setcookie(session_name(), session_id(), [
-                        'expires' => time() + 30 * 86400,
-                        'path' => $p['path'],
-                        'domain' => $p['domain'],
-                        'secure' => $p['secure'],
-                        'httponly' => $p['httponly'],
-                        'samesite' => $p['samesite'] ?? 'Lax',
-                    ]);
+                    Auth::issueRemember((int)$user['id']);
                 }
                 set_flash('Добро пожаловать!');
                 redirect(url('home'));
@@ -130,6 +122,8 @@ class AuthController
             }
             Db::q('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $row['user_id']]);
             Db::q('UPDATE password_resets SET used = 1 WHERE id = ?', [$row['id']]);
+            // после смены пароля старые «запомнить меня» больше не действуют
+            Auth::clearRemember((int)$row['user_id']);
             set_flash('Пароль изменён. Войдите с новым паролем.');
             redirect(url('login'));
         }

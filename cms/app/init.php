@@ -22,3 +22,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 run_migrations();
+
+// «Запомнить меня»: восстанавливаем сессию после миграций (нужны колонки v22)
+if (CMS_INSTALLED) {
+    Auth::resumeFromRemember();
+}

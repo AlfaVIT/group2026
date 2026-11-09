@@ -73,7 +73,7 @@ $my = $myAttendance[$meeting['id']] ?? null;
         <?php endif; ?>
 
         <?php partial('role_badges', ['roles' => $roles]); ?>
-        <?php partial('attendance_summary', ['meeting' => $meeting, 'attendanceSummary' => $attendanceSummary]); ?>
+        <?php partial('attendance_summary', ['meeting' => $meeting, 'attendanceSummary' => $attendanceSummary, 'myAttendance' => $myAttendance]); ?>
 
         <?php if ($my): ?>
             <div class="mt-2 small">

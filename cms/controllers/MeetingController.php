@@ -138,7 +138,7 @@ class MeetingController
         $tags = Db::fetchAll("SELECT DISTINCT tag FROM meetings WHERE tag != '' ORDER BY tag");
         $usedTypes = array_column(Db::fetchAll("SELECT DISTINCT meeting_type FROM meetings WHERE meeting_type != '' ORDER BY meeting_type"), 'meeting_type');
         $meetingTypes = array_values(array_unique(array_merge(MEETING_TYPE_PRESETS, $usedTypes)));
-        $guestUsers = Db::fetchAll("SELECT id, address_term, name FROM users WHERE role = 'Гость' ORDER BY name");
+        $guestUsers = Db::fetchAll("SELECT id, address_term, name FROM users WHERE role = 'Гость' AND is_active = 1 ORDER BY name");
         $prev = $_SESSION['meeting_form'] ?? null;
         unset($_SESSION['meeting_form']);
 
@@ -296,7 +296,6 @@ class MeetingController
             'meeting_type' => $meetingType,
             'materials' => json_encode($materials, JSON_UNESCAPED_UNICODE),
             'guests' => $guests,
-            'participants_count' => 0,
             'senior_user_id' => $seniorUserId ?: null,
             'stream_url' => $streamUrl,
         ];

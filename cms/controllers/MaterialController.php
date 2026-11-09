@@ -70,7 +70,10 @@ class MaterialController
         $editMaterial = null;
         $edit = (int)($_GET['edit'] ?? 0);
         if ($edit) {
-            $editMaterial = Db::fetch('SELECT * FROM materials WHERE id = ?', [$edit]);
+            $candidate = Db::fetch('SELECT * FROM materials WHERE id = ?', [$edit]);
+            if ($candidate && (Auth::can('manage_materials') || (int)$candidate['user_id'] === (int)Auth::id())) {
+                $editMaterial = $candidate;
+            }
         }
 
         view('materials', [
@@ -99,6 +102,12 @@ class MaterialController
         if ($id && !$existing) {
             http_response_code(404);
             exit('Материал не найден');
+        }
+        // править можно свой материал; чужие — только с правом manage_materials
+        if ($existing && !Auth::can('manage_materials') && (int)$existing['user_id'] !== (int)Auth::id()) {
+            http_response_code(403);
+            view('errors/403', ['title' => 'Доступ запрещён']);
+            exit;
         }
 
         $title = input('title');

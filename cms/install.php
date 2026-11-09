@@ -8,14 +8,20 @@ if (CMS_INSTALLED && (int)(Db::value('SELECT COUNT(*) FROM users') ?? 0) > 0) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    install_schema();
-    $errors = install_create_admin([
+    $form = [
         'address_term'      => input('address_term', 'брат'),
         'name'              => input('name'),
         'login_or_email'    => input('login_or_email'),
         'password'          => (string)($_POST['password'] ?? ''),
         'password_confirm'  => (string)($_POST['password_confirm'] ?? ''),
-    ]);
+    ];
+    // Сначала проверяем введённое, и только потом создаём схему: при ошибке
+    // в форме не остаётся пустая база.
+    $errors = install_validate_admin_data($form);
+    if (!$errors) {
+        install_schema();
+        $errors = install_create_admin($form);
+    }
     if ($errors) {
         $pageErrors = $errors;
     } else {
@@ -37,8 +43,8 @@ function render_install_page(array $errors): void
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Установка — Группа катехизации</title>
         <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
-        <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
-        <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
+        <link rel="stylesheet" href="<?= e(asset_url('vendor/bootstrap/css/bootstrap.min.css')) ?>">
+        <link rel="stylesheet" href="<?= e(asset_url('css/style.css')) ?>">
         <link rel="stylesheet" href="<?= base_url() ?>/templates/default/theme.css">
     </head>
     <body class="auth-body">
@@ -107,8 +113,8 @@ function render_install_page(array $errors): void
             </div>
         </div>
     </main>
-    <script src="<?= base_url() ?>/assets/vendor/jquery/jquery.min.js"></script>
-    <script src="<?= base_url() ?>/assets/js/app.js"></script>
+    <script src="<?= e(asset_url('vendor/jquery/jquery.min.js')) ?>"></script>
+    <script src="<?= e(asset_url('js/app.js')) ?>"></script>
     <?php partial('cookie_banner'); ?>
     </body>
     </html>

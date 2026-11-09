@@ -53,7 +53,23 @@ class Telegram
 
     public static function setWebhook(string $url): ?array
     {
-        return self::api('setWebhook', ['url' => $url]);
+        // secret_token: Telegram присылает его в заголовке X-Telegram-Bot-Api-Secret-Token,
+        // точка входа telegram.php проверяет его и отбрасывает посторонние запросы.
+        return self::api('setWebhook', [
+            'url' => $url,
+            'secret_token' => self::webhookSecret(),
+        ]);
+    }
+
+    /** Секрет вебхука: генерируется один раз и хранится в настройках. */
+    public static function webhookSecret(): string
+    {
+        $secret = (string)Setting::get('telegram_webhook_secret', '');
+        if ($secret === '') {
+            $secret = bin2hex(random_bytes(16));
+            Setting::set('telegram_webhook_secret', $secret);
+        }
+        return $secret;
     }
 
     public static function deleteWebhook(): ?array

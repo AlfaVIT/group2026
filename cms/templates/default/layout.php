@@ -10,8 +10,8 @@ $schemeCss = theme_scheme_css($user);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? Setting::siteName()) ?> — <?= e(Setting::siteName()) ?></title>
     <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
-    <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= e(asset_url('vendor/bootstrap/css/bootstrap.min.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('css/style.css')) ?>">
     <?php if ($themeCss): ?>
         <link rel="stylesheet" href="<?= e($themeCss) ?>">
     <?php endif; ?>
@@ -126,9 +126,9 @@ $schemeCss = theme_scheme_css($user);
     </div>
 </footer>
 
-<script src="<?= base_url() ?>/assets/vendor/jquery/jquery.min.js"></script>
-<script src="<?= base_url() ?>/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="<?= base_url() ?>/assets/js/app.js?=v=<?= filemtime(BASE_PATH . '/assets/js/app.js') ?>"></script>
+<script src="<?= e(asset_url('vendor/jquery/jquery.min.js')) ?>"></script>
+<script src="<?= e(asset_url('vendor/bootstrap/js/bootstrap.bundle.min.js')) ?>"></script>
+<script src="<?= e(asset_url('js/app.js')) ?>"></script>
 <?php partial('cookie_banner'); ?>
 </body>
 </html>

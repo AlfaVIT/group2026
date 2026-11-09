@@ -1,7 +1,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
         <h1 class="h3 mb-1">Статистика</h1>
-        <p class="text-body-secondary small mb-0">Активность пользователей: последние 50 посещений</p>
+        <p class="text-body-secondary small mb-0">История входов: последние 50 входов каждого участника</p>
     </div>
 </div>
 

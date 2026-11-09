@@ -83,11 +83,14 @@ class ProfileController
             }
 
             if (!$consented) {
-                // без согласия персональные данные не сохраняются
-                $phone = '';
-                $email = '';
-                $telegram = '';
-                $birthday = '';
+                // без согласия новые персональные данные не сохраняем, но и уже
+                // введённые не уничтожаем: сохраняем только логин и имя
+                Db::update('users', [
+                    'login' => $login,
+                    'name' => $name,
+                ], ['id' => $id]);
+                set_flash('Имя и логин сохранены. Для изменения персональных данных нужно согласие.', 'info');
+                redirect(url('profile'));
             }
 
             Db::update('users', [
@@ -223,6 +226,8 @@ class ProfileController
                 redirect(url('profile'));
             }
             Db::update('users', ['password_hash' => password_hash($new, PASSWORD_DEFAULT)], ['id' => $user['id']]);
+            // старые токены «запомнить меня» на других устройствах перестают действовать
+            Auth::clearRemember((int)$user['id']);
             set_flash('Пароль изменён');
         }
 

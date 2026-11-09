@@ -178,8 +178,8 @@ $me = Auth::id();
                 <?php endif; ?>
 
                 <div class="d-flex gap-2 mt-3">
-                    <a class="btn btn-sm btn-outline-primary" href="<?= e($murl(['edit' => $m['id']])) ?>">Редактировать</a>
                     <?php if (Auth::can('manage_materials') || (int)$m['user_id'] === $me): ?>
+                        <a class="btn btn-sm btn-outline-primary" href="<?= e($murl(['edit' => $m['id']])) ?>">Редактировать</a>
                         <form method="post" action="<?= url('material_delete') ?>" class="d-inline"
                               onsubmit="return confirm('Удалить материал?');">
                             <?= csrf_field() ?>

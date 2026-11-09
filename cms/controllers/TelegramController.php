@@ -9,12 +9,15 @@ class TelegramController
              FROM users WHERE is_active = 1 ORDER BY name"
         );
         $meetings = Db::fetchAll('SELECT id, date, topic, tag FROM meetings ORDER BY date DESC LIMIT 100');
+        // токен бота и его настройки — только администратору
+        $canManage = Auth::can('manage_settings');
 
         view('telegram', [
             'title' => 'Рассылка',
-            'token' => Telegram::token(),
-            'botUsername' => Telegram::botUsername(),
+            'token' => $canManage ? Telegram::token() : '',
+            'botUsername' => $canManage ? Telegram::botUsername() : '',
             'configured' => Telegram::configured(),
+            'canManage' => $canManage,
             'users' => $users,
             'meetings' => $meetings,
         ]);
@@ -49,8 +52,8 @@ class TelegramController
             $ok = is_array($res) && !empty($res['ok']);
             set_flash(
                 $ok
-                    ? 'Webhook установлен: ' . $absolute
-                    : 'Не удалось установить webhook' . (is_array($res) && isset($res['description']) ? ': ' . $res['description'] : ''),
+                    ? 'Webhook установлен: ' . e($absolute)
+                    : 'Не удалось установить webhook' . (is_array($res) && isset($res['description']) ? ': ' . e((string)$res['description']) : ''),
                 $ok ? 'success' : 'danger'
             );
         }

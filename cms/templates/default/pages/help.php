@@ -50,7 +50,7 @@
                     <tr><td><span class="badge text-bg-light border">СестраБрат</span></td>
                         <td>Отметка присутствия на встречах, добавление расходов</td></tr>
                     <tr><td><span class="badge text-bg-dark">Гость</span></td>
-                        <td>Просмотр общих разделов</td></tr>
+                        <td>Просмотр общих разделов (без контактов и дней рождения участников)</td></tr>
                     </tbody>
                 </table>
                 <p class="mb-0 small text-body-secondary">
@@ -253,7 +253,8 @@
         <section id="help-settings" class="help-section card shadow-sm mb-4 d-none">
             <div class="card-header fw-semibold">Настройки</div>
             <div class="card-body">
-                <p>Раздел «Настройки» доступен Старшему и содержит вкладки:</p>
+                <p>Раздел «Настройки» доступен Старшему. Помощник видит в нём только вкладку
+                    «Места встреч». Вкладки:</p>
                 <ul>
                     <li>
                         <b>Общее</b> — название сайта, тема оформления по умолчанию,
