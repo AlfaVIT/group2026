@@ -6,15 +6,18 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
 $my = $myAttendance[$meeting['id']] ?? null;
 ?>
 <div class="card shadow-sm meeting-card" id="meeting-<?= (int)$meeting['id'] ?>">
-    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <a class="card-header card-header-link d-flex flex-wrap justify-content-between align-items-center gap-2"
+       href="<?= url('meeting', ['id' => (int)$meeting['id']]) ?>"
+       title="Открыть страницу встречи">
         <span class="fw-semibold"><?= rdate($meeting['date']) ?></span>
         <span class="d-flex align-items-center gap-2">
             <?php if ($meeting['tag'] !== ''): ?>
                 <span class="tag-badge"><?= e($meeting['tag']) ?></span>
             <?php endif; ?>
             <span class="small text-body-secondary"><?= e(date('H:i', strtotime($meeting['date']))) ?></span>
+            <span class="cms-card-arrow" aria-hidden="true">›</span>
         </span>
-    </div>
+    </a>
     <div class="card-body">
         <?php $cardTitle = $meeting['meeting_type'] !== '' ? $meeting['meeting_type'] : $meeting['topic']; ?>
         <?php if ($cardTitle !== ''): ?>

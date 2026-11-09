@@ -2,6 +2,24 @@
     border-top: 4px solid #198754;
 }
 
+/* Шапка карточки встречи — ссылка на страницу встречи */
+.meeting-card .card-header-link {
+    text-decoration: none;
+    transition: filter .15s ease;
+}
+
+.meeting-card .card-header-link:hover,
+.meeting-card .card-header-link:focus-visible {
+    filter: brightness(.96);
+    text-decoration: none;
+}
+
+.cms-card-arrow {
+    font-size: 1.15rem;
+    line-height: 1;
+    opacity: .45;
+}
+
 .meeting-card .card-footer {
     background-color: transparent;
     border-top: 1px solid rgba(0, 0, 0, .05);
