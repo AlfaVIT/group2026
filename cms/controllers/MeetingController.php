@@ -100,7 +100,7 @@ class MeetingController
             $checklist[$cl['item']] = ['checked' => (int)$cl['checked'], 'comment' => (string)$cl['comment']];
         }
 
-        $presentCount = present_active_count($id);
+        $presentCount = present_count($id);
         $guestNames = meeting_guest_names((string)$meeting['guests']);
         $guestCount = count_meeting_guests((string)$meeting['guests']);
         $participantsCount = $presentCount + $guestCount;

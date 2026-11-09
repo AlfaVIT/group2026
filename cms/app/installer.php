@@ -194,7 +194,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '22')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '23')");
 }
 
 function run_migrations(): void
@@ -204,11 +204,12 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 22) {
+        if ($version >= 23) {
             return;
         }
         if ($version >= 21) {
             migrate_v22();
+            migrate_v23();
             return;
         }
 
@@ -355,8 +356,45 @@ function run_migrations(): void
             created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
         )');
         migrate_v22();
+        migrate_v23();
     } catch (Throwable $e) {
     }
+}
+
+/** v23: единое написание статей казны (регистр, лишние пробелы). */
+function migrate_v23(): void
+{
+    foreach ([['treasury_entries', 'purpose'], ['treasury_expenses', 'type']] as [$table, $column]) {
+        $rows = Db::fetchAll(
+            "SELECT $column AS name, COUNT(*) AS cnt FROM $table
+             WHERE TRIM($column) != '' GROUP BY $column"
+        );
+        $groups = [];
+        foreach ($rows as $r) {
+            $groups[article_key((string)$r['name'])][(string)$r['name']] = (int)$r['cnt'];
+        }
+        foreach ($groups as $variants) {
+            // целевое написание: уже канонический вариант, иначе самый частый
+            $target = null;
+            foreach (array_keys($variants) as $spelling) {
+                if (article_canonical($spelling) === $spelling) {
+                    $target = $spelling;
+                    break;
+                }
+            }
+            if ($target === null) {
+                arsort($variants);
+                $target = article_canonical((string)array_key_first($variants));
+            }
+            foreach (array_keys($variants) as $spelling) {
+                if ($spelling !== $target) {
+                    Db::q("UPDATE $table SET $column = ? WHERE $column = ?", [$target, $spelling]);
+                }
+            }
+        }
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '23')");
+    Db::q("UPDATE settings SET value = '23' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

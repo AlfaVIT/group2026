@@ -605,15 +605,16 @@ function meeting_guest_names(string $guests): array
 }
 
 /**
- * Число очных участников встречи из числа активных участников: те, кто явно
- * отметил своё очное участие (status = 'present'). Гости прибавляются отдельно.
+ * Число очных участников встречи: те, кто отметил очное участие (status = 'present').
+ * Считаем по отметкам, а не по текущему is_active: явка — исторический факт,
+ * и она не должна меняться при отключении учётной записи. Гости прибавляются отдельно.
  */
-function present_active_count(int $meetingId): int
+function present_count(int $meetingId): int
 {
     $ph = implode(',', array_fill(0, count(ATTENDANCE_ROLES), '?'));
     return (int)(Db::value(
         "SELECT COUNT(*) FROM users
-         WHERE is_active = 1 AND role IN ($ph)
+         WHERE role IN ($ph)
            AND EXISTS (SELECT 1 FROM attendance a
                        WHERE a.meeting_id = ? AND a.user_id = users.id
                          AND a.status = 'present')",
@@ -645,6 +646,73 @@ function decode_materials(?string $json): array
 {
     $decoded = json_decode((string)$json, true);
     return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Ключ статьи для сравнения: без учёта регистра и лишних пробелов.
+ * SQLite lower() не понимает кириллицу, поэтому нормализация — в PHP.
+ */
+function article_key(string $name): string
+{
+    $name = (string)preg_replace('/\s+/u', ' ', trim($name));
+    return mb_strtolower($name);
+}
+
+/** Каноническое написание статьи: без лишних пробелов, первая буква заглавная. */
+function article_canonical(string $name): string
+{
+    $name = (string)preg_replace('/\s+/u', ' ', trim($name));
+    if ($name === '') {
+        return '';
+    }
+    // «ТРАПЕЗА» → «Трапеза», иначе первая буква заглавная, остальное как ввели
+    if (mb_strtoupper($name) === $name) {
+        $name = mb_strtolower($name);
+    }
+    return mb_strtoupper(mb_substr($name, 0, 1)) . mb_substr($name, 1);
+}
+
+/**
+ * Статьи из таблицы с объединением вариантов, различающихся регистром и пробелами.
+ * Возвращает ['ключ' => 'отображаемое название'].
+ */
+function collect_articles(string $table, string $column): array
+{
+    static $cache = [];
+    $cacheKey = $table . '.' . $column;
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
+    }
+    $rows = Db::fetchAll(
+        "SELECT $column AS name, COUNT(*) AS cnt FROM $table
+         WHERE TRIM($column) != '' GROUP BY $column ORDER BY cnt DESC, name"
+    );
+    $groups = [];
+    foreach ($rows as $r) {
+        $key = article_key((string)$r['name']);
+        if ($key === '') {
+            continue;
+        }
+        $groups[$key][(string)$r['name']] = (int)$r['cnt'];
+    }
+    $best = [];
+    foreach ($groups as $key => $variants) {
+        $picked = null;
+        // предпочитаем вариант, который уже выглядит канонически
+        foreach (array_keys($variants) as $spelling) {
+            if (article_canonical($spelling) === $spelling) {
+                $picked = $spelling;
+                break;
+            }
+        }
+        if ($picked === null) {
+            arsort($variants);
+            $picked = article_canonical((string)array_key_first($variants));
+        }
+        $best[$key] = $picked;
+    }
+    $cache[$cacheKey] = $best;
+    return $best;
 }
 
 function address_parts(array $place, bool $withExtras = false): array

@@ -26,49 +26,25 @@ class TreasuryController
             $params[] = $end;
         }
         if ($purposeFilter !== '') {
-            $where[] = 't.purpose = ?';
-            $params[] = $purposeFilter;
+            // варианты написания («Трапеза» и «трапеза») — это одна статья
+            $variants = [];
+            $key = article_key($purposeFilter);
+            foreach (Db::fetchAll("SELECT DISTINCT purpose FROM treasury_entries WHERE TRIM(purpose) != ''") as $v) {
+                if (article_key((string)$v['purpose']) === $key) {
+                    $variants[] = (string)$v['purpose'];
+                }
+            }
+            if ($variants) {
+                $where[] = 't.purpose IN (' . implode(',', array_fill(0, count($variants), '?')) . ')';
+                $params = array_merge($params, $variants);
+            } else {
+                $where[] = 't.purpose = ?';
+                $params[] = $purposeFilter;
+            }
         }
         $wSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $entries = Db::fetchAll(
-            "SELECT t.*, u.address_term AS from_term, u.name AS from_name
-             FROM treasury_entries t
-             LEFT JOIN users u ON u.id = t.from_user_id
-             $wSql
-             ORDER BY t.date DESC, t.id DESC"
-        , $params);
-
-        $incomeByArticle = [];
-        foreach (Db::fetchAll("SELECT purpose AS article, SUM(amount) AS total FROM treasury_entries GROUP BY purpose") as $r) {
-            if ($r['article'] !== '') {
-                $incomeByArticle[$r['article']] = (float)$r['total'];
-            }
-        }
-        $expenseByArticle = [];
-        foreach (Db::fetchAll("SELECT type AS article, SUM(amount) AS total FROM treasury_expenses GROUP BY type") as $r) {
-            if ($r['article'] !== '') {
-                $expenseByArticle[$r['article']] = (float)$r['total'];
-            }
-        }
-
-        $articles = array_values(array_unique(array_merge(array_keys($incomeByArticle), array_keys($expenseByArticle))));
-        usort($articles, fn($a, $b) => mb_strtolower($a) <=> mb_strtolower($b));
-
-        $articleStats = [];
-        foreach ($articles as $a) {
-            $income = $incomeByArticle[$a] ?? 0.0;
-            $expense = $expenseByArticle[$a] ?? 0.0;
-            $articleStats[$a] = [
-                'income' => $income,
-                'expense' => $expense,
-                'balance' => $income - $expense,
-            ];
-        }
-        $incomeTotal = (float)array_sum(array_column($articleStats, 'income'));
-        $expenseTotal = (float)array_sum(array_column($articleStats, 'expense'));
-        $balanceTotal = $incomeTotal - $expenseTotal;
-
+        // Фильтры расходов нужны и списку, и сводке по статьям — считаем их заранее
         $expWhere = [];
         $expParams = [];
         if ($expStart !== '') {
@@ -84,6 +60,55 @@ class TreasuryController
             $expParams[] = $expType;
         }
         $expW = $expWhere ? 'WHERE ' . implode(' AND ', $expWhere) : '';
+
+        $entries = Db::fetchAll(
+            "SELECT t.*, u.address_term AS from_term, u.name AS from_name
+             FROM treasury_entries t
+             LEFT JOIN users u ON u.id = t.from_user_id
+             $wSql
+             ORDER BY t.date DESC, t.id DESC"
+        , $params);
+
+        // Сводка по статьям за выбранный период (те же фильтры, что у списков)
+        $incomeByKey = [];
+        foreach (Db::fetchAll(
+            "SELECT t.purpose AS article, SUM(t.amount) AS total
+             FROM treasury_entries t $wSql GROUP BY t.purpose",
+            $params
+        ) as $r) {
+            $key = article_key((string)$r['article']);
+            if ($key !== '') {
+                $incomeByKey[$key] = ($incomeByKey[$key] ?? 0) + (float)$r['total'];
+            }
+        }
+        $expenseByKey = [];
+        foreach (Db::fetchAll(
+            "SELECT type AS article, SUM(amount) AS total FROM treasury_expenses $expW GROUP BY type",
+            $expParams
+        ) as $r) {
+            $key = article_key((string)$r['article']);
+            if ($key !== '') {
+                $expenseByKey[$key] = ($expenseByKey[$key] ?? 0) + (float)$r['total'];
+            }
+        }
+
+        $incomeNames = collect_articles('treasury_entries', 'purpose');
+        $expenseNames = collect_articles('treasury_expenses', 'type');
+        $articleStats = [];
+        foreach (array_unique(array_merge(array_keys($incomeByKey), array_keys($expenseByKey))) as $key) {
+            $name = $incomeNames[$key] ?? $expenseNames[$key] ?? $key;
+            $income = $incomeByKey[$key] ?? 0.0;
+            $expense = $expenseByKey[$key] ?? 0.0;
+            $articleStats[$name] = [
+                'income' => $income,
+                'expense' => $expense,
+                'balance' => $income - $expense,
+            ];
+        }
+        uksort($articleStats, fn($a, $b) => mb_strtolower((string)$a) <=> mb_strtolower((string)$b));
+        $incomeTotal = (float)array_sum(array_column($articleStats, 'income'));
+        $expenseTotal = (float)array_sum(array_column($articleStats, 'expense'));
+        $balanceTotal = $incomeTotal - $expenseTotal;
 
         $expenses = Db::fetchAll(
             "SELECT treasury_expenses.*, u.address_term AS to_term, u.name AS to_name
@@ -125,17 +150,15 @@ class TreasuryController
             $meetingExpenses[$mid]['users'][$uid]['items'][] = $e;
         }
 
-        $purposes = array_values(array_unique(array_column(
-            Db::fetchAll("SELECT DISTINCT purpose FROM treasury_entries WHERE purpose != '' ORDER BY purpose"),
-            'purpose'
-        )));
+        // Списки статей для выпадающих списков: варианты, различающиеся регистром
+        // и пробелами, показываем одной строкой
+        $purposes = array_values(collect_articles('treasury_entries', 'purpose'));
+        usort($purposes, fn($a, $b) => mb_strtolower($a) <=> mb_strtolower($b));
 
         // Статьи расходов: три предустановленные + ранее использованные
-        $usedExpenseTypes = array_column(
-            Db::fetchAll("SELECT DISTINCT type FROM treasury_expenses WHERE type != ''"),
-            'type'
-        );
+        $usedExpenseTypes = array_values(collect_articles('treasury_expenses', 'type'));
         $expenseArticles = array_values(array_unique(array_merge(EXPENSE_ARTICLES, $usedExpenseTypes)));
+        usort($expenseArticles, fn($a, $b) => mb_strtolower($a) <=> mb_strtolower($b));
 
         $chart = $this->buildChart();
 
@@ -236,7 +259,7 @@ class TreasuryController
 
         foreach ($d['users'] as $u) {
             $uid = (int)$u['id'];
-            $row = [['n' => false, 'v' => full_name($u), 'b' => false]];
+            $row = [['n' => false, 'v' => full_name($u) . (empty($u['is_active']) ? ' (отключён)' : ''), 'b' => false]];
             foreach ($d['articles'] as $a) {
                 $vz = (float)($d['contrib'][$uid][$a] ?? 0);
                 $vo = (float)($d['expense'][$uid][$a] ?? 0);
@@ -379,7 +402,7 @@ class TreasuryController
 
         foreach ($d['users'] as $u) {
             $uid = (int)$u['id'];
-            $row = [full_name($u)];
+            $row = [full_name($u) . (empty($u['is_active']) ? ' (отключён)' : '')];
             foreach ($d['articles'] as $a) {
                 $hasExp = (float)($d['articleTotals'][$a]['expense'] ?? 0) > 0;
                 $vz = (float)($d['contrib'][$uid][$a] ?? 0);
@@ -452,7 +475,18 @@ class TreasuryController
         $articles = array_keys($articleTotals);
         usort($articles, fn($a, $b) => mb_strtolower($a) <=> mb_strtolower($b));
 
-        $users = Db::fetchAll('SELECT id, address_term, name FROM users WHERE is_active = 1 ORDER BY name');
+        // В отчёт попадают все, у кого есть движения за период, даже если учётная
+        // запись уже отключена: иначе «Итого» не сходится с суммой строк
+        $users = Db::fetchAll(
+            "SELECT id, address_term, name, is_active FROM users
+             WHERE is_active = 1
+                OR id IN (SELECT from_user_id FROM treasury_entries
+                          WHERE from_user_id IS NOT NULL AND $df >= ? AND $df <= ?)
+                OR id IN (SELECT to_user_id FROM treasury_expenses
+                          WHERE to_user_id IS NOT NULL AND $df >= ? AND $df <= ?)
+             ORDER BY is_active DESC, name",
+            [$from, $to, $from, $to]
+        );
 
         $userExpenseTotal = [];
         foreach ($expense as $uid => $byArt) {
@@ -518,7 +552,8 @@ class TreasuryController
     {
         $date = input('date');
         $from = input('from');
-        $purpose = input('purpose');
+        // статью приводим к единому виду: без лишних пробелов, с заглавной буквы
+        $purpose = article_canonical(input('purpose'));
         $amount = (float)str_replace([',', ' '], ['.', ''], input('amount'));
         $note = input('note');
 
@@ -585,7 +620,8 @@ class TreasuryController
     {
         $date = input('date');
         $amount = (float)str_replace([',', ' '], ['.', ''], input('amount'));
-        $type = input('type');
+        // статью приводим к единому виду: без лишних пробелов, с заглавной буквы
+        $type = article_canonical(input('type'));
         $description = input('description');
         $to = input('to');
 

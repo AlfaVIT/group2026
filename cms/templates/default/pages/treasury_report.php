@@ -66,7 +66,7 @@ $modeLabel = $mode === 'budget' ? 'бюджетный (по периоду)' : '
             <tbody>
             <?php foreach ($users as $u): $uid = (int)$u['id']; ?>
                 <tr>
-                    <td class="small"><?= e(full_name($u)) ?></td>
+                    <td class="small"><?= e(full_name($u)) ?><?php if (empty($u['is_active'])): ?> <span class="badge text-bg-secondary">отключён</span><?php endif; ?></td>
                     <?php foreach ($articles as $a): ?>
                         <?php
                         $hasExp = (float)($articleTotals[$a]['expense'] ?? 0) > 0;
