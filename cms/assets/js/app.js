@@ -598,6 +598,11 @@
                 || /\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|`[^`\n]+`|\[[^\]\n]+\]\(https?:\/\//.test(text);
         }
 
+        /** Есть ли в HTML из буфера настоящее форматирование (а не просто обёртка). */
+        function hasRealFormatting(html) {
+            return /<(b|strong|i|em|u|s|strike|a|ul|ol|li|h[1-6]|blockquote|img|table)\b/i.test(html);
+        }
+
         /** Узел текста под курсором, если курсор в редакторе. */
         function caretTextNode() {
             var editor = document.getElementById('noteEditor');
@@ -671,15 +676,16 @@
         }
 
         /** Строчные сокращения: **жирный**, *курсив*, ~~зачёркнутый~~, `код`, [текст](url). */
-        function applyInlineMarkdown() {
+        function applyInlineMarkdown(withSpace) {
             var caret = caretTextNode();
             if (!caret) {
                 return false;
             }
             var text = caret.node.textContent;
             var before = text.slice(0, caret.offset);
-            var pattern = /(\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|`([^`\n]+)`|\*([^*\n]+)\*|_([^_\n]+)_|\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\))\s$/;
-            var m = before.match(pattern);
+            var core = '(\\*\\*([^*\\n]+)\\*\\*|__([^_\\n]+)__|~~([^~\\n]+)~~|`([^`\\n]+)`|\\*([^*\\n]+)\\*|_([^_\\n]+)_|\\[([^\\]\\n]+)\\]\\((https?:\\/\\/[^)\\s]+)\\))';
+            var re = new RegExp(core + (withSpace ? '[ \\u00A0]$' : '$'));
+            var m = before.match(re);
             if (!m) {
                 return false;
             }
@@ -706,7 +712,7 @@
             var sel = window.getSelection();
             sel.removeAllRanges();
             sel.addRange(range);
-            document.execCommand('insertHTML', false, html + ' ');
+            document.execCommand('insertHTML', false, html + (withSpace ? ' ' : ''));
             return true;
         }
 
@@ -721,7 +727,17 @@
             if (last !== ' ' && last !== '\u00A0') {
                 return;
             }
-            if (applyBlockMarkdown() || applyInlineMarkdown()) {
+            if (applyBlockMarkdown() || applyInlineMarkdown(true)) {
+                syncNoteBody();
+            }
+        });
+
+        // Enter в конце строки с Markdown: применяем форматирование до перевода строки
+        $(document).on('keydown', '#noteEditor', function (e) {
+            if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey) {
+                return;
+            }
+            if (applyInlineMarkdown(false)) {
                 syncNoteBody();
             }
         });
@@ -732,12 +748,15 @@
             if (!ev || !ev.clipboardData) {
                 return;
             }
-            if (ev.clipboardData.getData('text/html')) {
-                return; // HTML вставит браузер, сервер всё равно очистит
-            }
             var text = ev.clipboardData.getData('text/plain');
             if (!text || !looksLikeMarkdown(text)) {
                 return;
+            }
+            // Браузер часто отдаёт text/html даже для простого текста —
+            // тогда вставляем как текст и конвертируем Markdown сами
+            var html = ev.clipboardData.getData('text/html');
+            if (html && hasRealFormatting(html)) {
+                return; // настоящее форматирование вставит браузер, сервер почистит
             }
             e.preventDefault();
             document.execCommand('insertHTML', false, mdToHtml(text));
