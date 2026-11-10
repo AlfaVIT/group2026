@@ -110,7 +110,11 @@ foreach ($attendance as $a) {
                 <?php if (($m['senior_name'] ?? '') !== ''): ?>
                     <div class="mt-2">
                         <span class="text-body-secondary">Старший на встрече:</span>
-                        <?= e(full_name(['address_term' => $m['senior_term'] ?? 'брат', 'name' => $m['senior_name']])) ?>
+                        <?= user_link([
+                            'id' => (int)($m['senior_user_id'] ?? 0),
+                            'address_term' => $m['senior_term'] ?: 'брат',
+                            'name' => $m['senior_name'],
+                        ]) ?>
                     </div>
                 <?php endif; ?>
 
@@ -254,7 +258,11 @@ foreach ($attendance as $a) {
                     <?php foreach ($publicNotes as $pn): ?>
                         <div class="cms-note-public mb-3">
                             <div class="d-flex flex-wrap justify-content-between gap-2 small text-body-secondary">
-                                <span class="fw-semibold"><?= e(full_name($pn)) ?></span>
+                                <span class="fw-semibold"><?= user_link([
+                                    'id' => (int)($pn['user_id'] ?? 0),
+                                    'address_term' => $pn['address_term'] ?? '',
+                                    'name' => $pn['name'] ?? '',
+                                ]) ?></span>
                                 <span><?= e(date('d.m.Y H:i', strtotime($pn['updated_at']))) ?></span>
                             </div>
                             <?php if (!note_is_empty((string)$pn['body'], (string)($pn['format'] ?? 'text'))): ?>
@@ -362,7 +370,19 @@ foreach ($attendance as $a) {
                         <?php if (empty($rolesByRole[$roleName])): continue; endif; ?>
                         <div class="mb-2">
                             <div class="small fw-semibold text-primary"><?= e(role_label($roleName)) ?></div>
-                            <div class="small"><?= e(implode(', ', array_map(fn($p) => full_name($p), $rolesByRole[$roleName]))) ?></div>
+                            <div class="small">
+                                <?php
+                                $rolePeople = [];
+                                foreach ($rolesByRole[$roleName] as $person) {
+                                    $rolePeople[] = user_link([
+                                        'id' => (int)$person['user_id'],
+                                        'address_term' => $person['address_term'],
+                                        'name' => $person['name'],
+                                    ]);
+                                }
+                                echo implode(', ', $rolePeople);
+                                ?>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -399,7 +419,7 @@ foreach ($attendance as $a) {
                                 <?php endif; ?>
                                 <?php foreach ($marked as $a): ?>
                                     <tr>
-                                        <td class="small"><?= e(full_name($a)) ?></td>
+                                        <td class="small"><?= user_link(['id' => (int)$a['user_id'], 'address_term' => $a['address_term'], 'name' => $a['name']]) ?></td>
                                         <td><span class="badge <?= attendance_badge_class($a['status']) ?>"><?= $stLabels[$a['status']] ?? '' ?></span></td>
                                         <td class="small text-body-secondary"><?= e($a['reason']) ?></td>
                                     </tr>
@@ -427,7 +447,7 @@ foreach ($attendance as $a) {
                                             <tbody>
                                             <?php foreach ($unmarked as $a): ?>
                                                 <tr>
-                                                    <td class="small"><?= e(full_name($a)) ?></td>
+                                                    <td class="small"><?= user_link(['id' => (int)$a['user_id'], 'address_term' => $a['address_term'], 'name' => $a['name']]) ?></td>
                                                     <td><span class="badge text-bg-secondary">Не отметился</span></td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -566,7 +586,7 @@ foreach ($attendance as $a) {
                                     <tbody>
                                     <?php foreach ($expenses as $exp): ?>
                                         <tr>
-                                            <td><?= e(full_name($exp)) ?></td>
+                                            <td><?= user_link(['id' => (int)$exp['user_id'], 'address_term' => $exp['address_term'], 'name' => $exp['name']]) ?></td>
                                             <td class="fw-semibold"><?= money($exp['amount']) ?></td>
                                             <td class="small"><?= e($exp['article'] ?? '') !== '' ? '<span class="badge text-bg-light border">' . e($exp['article']) . '</span>' : '—' ?></td>
                                             <td><?= e($exp['description']) ?></td>

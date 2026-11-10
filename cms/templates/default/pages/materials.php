@@ -165,11 +165,22 @@ $me = Auth::id();
                         <span>
                             <span class="h5 d-block mb-1"><?= e($m['title']) ?></span>
                             <span class="small text-body-secondary d-block">
-                                <?= e(full_name(['address_term' => $m['author_term'], 'name' => $m['author_name']])) ?>
+                                <?= user_link(
+                                    ['id' => (int)$m['user_id'], 'address_term' => $m['author_term'], 'name' => $m['author_name']],
+                                    'span'
+                                ) ?>
                                 · <?= e(rdate(substr($m['created_at'], 0, 10))) ?>
                                 <?= e(date('H:i', strtotime($m['created_at']))) ?>
                                 <?php if ($m['updated_at']): ?>
-                                    · Изменено: <?= e(full_name(['address_term' => $m['editor_term'] ?: 'брат', 'name' => $m['editor_name'] ?: '—'])) ?>
+                                    · Изменено:
+                                    <?php if (!empty($m['updated_by'])): ?>
+                                        <?= user_link(
+                                            ['id' => (int)$m['updated_by'], 'address_term' => $m['editor_term'] ?: 'брат', 'name' => $m['editor_name'] ?: '—'],
+                                            'span'
+                                        ) ?>
+                                    <?php else: ?>
+                                        <?= e(full_name(['address_term' => $m['editor_term'] ?: 'брат', 'name' => $m['editor_name'] ?: '—'])) ?>
+                                    <?php endif; ?>
                                     <?= e(date('d.m.Y H:i', strtotime($m['updated_at']))) ?>
                                 <?php endif; ?>
                             </span>

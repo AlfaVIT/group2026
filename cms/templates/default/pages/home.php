@@ -71,7 +71,7 @@
                                         <?php if ($bd['avatarUrl'] !== ''): ?>
                                             <img class="cms-avatar" style="width:26px;height:26px;" src="<?= e($bd['avatarUrl']) ?>" alt="">
                                         <?php endif; ?>
-                                        <strong><?= e($bd['name']) ?></strong>
+                                        <strong class="fw-semibold"><?= user_link(['id' => (int)($bd['id'] ?? 0)], 'a', '', $bd['name']) ?></strong>
                                         <span class="text-body-secondary small"><?= (int)$bd['day'] ?>-е <?= e($bd['month']) ?><?= (int)$bd['year'] !== (int)date('Y') ? ' ' . (int)$bd['year'] : '' ?></span>
                                         <?php if ($bd['status'] === 'today'): ?>
                                             <span class="badge text-bg-success">Сегодня!</span>
@@ -112,7 +112,7 @@
                                     <?php if (avatar_url($u) !== ''): ?>
                                         <img class="cms-avatar" style="width:26px;height:26px;" src="<?= e(avatar_url($u)) ?>" alt="">
                                     <?php endif; ?>
-                                    <span><?= e(full_name($u)) ?></span>
+                                    <span><?= user_link($u, 'a', 'fw-semibold') ?></span>
                                 </div>
                                 <div class="small text-body-secondary">
                                     <?php if ($phone): ?>

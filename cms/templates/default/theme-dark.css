@@ -166,3 +166,23 @@ html[data-theme="dark"] .card-header .h5,
 html[data-theme="dark"] .card-header .h5 a {
     color: #fff;
 }
+
+/* --- Карточка участника и «живые» имена в тёмной теме --- */
+html[data-theme="dark"] .cms-user-link {
+    border-bottom-color: rgba(151, 187, 255, .45);
+}
+
+html[data-theme="dark"] .cms-user-link:hover,
+html[data-theme="dark"] .cms-user-link:focus-visible {
+    color: #9dc1ff;
+}
+
+html[data-theme="dark"] .cms-user-card-avatar {
+    border-color: rgba(255, 255, 255, .18);
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .45);
+}
+
+html[data-theme="dark"] .cms-user-card-avatar-empty {
+    background: linear-gradient(135deg, #2b3850 0%, #1d2739 100%);
+    color: #b9cae4;
+}

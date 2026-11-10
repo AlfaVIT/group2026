@@ -118,6 +118,7 @@ $schemeCss = theme_scheme_css($user);
     </div>
 </footer>
 
+<?php partial('user_card_modal'); ?>
 <script src="<?= e(asset_url('vendor/jquery/jquery.min.js')) ?>"></script>
 <script src="<?= e(asset_url('vendor/bootstrap/js/bootstrap.bundle.min.js')) ?>"></script>
 <script src="<?= e(asset_url('js/app.js')) ?>"></script>

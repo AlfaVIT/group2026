@@ -16,7 +16,11 @@ foreach ($roles as $r) {
                 <div class="small fw-semibold text-primary"><?= e(role_label($roleName)) ?></div>
                 <?php foreach ($byRole[$roleName] as $person): ?>
                     <div class="small">
-                        <?= e(full_name($person)) ?>
+                        <?= user_link([
+                            'id' => (int)$person['user_id'],
+                            'address_term' => $person['address_term'],
+                            'name' => $person['name'],
+                        ]) ?>
                     </div>
                 <?php endforeach; ?>
             </div>

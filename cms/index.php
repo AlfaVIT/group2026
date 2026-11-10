@@ -38,6 +38,7 @@ $routes = [
     'place_delete'    => ['PlaceController', 'delete', ['manage_places']],
     'photo_delete'    => ['PlaceController', 'deletePhoto', ['manage_places']],
     'user_edit'       => ['UserController', 'edit', ['manage_users']],
+    'user_card'       => ['UserController', 'card', ['any']],
     'user_save'       => ['UserController', 'save', ['manage_users']],
     'user_delete'     => ['UserController', 'delete', ['manage_users']],
     'attendance_save' => ['AttendanceController', 'save', ['mark_attendance']],

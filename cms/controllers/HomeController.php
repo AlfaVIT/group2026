@@ -85,6 +85,7 @@ class HomeController
                     $status = 'passed';
                 }
                 $birthdays[$m][] = [
+                    'id'        => (int)$u['id'],
                     'name'      => $u['name'],
                     'avatarUrl' => avatar_url($u),
                     'day'       => $day,
@@ -101,7 +102,7 @@ class HomeController
         unset($list);
 
         $contacts = $canViewPd ? Db::fetchAll(
-            'SELECT name, address_term, avatar, phone, hide_phone, email, telegram
+            'SELECT name, address_term, avatar, phone, hide_phone, email, telegram, id
              FROM users
              WHERE is_active = 1 AND personal_consent = 1 AND hide_phone = 0 AND COALESCE(phone, \'\') != \'\'
              ORDER BY name'

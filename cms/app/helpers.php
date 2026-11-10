@@ -567,6 +567,29 @@ function full_name(array $user): string
 }
 
 /**
+ * Имя участника как «живая» ссылка: по клику открывается карточка участника
+ * поверх страницы (модальное окно). Без id возвращает обычный текст.
+ *
+ * $tag = 'span' — для мест, где ссылку вкладывать нельзя (внутри кнопки):
+ * такой элемент получает role="link" и открывает карточку по клику/Enter.
+ */
+function user_link(array $user, string $tag = 'a', string $class = '', ?string $text = null): string
+{
+    $name = e($text ?? full_name($user));
+    $id = (int)($user['id'] ?? 0);
+    if ($id <= 0) {
+        return $name;
+    }
+    $cls = 'cms-user-link' . ($class !== '' ? ' ' . $class : '');
+    if ($tag === 'span') {
+        return '<span class="' . $cls . '" role="link" tabindex="0" data-user-card="' . $id . '">'
+            . $name . '</span>';
+    }
+    return '<a class="' . $cls . '" href="' . e(url('user_card', ['id' => $id])) . '"'
+        . ' data-user-card="' . $id . '">' . $name . '</a>';
+}
+
+/**
  * URL аватара пользователя (файл в uploads/avatars). Пусто, если аватар не задан
  * или файл отсутствует.
  */

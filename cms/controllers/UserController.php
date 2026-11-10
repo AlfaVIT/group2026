@@ -2,6 +2,90 @@
 
 class UserController
 {
+    /**
+     * Карточка участника: крупный аватар, имя, контакты и дата рождения.
+     * AJAX-запрос получает фрагмент для модального окна, обычный — отдельную страницу.
+     * Персональные данные показываются, только если участник их опубликовал
+     * (дал согласие) и у смотрящего есть право view_pd.
+     */
+    public function card(): void
+    {
+        $id = (int)($_GET['id'] ?? 0);
+        $user = $id > 0 ? Db::fetch(
+            'SELECT id, name, address_term, avatar, role, phone, hide_phone, email, telegram,
+                    birthday, personal_consent, is_active
+             FROM users WHERE id = ?',
+            [$id]
+        ) : null;
+
+        if (!$user || (int)$user['is_active'] !== 1) {
+            http_response_code(404);
+            if (is_ajax()) {
+                header('Content-Type: text/html; charset=UTF-8');
+                echo '<div class="cms-user-card text-center text-body-secondary py-4">Участник не найден</div>';
+                return;
+            }
+            view('errors/404', ['title' => 'Участник не найден']);
+            return;
+        }
+
+        $pdOpen = Auth::can('view_pd') && (int)$user['personal_consent'] === 1;
+
+        $phone = $pdOpen && (int)$user['hide_phone'] === 0 ? trim((string)$user['phone']) : '';
+        $email = $pdOpen ? trim((string)$user['email']) : '';
+        $tgNick = $pdOpen ? telegram_nick((string)$user['telegram']) : '';
+
+        $birthdayText = '';
+        $age = null;
+        $birthday = $pdOpen ? trim((string)$user['birthday']) : '';
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $birthday, $bm)) {
+            $months = [1 => 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            $month = (int)$bm[2];
+            if (isset($months[$month])) {
+                $birthdayText = ltrim($bm[3], '0') . ' ' . $months[$month];
+                if ($bm[1] !== '0000') {
+                    $birthdayText .= ' ' . $bm[1] . ' г.';
+                    $bd = DateTime::createFromFormat('!Y-m-d', $birthday);
+                    if ($bd) {
+                        $age = $bd->diff(new DateTime('today'))->y;
+                    }
+                }
+            }
+        }
+
+        if ($pdOpen) {
+            $pdNote = ($phone === '' && $email === '' && $tgNick === '' && $birthdayText === '')
+                ? 'Участник не указал контакты и дату рождения.'
+                : '';
+        } elseif (!Auth::can('view_pd')) {
+            $pdNote = 'Контакты и дата рождения доступны участникам группы.';
+        } else {
+            $pdNote = 'Участник не опубликовал контакты и дату рождения.';
+        }
+
+        $data = [
+            'cardUser' => $user,
+            'cardAvatar' => avatar_url($user),
+            'cardPhone' => $phone,
+            'cardEmail' => $email,
+            'cardTelegram' => $tgNick,
+            'cardTelegramLink' => $tgNick !== '' ? telegram_link((string)$user['telegram']) : '',
+            'cardBirthday' => $birthdayText,
+            'cardAge' => $age,
+            'cardRole' => role_label((string)$user['role']),
+            'cardPdNote' => $pdNote,
+        ];
+
+        if (is_ajax()) {
+            header('Content-Type: text/html; charset=UTF-8');
+            partial('user_card', $data);
+            return;
+        }
+
+        view('user_card', $data + ['title' => full_name($user)]);
+    }
+
     public function edit(): void
     {
         $id = (int)($_GET['id'] ?? 0);

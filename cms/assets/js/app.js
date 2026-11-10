@@ -892,6 +892,67 @@
         });
     });
 
+    // Карточка участника поверх страницы: фрагмент подгружается по клику на имя
+    var userCardTrigger = null;
+
+    function openUserCard(id, trigger) {
+        var modalEl = document.getElementById('userCardModal');
+        if (!modalEl || !id || !window.bootstrap) {
+            return;
+        }
+        var body = modalEl.querySelector('[data-user-card-body]');
+        var base = body ? body.getAttribute('data-url') : '';
+        if (!body || !base) {
+            return;
+        }
+        userCardTrigger = trigger || null;
+        body.innerHTML = '<div class="text-center py-4 text-body-secondary">Загрузка…</div>';
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        fetch(base + '&id=' + encodeURIComponent(id), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.text();
+            })
+            .then(function (html) {
+                body.innerHTML = html;
+            })
+            .catch(function () {
+                body.innerHTML = '<div class="text-center text-body-secondary py-4">' +
+                    'Не удалось загрузить карточку участника.</div>';
+            });
+    }
+
+    $(document).on('click', '[data-user-card]', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openUserCard($(this).attr('data-user-card'), this);
+    });
+
+    // имя внутри кнопки-аккордеона: открываем по Enter/Space, не переключая карточку
+    $(document).on('keydown', '[data-user-card]', function (e) {
+        if (this.tagName === 'A') {
+            return; // обычная ссылка: Enter обрабатывает браузер
+        }
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            e.stopPropagation();
+            openUserCard($(this).attr('data-user-card'), this);
+        }
+    });
+
+    $(document).on('hidden.bs.modal', '#userCardModal', function () {
+        var trigger = userCardTrigger;
+        userCardTrigger = null;
+        if (trigger && document.body.contains(trigger)) {
+            trigger.focus();
+        }
+    });
+
     // Отметка присутствия за другого участника (Старший/Помощник):
     // при выборе участника подставляем его текущий статус и причину.
     $(document).on('change', '#att_user', function () {
