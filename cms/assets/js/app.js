@@ -500,14 +500,9 @@
             } else if (cmd === 'formatBlock') {
                 // H3 и цитата работают как переключатели, как и списки:
                 // повторное нажатие возвращает обычный абзац
-                var current = '';
-                try {
-                    current = String(document.queryCommandValue('formatBlock') || '');
-                } catch (e) {
-                    current = '';
-                }
-                current = current.replace(/[<>]/g, '').toLowerCase();
-                var target = (current !== '' && current === String(arg).toLowerCase()) ? 'p' : arg;
+                var want = String(arg).toLowerCase();
+                var current = currentBlockTag();
+                var target = (current === want) ? 'p' : arg;
                 document.execCommand('formatBlock', false, '<' + target + '>');
             } else {
                 document.execCommand(cmd, false, null);
@@ -542,7 +537,14 @@
         }
 
         function mdToHtml(text) {
-            var lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+            var normalized = String(text).replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+            var lines = normalized.split('\n');
+            // одна строка без блочных маркеров — вставляем как строчную разметку,
+            // чтобы текст остался в текущем абзаце
+            var hasBlock = lines.length > 1 || /^\s{0,3}(#{1,6}\s|>\s|[-*+]\s|\d+[.)]\s)/.test(normalized);
+            if (!hasBlock) {
+                return mdInline(normalized);
+            }
             var out = [];
             var list = null;
             function closeList() {
@@ -616,6 +618,100 @@
                 return null;
             }
             return node.nodeType === 3 ? { node: node, offset: range.startOffset } : null;
+        }
+
+        /** Ближайший блочный элемент вокруг курсора (p, div, li, h3, blockquote…). */
+        function currentBlockTag() {
+            var editor = document.getElementById('noteEditor');
+            var sel = window.getSelection();
+            if (!editor || !sel || !sel.rangeCount) {
+                return '';
+            }
+            var node = sel.getRangeAt(0).startContainer;
+            if (!editor.contains(node)) {
+                return '';
+            }
+            var el = node.nodeType === 3 ? node.parentNode : node;
+            while (el && el !== editor && !/^(P|DIV|LI|H[1-6]|BLOCKQUOTE|PRE)$/.test(el.tagName)) {
+                el = el.parentNode;
+            }
+            return (el && el !== editor) ? el.tagName.toLowerCase() : '';
+        }
+
+        /**
+         * Вставляет HTML в позицию курсора и ставит курсор ПОСЛЕ вставленного.
+         * Через execCommand браузер оставлял курсор внутри <b>/<i>, и дальнейший
+         * текст печатался тем же форматированием — поэтому вставляем вручную
+         * через Range и явно переносим каретку за последний вставленный узел.
+         */
+        function insertHtmlAtCaret(html) {
+            var editor = document.getElementById('noteEditor');
+            var sel = window.getSelection();
+            if (!editor || !sel || !sel.rangeCount) {
+                return;
+            }
+            var range = sel.getRangeAt(0);
+            if (!editor.contains(range.startContainer)) {
+                return;
+            }
+
+            var temp = document.createElement('div');
+            temp.innerHTML = html;
+            var nodes = Array.prototype.slice.call(temp.childNodes);
+            if (!nodes.length) {
+                return;
+            }
+            var hasBlock = nodes.some(function (n) {
+                return n.nodeType === 1 && /^(P|DIV|H[1-6]|UL|OL|LI|BLOCKQUOTE)$/.test(n.tagName);
+            });
+
+            var frag = document.createDocumentFragment();
+            nodes.forEach(function (n) {
+                frag.appendChild(n);
+            });
+
+            if (!hasBlock) {
+                // строчная вставка — прямо в позицию курсора
+                range.deleteContents();
+                range.insertNode(frag);
+                var caretInline = document.createRange();
+                caretInline.setStartAfter(nodes[nodes.length - 1]);
+                caretInline.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(caretInline);
+                return;
+            }
+
+            // блочная вставка — на уровне блоков, а не внутри абзаца
+            var block = range.startContainer;
+            block = block.nodeType === 3 ? block.parentNode : block;
+            while (block && block !== editor && !/^(P|DIV|H[1-6]|UL|OL|LI|BLOCKQUOTE)$/.test(block.tagName)) {
+                block = block.parentNode;
+            }
+            if (!block || block === editor) {
+                block = null;
+            }
+            if (block && block.textContent.trim() === '') {
+                block.parentNode.replaceChild(frag, block);
+            } else if (block) {
+                block.parentNode.insertBefore(frag, block.nextSibling);
+            } else {
+                editor.appendChild(frag);
+            }
+
+            // после блочной вставки продолжаем печатать с нового абзаца,
+            // иначе курсор оказался бы внутри заголовка/цитаты
+            var last = nodes[nodes.length - 1];
+            var anchor = document.createElement('p');
+            anchor.appendChild(document.createElement('br'));
+            if (last.parentNode) {
+                last.parentNode.insertBefore(anchor, last.nextSibling);
+            }
+            var caretBlock = document.createRange();
+            caretBlock.setStart(anchor, 0);
+            caretBlock.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(caretBlock);
         }
 
         /** Блочные сокращения на пробел: «# », «> », «- », «1. ». */
@@ -712,7 +808,7 @@
             var sel = window.getSelection();
             sel.removeAllRanges();
             sel.addRange(range);
-            document.execCommand('insertHTML', false, html + (withSpace ? ' ' : ''));
+            insertHtmlAtCaret(html + (withSpace ? ' ' : ''));
             return true;
         }
 
@@ -759,7 +855,7 @@
                 return; // настоящее форматирование вставит браузер, сервер почистит
             }
             e.preventDefault();
-            document.execCommand('insertHTML', false, mdToHtml(text));
+            insertHtmlAtCaret(mdToHtml(text));
             syncNoteBody();
         });
     });
