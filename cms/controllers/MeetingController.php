@@ -104,6 +104,34 @@ class MeetingController
             ? Db::fetchAll('SELECT * FROM place_photos WHERE place_id = ? ORDER BY sort, id', [(int)$meeting['place_id']])
             : [];
 
+        // Конспекты: свой (для редактирования) и публичные записи других участников
+        $myNote = null;
+        $myNoteFiles = [];
+        $publicNotes = [];
+        if (Auth::id()) {
+            $myNote = Db::fetch('SELECT * FROM meeting_notes WHERE meeting_id = ? AND user_id = ?', [$id, Auth::id()]);
+            if ($myNote) {
+                $myNoteFiles = Db::fetchAll(
+                    'SELECT * FROM meeting_note_files WHERE note_id = ? ORDER BY id',
+                    [(int)$myNote['id']]
+                );
+            }
+            $publicNotes = Db::fetchAll(
+                'SELECT n.*, u.address_term, u.name
+                 FROM meeting_notes n JOIN users u ON u.id = n.user_id
+                 WHERE n.meeting_id = ? AND n.visibility = \'public\' AND n.user_id != ?
+                 ORDER BY n.updated_at DESC',
+                [$id, Auth::id()]
+            );
+            foreach ($publicNotes as &$pn) {
+                $pn['files'] = Db::fetchAll(
+                    'SELECT * FROM meeting_note_files WHERE note_id = ? ORDER BY id',
+                    [(int)$pn['id']]
+                );
+            }
+            unset($pn);
+        }
+
         $presentCount = present_count($id);
         $guestNames = meeting_guest_names((string)$meeting['guests']);
         $guestCount = count_meeting_guests((string)$meeting['guests']);
@@ -123,6 +151,10 @@ class MeetingController
             'guestNames' => $guestNames,
             'checklist' => $checklist,
             'placePhotos' => $placePhotos,
+            'myNote' => $myNote,
+            'myNoteFiles' => $myNoteFiles,
+            'publicNotes' => $publicNotes,
+            'canWriteNotes' => Auth::can('write_notes'),
         ]);
     }
 
@@ -327,7 +359,19 @@ class MeetingController
             http_response_code(404);
             exit('Встреча не найдена');
         }
+        // удаляем файлы конспектов с диска (записи уйдут каскадом)
+        $noteFiles = Db::fetchAll(
+            'SELECT f.file_path FROM meeting_note_files f
+             JOIN meeting_notes n ON n.id = f.note_id WHERE n.meeting_id = ?',
+            [$id]
+        );
         Db::delete('meetings', ['id' => $id]);
+        foreach ($noteFiles as $nf) {
+            $path = BASE_PATH . '/data/notes/' . $nf['file_path'];
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
         set_flash('Встреча удалена', 'info');
         redirect(url('home'));
     }

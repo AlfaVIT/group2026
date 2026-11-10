@@ -205,6 +205,25 @@ CREATE TABLE IF NOT EXISTS vespers_readers (
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (meeting_id, passage_key)
 );
+
+CREATE TABLE IF NOT EXISTS meeting_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body TEXT DEFAULT '',
+    visibility TEXT NOT NULL DEFAULT 'private',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (meeting_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS meeting_note_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    note_id INTEGER NOT NULL REFERENCES meeting_notes(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL DEFAULT 'image',
+    file_path TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 SQL;
 
     $pdo->exec($schema);
@@ -212,7 +231,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '24')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '25')");
 
     // предустановленные статьи расходов
     foreach (EXPENSE_ARTICLES as $preset) {
@@ -228,13 +247,14 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 24) {
+        if ($version >= 25) {
             return;
         }
         if ($version >= 21) {
             migrate_v22();
             migrate_v23();
             migrate_v24();
+            migrate_v25();
             return;
         }
 
@@ -383,6 +403,7 @@ function run_migrations(): void
         migrate_v22();
         migrate_v23();
         migrate_v24();
+        migrate_v25();
     } catch (Throwable $e) {
     }
 }
@@ -462,6 +483,30 @@ function migrate_v24(): void
 
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '24')");
     Db::q("UPDATE settings SET value = '24' WHERE key = 'schema_version'");
+}
+
+/** v25: конспекты встреч (текст, изображения, аудио) с приватностью. */
+function migrate_v25(): void
+{
+    Db::q('CREATE TABLE IF NOT EXISTS meeting_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT DEFAULT \'\',
+        visibility TEXT NOT NULL DEFAULT \'private\',
+        created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+        updated_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+        UNIQUE (meeting_id, user_id)
+    )');
+    Db::q('CREATE TABLE IF NOT EXISTS meeting_note_files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL REFERENCES meeting_notes(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL DEFAULT \'image\',
+        file_path TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '25')");
+    Db::q("UPDATE settings SET value = '25' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

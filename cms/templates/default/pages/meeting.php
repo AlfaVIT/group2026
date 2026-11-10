@@ -141,6 +141,140 @@ foreach ($attendance as $a) {
             </div>
         </div>
 
+        <div class="card shadow-sm mb-4" id="note">
+            <div class="card-header fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span>Конспект встречи</span>
+                <?php if ($myNote): ?>
+                    <span class="badge <?= $myNote['visibility'] === 'public' ? 'text-bg-success' : 'text-bg-secondary' ?>">
+                        <?= $myNote['visibility'] === 'public' ? 'доступен всем' : 'личный' ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <?php if ($canWriteNotes): ?>
+                    <form method="post" action="<?= url('note_save') ?>" enctype="multipart/form-data" data-no-ajax>
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
+                        <div class="mb-2">
+                            <textarea class="form-control" name="body" rows="5" maxlength="20000"
+                                      placeholder="Текст конспекта: мысли, цитаты, ссылки…"><?= e((string)($myNote['body'] ?? '')) ?></textarea>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-3 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="visibility" id="note_private" value="private"
+                                       <?= ($myNote['visibility'] ?? 'private') !== 'public' ? 'checked' : '' ?>>
+                                <label class="form-check-label small" for="note_private">Личный — вижу только я</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="visibility" id="note_public" value="public"
+                                       <?= ($myNote['visibility'] ?? '') === 'public' ? 'checked' : '' ?>>
+                                <label class="form-check-label small" for="note_public">Доступен всем участникам</label>
+                            </div>
+                        </div>
+
+                        <?php if ($myNoteFiles): ?>
+                            <div class="cms-note-files mb-2">
+                                <?php foreach ($myNoteFiles as $f): ?>
+                                    <div class="cms-note-file">
+                                        <?php if ($f['kind'] === 'image'): ?>
+                                            <a class="cms-note-thumb" href="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"
+                                               data-lightbox="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>">
+                                                <img src="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"
+                                                     alt="Изображение конспекта" loading="lazy">
+                                            </a>
+                                        <?php else: ?>
+                                            <audio class="cms-note-audio" controls preload="none"
+                                                   src="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"></audio>
+                                        <?php endif; ?>
+                                        <form method="post" action="<?= url('note_file_delete') ?>" class="cms-note-file-del"
+                                              data-no-ajax onsubmit="return confirm('Удалить файл?');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+                                            <button class="btn btn-sm btn-danger" type="submit" title="Удалить файл"
+                                                    aria-label="Удалить файл">&times;</button>
+                                        </form>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label small" for="note_files">Изображения и звук</label>
+                                <input class="form-control form-control-sm" type="file" id="note_files" name="files[]"
+                                       accept="image/*,audio/*" multiple>
+                                <div class="form-text">До 5 файлов: изображения до 10 МБ, звук до 25 МБ</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small d-block">Записать звук</label>
+                                <input class="d-none" type="file" id="note_audio" name="audio" accept="audio/*">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-danger cms-btn-icon" type="button" id="noteRecStart"
+                                            title="Начать запись" aria-label="Начать запись">
+                                        <?= ui_icon('mic') ?><span class="cms-btn-label">Записать</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary cms-btn-icon" type="button" id="noteRecStop"
+                                            disabled title="Остановить запись" aria-label="Остановить запись">
+                                        <?= ui_icon('stop') ?><span class="cms-btn-label">Стоп</span>
+                                    </button>
+                                    <span class="small text-body-secondary" id="noteRecStatus"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <button class="btn btn-primary cms-btn-icon" type="submit" title="Сохранить конспект">
+                                <?= ui_icon('check') ?><span class="cms-btn-label">Сохранить конспект</span>
+                            </button>
+                            <?php if ($myNote): ?>
+                                <button class="btn btn-outline-danger cms-btn-icon" type="submit"
+                                        formaction="<?= url('note_delete') ?>" formnovalidate
+                                        onclick="return confirm('Удалить конспект целиком вместе с файлами?');"
+                                        title="Удалить конспект">
+                                    <?= ui_icon('trash') ?><span class="cms-btn-label">Удалить</span>
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <p class="text-body-secondary small mb-0">Конспекты могут вести участники группы.</p>
+                <?php endif; ?>
+
+                <?php if ($publicNotes): ?>
+                    <hr>
+                    <div class="fw-semibold small mb-3">Конспекты участников</div>
+                    <?php foreach ($publicNotes as $pn): ?>
+                        <div class="cms-note-public mb-3">
+                            <div class="d-flex flex-wrap justify-content-between gap-2 small text-body-secondary">
+                                <span class="fw-semibold"><?= e(full_name($pn)) ?></span>
+                                <span><?= e(date('d.m.Y H:i', strtotime($pn['updated_at']))) ?></span>
+                            </div>
+                            <?php if (trim((string)$pn['body']) !== ''): ?>
+                                <div class="mt-1"><?= nl2br(linkify((string)$pn['body'])) ?></div>
+                            <?php endif; ?>
+                            <?php if ($pn['files']): ?>
+                                <div class="cms-note-files mt-2">
+                                    <?php foreach ($pn['files'] as $f): ?>
+                                        <?php if ($f['kind'] === 'image'): ?>
+                                            <a class="cms-note-thumb" href="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"
+                                               data-lightbox="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>">
+                                                <img src="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"
+                                                     alt="Изображение конспекта" loading="lazy">
+                                            </a>
+                                        <?php else: ?>
+                                            <audio class="cms-note-audio" controls preload="none"
+                                                   src="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"></audio>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <?php
         $clTotal = 0;
         $clDone = 0;

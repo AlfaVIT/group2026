@@ -20,6 +20,10 @@ $routes = [
     'meeting'         => ['MeetingController', 'view', ['any']],
     'meeting_ics'     => ['MeetingController', 'ics', ['any']],
     'vespers'         => ['VespersController', 'view', ['any']],
+    'note_save'       => ['NoteController', 'save', ['write_notes']],
+    'note_delete'     => ['NoteController', 'delete', ['write_notes']],
+    'note_file_delete' => ['NoteController', 'fileDelete', ['write_notes']],
+    'note_file'       => ['NoteController', 'file', ['any']],
     'vespers_readers_save' => ['VespersController', 'saveReaders', ['assign_readers']],
     'checklist_save'  => ['ChecklistController', 'save', ['mark_attendance']],
     'materials'       => ['MaterialController', 'index', ['any']],
@@ -147,6 +151,9 @@ if ($isPost) {
         'article_update' => 'update',
         'article_merge' => 'merge',
         'article_dismiss' => 'dismiss',
+        'note_save' => 'save',
+        'note_delete' => 'delete',
+        'note_file_delete' => 'fileDelete',
     ];
     if (isset($saveMethod[$page])) {
         $method = $saveMethod[$page];

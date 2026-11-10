@@ -397,6 +397,77 @@
                 closeLightbox();
             }
         });
+
+        // Запись звука для конспекта встречи (MediaRecorder)
+        var noteRec = null;
+        var noteRecChunks = [];
+        var noteRecTimer = null;
+        var noteRecSeconds = 0;
+
+        function noteRecStatus(text) {
+            $('#noteRecStatus').text(text || '');
+        }
+
+        $(document).on('click', '#noteRecStart', function () {
+            if (!navigator.mediaDevices || typeof window.MediaRecorder === 'undefined') {
+                alert('Запись звука не поддерживается этим браузером. Прикрепите аудиофайл.');
+                return;
+            }
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+                noteRecChunks = [];
+                var mime = '';
+                if (window.MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mime = 'audio/webm;codecs=opus';
+                }
+                try {
+                    noteRec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+                } catch (err) {
+                    noteRec = new MediaRecorder(stream);
+                }
+                noteRec.ondataavailable = function (e) {
+                    if (e.data && e.data.size) {
+                        noteRecChunks.push(e.data);
+                    }
+                };
+                noteRec.onstop = function () {
+                    stream.getTracks().forEach(function (t) { t.stop(); });
+                    clearInterval(noteRecTimer);
+                    var type = noteRec.mimeType || 'audio/webm';
+                    var blob = new Blob(noteRecChunks, { type: type });
+                    var ext = type.indexOf('ogg') >= 0 ? 'ogg' : 'webm';
+                    try {
+                        var dt = new DataTransfer();
+                        dt.items.add(new File([blob], 'zapis-' + Date.now() + '.' + ext, { type: type }));
+                        document.getElementById('note_audio').files = dt.files;
+                        noteRecStatus('Запись готова: ' + Math.round(blob.size / 1024) + ' КБ');
+                    } catch (err) {
+                        noteRecStatus('Запись готова, но браузер не даёт прикрепить её к форме');
+                    }
+                    $('#noteRecStop').prop('disabled', true);
+                    $('#noteRecStart').prop('disabled', false);
+                };
+                noteRec.start();
+                noteRecSeconds = 0;
+                $('#noteRecStart').prop('disabled', true);
+                $('#noteRecStop').prop('disabled', false);
+                noteRecStatus('Идёт запись… 0:00');
+                noteRecTimer = setInterval(function () {
+                    noteRecSeconds++;
+                    var mm = Math.floor(noteRecSeconds / 60);
+                    var ss = ('0' + (noteRecSeconds % 60)).slice(-2);
+                    noteRecStatus('Идёт запись… ' + mm + ':' + ss);
+                }, 1000);
+            }).catch(function () {
+                alert('Не удалось получить доступ к микрофону');
+            });
+        });
+
+        $(document).on('click', '#noteRecStop', function () {
+            clearInterval(noteRecTimer);
+            if (noteRec && noteRec.state !== 'inactive') {
+                noteRec.stop();
+            }
+        });
     });
 
     // Отметка присутствия за другого участника (Старший/Помощник):

@@ -51,6 +51,7 @@ const PERMISSIONS = [
     'view_treasury_graph' => ['Старший'],
     'manage_materials' => ['Старший', 'Помощник'],
     'manage_articles'  => ['Старший', 'Казначей'],
+    'write_notes'      => ['Старший', 'Помощник', 'Казначей', 'СестраБрат'],
     'view_stats'       => ['Старший', 'Помощник'],
     // персональные данные участников (контакты, дни рождения) не показываются «Гостю»
     'view_pd'          => ['Старший', 'Помощник', 'Казначей', 'СестраБрат'],
@@ -59,6 +60,32 @@ const PERMISSIONS = [
 function e(?string $value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Превращает ссылки в тексте в кликабельные, сохраняя экранирование.
+ * Использовать вместе с nl2br(): nl2br(linkify($text)).
+ */
+function linkify(string $text): string
+{
+    $safe = e($text);
+    return preg_replace_callback(
+        '~https?://[^\s<"]+~iu',
+        static fn(array $m): string => '<a href="' . $m[0] . '" target="_blank" rel="noopener nofollow">' . $m[0] . '</a>',
+        $safe
+    ) ?? $safe;
+}
+
+/** Человекочитаемый размер файла: 512 Б, 15 КБ, 2.4 МБ. */
+function human_size(int $bytes): string
+{
+    if ($bytes >= 1048576) {
+        return round($bytes / 1048576, 1) . ' МБ';
+    }
+    if ($bytes >= 1024) {
+        return round($bytes / 1024) . ' КБ';
+    }
+    return $bytes . ' Б';
 }
 
 /**
@@ -75,6 +102,8 @@ function ui_icon(string $name, int $size = 16): string
         'book'     => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
         'eye'      => '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
         'check'    => '<polyline points="20 6 9 17 4 12"/>',
+        'mic'      => '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+        'stop'     => '<rect x="6" y="6" width="12" height="12" rx="2"/>',
     ];
     if (!isset($paths[$name])) {
         return '';
