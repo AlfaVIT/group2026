@@ -64,8 +64,8 @@ $schemeCss = theme_scheme_css();
     </div>
     <p class="text-center text-body-secondary small mt-3 mb-0">Координация деятельности группы катехизации</p>
 </main>
-<script src="<?= base_url() ?>/assets/vendor/jquery/jquery.min.js"></script>
-<script src="<?= base_url() ?>/assets/js/app.js"></script>
+<script src="<?= e(asset_url('vendor/jquery/jquery.min.js')) ?>"></script>
+<script src="<?= e(asset_url('js/app.js')) ?>"></script>
 <?php partial('cookie_banner'); ?>
 </body>
 </html>
