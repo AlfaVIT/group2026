@@ -16,7 +16,6 @@ if ($needsInstall) {
 
 $routes = [
     'home'            => ['HomeController', 'index', ['any']],
-    'calendar'        => ['HomeController', 'calendar', ['any']],
     'meeting'         => ['MeetingController', 'view', ['any']],
     'meeting_ics'     => ['MeetingController', 'ics', ['any']],
     'vespers'         => ['VespersController', 'view', ['any']],
@@ -75,6 +74,19 @@ $routes = [
 ];
 
 $page = $_GET['p'] ?? 'home';
+
+// Страница «Календарь встреч» убрана: календарь и встречи показывает главная.
+// Старые ссылки и закладки ведут туда же, выбранный месяц/дата сохраняются.
+if ($page === 'calendar') {
+    $keep = [];
+    foreach (['m', 'sel'] as $key) {
+        $value = (string)($_GET[$key] ?? '');
+        if (preg_match('/^\d{4}-\d{2}(-\d{2})?$/', $value)) {
+            $keep[$key] = $value;
+        }
+    }
+    redirect(url('home', $keep));
+}
 
 if (!isset($routes[$page])) {
     http_response_code(404);

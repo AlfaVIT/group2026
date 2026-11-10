@@ -1,6 +1,6 @@
 <?php
 // $strip: year, month, days, firstDow, label, weekdays, meetingDays, prev, next, today, selected
-$page = $strip['page'] ?? 'calendar';
+$page = $strip['page'] ?? 'home';
 $monthKey = $strip['year'] . '-' . str_pad((string)$strip['month'], 2, '0', STR_PAD_LEFT);
 ?>
 <div class="card shadow-sm mb-4">

@@ -37,9 +37,6 @@ $schemeCss = theme_scheme_css($user);
                     <a class="nav-link" href="<?= url('home') ?>">Главная</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= url('calendar') ?>">Календарь встреч</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="<?= url('materials') ?>">Материалы</a>
                 </li>
                 <?php if (Auth::can('send_broadcast') || Auth::can('manage_settings')): ?>
