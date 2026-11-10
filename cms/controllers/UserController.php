@@ -73,7 +73,8 @@ class UserController
             'cardTelegramLink' => $tgNick !== '' ? telegram_link((string)$user['telegram']) : '',
             'cardBirthday' => $birthdayText,
             'cardAge' => $age,
-            'cardRole' => role_label((string)$user['role']),
+            // обычная роль участника в карточке не показывается
+            'cardRole' => (string)$user['role'] === 'СестраБрат' ? '' : role_label((string)$user['role']),
             'cardPdNote' => $pdNote,
         ];
 
