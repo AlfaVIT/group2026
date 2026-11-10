@@ -71,6 +71,14 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
         <a class="btn btn-sm btn-primary" href="<?= url('meeting', ['id' => $meeting['id']]) ?>">Подробнее</a>
+        <?php
+        // как на странице встречи: Android — intent в календарь, остальные — файл .ics
+        $calHref = is_android_client() ? android_calendar_intent($meeting) : '';
+        if ($calHref === '') {
+            $calHref = url('meeting_ics', ['id' => $meeting['id']]);
+        }
+        ?>
+        <a class="btn btn-sm btn-success" href="<?= e($calHref) ?>">Добавить в календарь</a>
         <?php if ($meeting['stream_url'] !== ''): ?>
             <a class="btn btn-sm btn-danger" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener">
                 Смотреть трансляцию
