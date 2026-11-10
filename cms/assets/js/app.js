@@ -597,7 +597,9 @@
 
         function looksLikeMarkdown(text) {
             return /(^|\n)\s{0,3}(#{1,6}\s|>\s|[-*+]\s|\d+[.)]\s)/.test(text)
-                || /\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|`[^`\n]+`|\[[^\]\n]+\]\(https?:\/\//.test(text);
+                || /\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|`[^`\n]+`|\[[^\]\n]+\]\(https?:\/\//.test(text)
+                || /(^|[\s(])\*[^*\n]+\*($|[\s).,!?:;])/.test(text)
+                || /(^|[\s(])_[^_\n]+_($|[\s).,!?:;])/.test(text);
         }
 
         /** Есть ли в HTML из буфера настоящее форматирование (а не просто обёртка). */
@@ -636,6 +638,23 @@
                 el = el.parentNode;
             }
             return (el && el !== editor) ? el.tagName.toLowerCase() : '';
+        }
+
+        /**
+         * Сбрасывает «стиль ввода» Chrome после вставки: браузер оставляет
+         * активным bold/italic, даже когда курсор уже вне <b>/<i>, и новый
+         * текст печатается форматированным. Пустой selection не трогает текст.
+         */
+        function resetTypingStyle() {
+            ['bold', 'italic', 'underline', 'strikeThrough'].forEach(function (cmd) {
+                try {
+                    if (document.queryCommandState(cmd)) {
+                        document.execCommand(cmd, false, null);
+                    }
+                } catch (e) {
+                    /* старые браузеры могут не поддерживать — не критично */
+                }
+            });
         }
 
         /**
@@ -679,6 +698,7 @@
                 caretInline.collapse(true);
                 sel.removeAllRanges();
                 sel.addRange(caretInline);
+                resetTypingStyle();
                 return;
             }
 
@@ -712,6 +732,7 @@
             caretBlock.collapse(true);
             sel.removeAllRanges();
             sel.addRange(caretBlock);
+            resetTypingStyle();
         }
 
         /** Блочные сокращения на пробел: «# », «> », «- », «1. ». */
