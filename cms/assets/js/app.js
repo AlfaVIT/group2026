@@ -498,7 +498,17 @@
                 }
                 document.execCommand('createLink', false, url);
             } else if (cmd === 'formatBlock') {
-                document.execCommand('formatBlock', false, arg);
+                // H3 и цитата работают как переключатели, как и списки:
+                // повторное нажатие возвращает обычный абзац
+                var current = '';
+                try {
+                    current = String(document.queryCommandValue('formatBlock') || '');
+                } catch (e) {
+                    current = '';
+                }
+                current = current.replace(/[<>]/g, '').toLowerCase();
+                var target = (current !== '' && current === String(arg).toLowerCase()) ? 'p' : arg;
+                document.execCommand('formatBlock', false, '<' + target + '>');
             } else {
                 document.execCommand(cmd, false, null);
             }
