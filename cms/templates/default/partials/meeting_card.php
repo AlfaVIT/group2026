@@ -70,7 +70,10 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
         <?php partial('attendance_summary', ['meeting' => $meeting, 'attendanceSummary' => $attendanceSummary, 'myAttendance' => $myAttendance]); ?>
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
-        <a class="btn btn-sm btn-primary" href="<?= url('meeting', ['id' => $meeting['id']]) ?>">Подробнее</a>
+        <a class="btn btn-sm btn-primary cms-btn-icon" href="<?= url('meeting', ['id' => $meeting['id']]) ?>"
+           title="Подробнее о встрече" aria-label="Подробнее о встрече">
+            <?= ui_icon('eye') ?><span class="cms-btn-label">Подробнее</span>
+        </a>
         <?php
         // как на странице встречи: Android — intent в календарь, остальные — файл .ics
         $calHref = is_android_client() ? android_calendar_intent($meeting) : '';
@@ -78,10 +81,14 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
             $calHref = url('meeting_ics', ['id' => $meeting['id']]);
         }
         ?>
-        <a class="btn btn-sm btn-success" href="<?= e($calHref) ?>">Добавить в календарь</a>
+        <a class="btn btn-sm btn-success cms-btn-icon" href="<?= e($calHref) ?>"
+           title="Добавить в календарь" aria-label="Добавить в календарь">
+            <?= ui_icon('calendar') ?><span class="cms-btn-label">Добавить в календарь</span>
+        </a>
         <?php if ($meeting['stream_url'] !== ''): ?>
-            <a class="btn btn-sm btn-danger" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener">
-                Смотреть трансляцию
+            <a class="btn btn-sm btn-danger cms-btn-icon" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener"
+               title="Смотреть трансляцию" aria-label="Смотреть трансляцию">
+                <?= ui_icon('video') ?><span class="cms-btn-label">Смотреть трансляцию</span>
             </a>
         <?php endif; ?>
     </div>
