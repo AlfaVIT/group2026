@@ -157,8 +157,19 @@ function cms_sanitize_node(DOMNode $node, bool $inLink = false): string
 /** HTML конспекта для вывода: новый формат — очищенный HTML, старый — текст. */
 function note_html(array $note): string
 {
-    $body = (string)($note['body'] ?? '');
-    if (($note['format'] ?? 'text') === 'html') {
+    return format_content((string)($note['body'] ?? ''), (string)($note['format'] ?? 'text'));
+}
+
+/** HTML материала для вывода (то же правило: html или старый текст). */
+function material_html(array $material): string
+{
+    return format_content((string)($material['content'] ?? ''), (string)($material['body_format'] ?? 'text'));
+}
+
+/** Текст, сохранённый редактором (html), или старый простой текст — в HTML для вывода. */
+function format_content(string $body, string $format = 'text'): string
+{
+    if ($format === 'html') {
         return sanitize_html($body);
     }
     return nl2br(linkify($body));

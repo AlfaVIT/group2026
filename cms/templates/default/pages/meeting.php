@@ -156,36 +156,16 @@ foreach ($attendance as $a) {
                         <?= csrf_field() ?>
                         <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
                         <?php $noteEditorHtml = note_html($myNote ?? ['body' => '', 'format' => 'text']); ?>
-                        <div class="cms-editor mb-2">
-                            <div class="cms-editor-toolbar" role="toolbar" aria-label="Форматирование текста">
-                                <button type="button" class="cms-editor-btn" data-note-cmd="bold"
-                                        title="Жирный" aria-label="Жирный"><b>B</b></button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="italic"
-                                        title="Курсив" aria-label="Курсив"><i>I</i></button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="underline"
-                                        title="Подчёркнутый" aria-label="Подчёркнутый"><u>U</u></button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="strikeThrough"
-                                        title="Зачёркнутый" aria-label="Зачёркнутый"><s>S</s></button>
-                                <span class="cms-editor-sep" aria-hidden="true"></span>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="insertUnorderedList"
-                                        title="Список" aria-label="Маркированный список">•</button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="insertOrderedList"
-                                        title="Нумерованный список" aria-label="Нумерованный список">1.</button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="formatBlock"
-                                        data-note-arg="h3" title="Заголовок" aria-label="Заголовок">H</button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="formatBlock"
-                                        data-note-arg="blockquote" title="Цитата" aria-label="Цитата">“”</button>
-                                <span class="cms-editor-sep" aria-hidden="true"></span>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="link"
-                                        title="Ссылка" aria-label="Вставить ссылку"><?= ui_icon('link', 15) ?></button>
-                                <button type="button" class="cms-editor-btn" data-note-cmd="removeFormat"
-                                        title="Убрать форматирование" aria-label="Убрать форматирование">&times;</button>
-                            </div>
-                            <div class="cms-editor-area" id="noteEditor" contenteditable="true" role="textbox"
-                                 aria-multiline="true" aria-label="Текст конспекта"
-                                 data-placeholder="Текст конспекта: мысли, цитаты, ссылки…"><?= $noteEditorHtml ?></div>
+                        <div class="mb-2">
+                            <?php partial('editor', [
+                                'editorId' => 'noteEditor',
+                                'inputId' => 'noteBody',
+                                'fieldName' => 'body',
+                                'html' => $noteEditorHtml,
+                                'label' => 'Текст конспекта',
+                                'placeholder' => 'Текст конспекта: мысли, цитаты, ссылки…',
+                            ]); ?>
                         </div>
-                        <input type="hidden" name="body" id="noteBody" value="<?= e($noteEditorHtml) ?>">
 
                         <div class="d-flex flex-wrap gap-3 mb-2">
                             <div class="form-check">

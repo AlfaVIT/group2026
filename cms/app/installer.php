@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS materials (
     title TEXT NOT NULL,
     description TEXT DEFAULT '',
     content TEXT DEFAULT '',
+    body_format TEXT NOT NULL DEFAULT 'text',
     image_path TEXT DEFAULT '',
     tag TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -232,7 +233,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '26')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '27')");
 
     // предустановленные статьи расходов
     foreach (EXPENSE_ARTICLES as $preset) {
@@ -248,7 +249,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 26) {
+        if ($version >= 27) {
             return;
         }
         if ($version >= 21) {
@@ -257,6 +258,7 @@ function run_migrations(): void
             migrate_v24();
             migrate_v25();
             migrate_v26();
+            migrate_v27();
             return;
         }
 
@@ -407,6 +409,7 @@ function run_migrations(): void
         migrate_v24();
         migrate_v25();
         migrate_v26();
+        migrate_v27();
     } catch (Throwable $e) {
     }
 }
@@ -521,6 +524,17 @@ function migrate_v26(): void
     }
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '26')");
     Db::q("UPDATE settings SET value = '26' WHERE key = 'schema_version'");
+}
+
+/** v27: формат текста материалов — обычный текст или HTML из редактора. */
+function migrate_v27(): void
+{
+    $cols = array_column(Db::fetchAll('PRAGMA table_info(materials)'), 'name');
+    if (!in_array('body_format', $cols, true)) {
+        Db::q("ALTER TABLE materials ADD COLUMN body_format TEXT NOT NULL DEFAULT 'text'");
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '27')");
+    Db::q("UPDATE settings SET value = '27' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

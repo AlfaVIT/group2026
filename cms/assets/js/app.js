@@ -469,19 +469,29 @@
             }
         });
 
-        // Редактор конспекта: панель форматирования + синхронизация в скрытое поле
-        function syncNoteBody() {
-            var editor = document.getElementById('noteEditor');
-            var field = document.getElementById('noteBody');
-            if (editor && field) {
+        // Универсальный редактор: панель форматирования + скрытое поле с HTML.
+        // Работает для любой формы, где есть .cms-editor-area с data-editor-input.
+        function syncEditor(editor) {
+            if (!editor) {
+                return;
+            }
+            var fieldId = editor.getAttribute('data-editor-input');
+            var field = fieldId ? document.getElementById(fieldId) : null;
+            if (field) {
                 field.value = editor.innerHTML;
             }
+        }
+
+        /** Ближайший редактор для кнопки панели или поля. */
+        function editorOf(el) {
+            var wrap = el ? $(el).closest('.cms-editor')[0] : null;
+            return wrap ? $(wrap).find('.cms-editor-area')[0] : null;
         }
 
         $(document).on('click', '[data-note-cmd]', function () {
             var cmd = $(this).attr('data-note-cmd');
             var arg = $(this).attr('data-note-arg') || null;
-            var editor = document.getElementById('noteEditor');
+            var editor = editorOf(this);
             if (!editor) {
                 return false;
             }
@@ -501,18 +511,21 @@
                 // H3 и цитата работают как переключатели, как и списки:
                 // повторное нажатие возвращает обычный абзац
                 var want = String(arg).toLowerCase();
-                var current = currentBlockTag();
+                var current = currentBlockTag(editor);
                 var target = (current === want) ? 'p' : arg;
                 document.execCommand('formatBlock', false, '<' + target + '>');
             } else {
                 document.execCommand(cmd, false, null);
             }
-            syncNoteBody();
+            syncEditor(editor);
             return false;
         });
 
-        $(document).on('submit', 'form[action*="note_save"]', function () {
-            syncNoteBody();
+        // перед отправкой формы синхронизируем все редакторы внутри неё
+        $(document).on('submit', 'form', function () {
+            $(this).find('.cms-editor-area').each(function () {
+                syncEditor(this);
+            });
         });
 
         // --- Markdown в редакторе конспекта ---
@@ -608,8 +621,7 @@
         }
 
         /** Узел текста под курсором, если курсор в редакторе. */
-        function caretTextNode() {
-            var editor = document.getElementById('noteEditor');
+        function caretTextNode(editor) {
             var sel = window.getSelection();
             if (!editor || !sel || !sel.rangeCount) {
                 return null;
@@ -623,8 +635,7 @@
         }
 
         /** Ближайший блочный элемент вокруг курсора (p, div, li, h3, blockquote…). */
-        function currentBlockTag() {
-            var editor = document.getElementById('noteEditor');
+        function currentBlockTag(editor) {
             var sel = window.getSelection();
             if (!editor || !sel || !sel.rangeCount) {
                 return '';
@@ -663,8 +674,7 @@
          * текст печатался тем же форматированием — поэтому вставляем вручную
          * через Range и явно переносим каретку за последний вставленный узел.
          */
-        function insertHtmlAtCaret(html) {
-            var editor = document.getElementById('noteEditor');
+        function insertHtmlAtCaret(editor, html) {
             var sel = window.getSelection();
             if (!editor || !sel || !sel.rangeCount) {
                 return;
@@ -736,9 +746,8 @@
         }
 
         /** Блочные сокращения на пробел: «# », «> », «- », «1. ». */
-        function applyBlockMarkdown() {
+        function applyBlockMarkdown(editor) {
             var sel = window.getSelection();
-            var editor = document.getElementById('noteEditor');
             if (!editor || !sel || !sel.rangeCount) {
                 return false;
             }
@@ -793,8 +802,8 @@
         }
 
         /** Строчные сокращения: **жирный**, *курсив*, ~~зачёркнутый~~, `код`, [текст](url). */
-        function applyInlineMarkdown(withSpace) {
-            var caret = caretTextNode();
+        function applyInlineMarkdown(editor, withSpace) {
+            var caret = caretTextNode(editor);
             if (!caret) {
                 return false;
             }
@@ -829,13 +838,14 @@
             var sel = window.getSelection();
             sel.removeAllRanges();
             sel.addRange(range);
-            insertHtmlAtCaret(html + (withSpace ? ' ' : ''));
+            insertHtmlAtCaret(editor, html + (withSpace ? ' ' : ''));
             return true;
         }
 
-        $(document).on('input', '#noteEditor', function () {
-            syncNoteBody();
-            var caret = caretTextNode();
+        $(document).on('input', '.cms-editor-area', function () {
+            var editor = this;
+            syncEditor(editor);
+            var caret = caretTextNode(editor);
             if (!caret || caret.offset === 0) {
                 return;
             }
@@ -844,23 +854,24 @@
             if (last !== ' ' && last !== '\u00A0') {
                 return;
             }
-            if (applyBlockMarkdown() || applyInlineMarkdown(true)) {
-                syncNoteBody();
+            if (applyBlockMarkdown(editor) || applyInlineMarkdown(editor, true)) {
+                syncEditor(editor);
             }
         });
 
         // Enter в конце строки с Markdown: применяем форматирование до перевода строки
-        $(document).on('keydown', '#noteEditor', function (e) {
+        $(document).on('keydown', '.cms-editor-area', function (e) {
             if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey) {
                 return;
             }
-            if (applyInlineMarkdown(false)) {
-                syncNoteBody();
+            if (applyInlineMarkdown(this, false)) {
+                syncEditor(this);
             }
         });
 
         // Вставка Markdown-текста: сразу превращаем в разметку
-        $(document).on('paste', '#noteEditor', function (e) {
+        $(document).on('paste', '.cms-editor-area', function (e) {
+            var editor = this;
             var ev = e.originalEvent;
             if (!ev || !ev.clipboardData) {
                 return;
@@ -876,8 +887,8 @@
                 return; // настоящее форматирование вставит браузер, сервер почистит
             }
             e.preventDefault();
-            insertHtmlAtCaret(mdToHtml(text));
-            syncNoteBody();
+            insertHtmlAtCaret(editor, mdToHtml(text));
+            syncEditor(editor);
         });
     });
 

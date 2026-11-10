@@ -66,9 +66,20 @@ $me = Auth::id();
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label" for="m_content">Текст</label>
-                    <textarea class="form-control" id="m_content" name="content" rows="6"
-                              placeholder="Текст материала (или загрузите картинку)"><?= e($fContent) ?></textarea>
+                    <div class="form-label">Текст</div>
+                    <?php
+                    $editorHtml = $formData !== null
+                        ? format_content((string)($formData['content'] ?? ''), 'html')
+                        : ($editMaterial ? material_html($editMaterial) : '');
+                    partial('editor', [
+                        'editorId' => 'materialEditor',
+                        'inputId' => 'materialBody',
+                        'fieldName' => 'content',
+                        'html' => $editorHtml,
+                        'label' => 'Текст материала',
+                        'placeholder' => 'Текст материала (или загрузите картинку)',
+                    ]);
+                    ?>
                 </div>
 
                 <div class="col-12">
@@ -174,7 +185,7 @@ $me = Auth::id();
                 <?php endif; ?>
 
                 <?php if ($m['content']): ?>
-                    <div class="material-content"><?= nl2br(e($m['content'])) ?></div>
+                    <div class="material-content cms-note-text"><?= material_html($m) ?></div>
                 <?php endif; ?>
 
                 <div class="d-flex gap-2 mt-3">

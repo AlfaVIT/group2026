@@ -41,9 +41,12 @@ class MaterialController
 
         if ($q !== '') {
             $materials = array_values(array_filter($materials, function (array $m) use ($q): bool {
+                // ищем по «чистому» тексту, чтобы не находить имена тегов
+                $plain = html_entity_decode(strip_tags((string)$m['content']), ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 return mb_stripos($m['title'], $q) !== false
                     || mb_stripos($m['description'], $q) !== false
-                    || mb_stripos($m['content'], $q) !== false;
+                    || mb_stripos($plain, $q) !== false
+                    || mb_stripos((string)$m['content'], $q) !== false;
             }));
         }
 
@@ -112,7 +115,8 @@ class MaterialController
 
         $title = input('title');
         $description = input('description');
-        $content = input('content');
+        // текст из редактора: храним только безопасную разметку
+        $content = sanitize_html(input('content'));
         $tag = mb_substr(input('tag'), 0, 60);
 
         $errors = [];
@@ -155,6 +159,7 @@ class MaterialController
             'title' => $title,
             'description' => $description,
             'content' => $content,
+            'body_format' => 'html',
             'tag' => $tag,
             'image_path' => $imagePath,
         ];
