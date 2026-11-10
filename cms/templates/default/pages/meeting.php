@@ -96,7 +96,7 @@ foreach ($attendance as $a) {
                         Вечерня братским чином
                     </a>
                     <?php if ($m['stream_url'] !== ''): ?>
-                        <a class="btn btn-danger" href="<?= e($m['stream_url']) ?>" target="_blank" rel="noopener">
+                        <a class="btn btn-outline-danger" href="<?= e($m['stream_url']) ?>" target="_blank" rel="noopener">
                             Смотреть трансляцию
                         </a>
                     <?php endif; ?>
