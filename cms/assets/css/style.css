@@ -20,6 +20,97 @@
     opacity: .45;
 }
 
+/* --- Место встречи: карта и фотографии --- */
+
+.cms-place-media {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: .75rem;
+}
+
+.cms-place-map {
+    flex: 0 1 480px;
+    min-width: 260px;
+    max-width: 480px;
+}
+
+.cms-place-photos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+    flex: 0 1 190px;
+    min-width: 160px;
+}
+
+.cms-place-photo {
+    display: block;
+    overflow: hidden;
+    border-radius: .5rem;
+    border: 1px solid var(--cms-line, rgba(0, 0, 0, .08));
+    line-height: 0;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.cms-place-photo:hover,
+.cms-place-photo:focus-visible {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+    transform: translateY(-1px);
+}
+
+.cms-place-photo img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+/* --- Просмотр фотографии поверх страницы --- */
+
+.cms-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(10, 16, 24, .85);
+    cursor: zoom-out;
+}
+
+.cms-lightbox.show {
+    display: flex;
+}
+
+.cms-lightbox-img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: .5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+    cursor: default;
+}
+
+.cms-lightbox-close {
+    position: absolute;
+    top: .75rem;
+    right: 1rem;
+    background: none;
+    border: 0;
+    color: #fff;
+    font-size: 2.25rem;
+    line-height: 1;
+    opacity: .8;
+}
+
+.cms-lightbox-close:hover,
+.cms-lightbox-close:focus-visible {
+    opacity: 1;
+}
+
+body.cms-lightbox-open {
+    overflow: hidden;
+}
+
 .meeting-card .card-footer {
     background-color: transparent;
     border-top: 1px solid rgba(0, 0, 0, .05);

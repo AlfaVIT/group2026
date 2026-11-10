@@ -319,8 +319,7 @@
             el.value = formatPhone(digits);
         });
 
-        // Подсказки по похожести для полей «Статья» (справочник казны).
-        var suggestTimers = {};
+        // Подсказки по похожести для полей «Статья» (справочник казны).        var suggestTimers = {};
         $(document).on('input', 'input[data-article-suggest]', function () {
             var $input = $(this);
             var inputId = this.id;
@@ -361,6 +360,42 @@
                     });
                 });
             }, 250);
+        });
+
+        // Просмотр фотографий места поверх страницы (затемнение + снимок по центру)
+        function closeLightbox() {
+            $('#cms-lightbox').removeClass('show');
+            $('body').removeClass('cms-lightbox-open');
+        }
+
+        $(document).on('click', 'a[data-lightbox]', function (e) {
+            e.preventDefault();
+            var src = $(this).attr('data-lightbox') || $(this).attr('href');
+            if (!src) {
+                return;
+            }
+            var $box = $('#cms-lightbox');
+            if (!$box.length) {
+                $box = $('<div id="cms-lightbox" class="cms-lightbox" role="dialog" aria-modal="true" aria-label="Просмотр фотографии">' +
+                    '<button type="button" class="cms-lightbox-close" aria-label="Закрыть">&times;</button>' +
+                    '<img class="cms-lightbox-img" alt=""></div>').appendTo('body');
+            }
+            $box.find('img').attr('src', src).attr('alt', $(this).attr('title') || '');
+            $box.addClass('show');
+            $('body').addClass('cms-lightbox-open');
+            $box.find('.cms-lightbox-close').trigger('focus');
+        });
+
+        $(document).on('click', '#cms-lightbox', function (e) {
+            if (e.target === this || $(e.target).hasClass('cms-lightbox-close')) {
+                closeLightbox();
+            }
+        });
+
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                closeLightbox();
+            }
         });
     });
 

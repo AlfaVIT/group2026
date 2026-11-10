@@ -51,13 +51,30 @@ foreach ($attendance as $a) {
                             <div><?= e(implode(', ', $address)) ?></div>
                         <?php endif; ?>
                         <?php $widget = yandex_map_widget($m); ?>
-                        <?php if ($widget !== ''): ?>
-                            <div class="mt-2" style="max-width: 480px;">
-                                <iframe src="<?= e($widget) ?>" class="cms-mini-map" loading="lazy"
-                                        title="Карта" allowfullscreen></iframe>
-                                <div class="small mt-1">
-                                    <a href="<?= e($maps) ?>" target="_blank" rel="noopener" class="text-decoration-none">Открыть карту</a>
-                                </div>
+                        <?php $hasPhotos = !empty($placePhotos); ?>
+                        <?php if ($widget !== '' || $hasPhotos): ?>
+                            <div class="cms-place-media mt-2">
+                                <?php if ($widget !== ''): ?>
+                                    <div class="cms-place-map">
+                                        <iframe src="<?= e($widget) ?>" class="cms-mini-map" loading="lazy"
+                                                title="Карта" allowfullscreen></iframe>
+                                        <div class="small mt-1">
+                                            <a href="<?= e($maps) ?>" target="_blank" rel="noopener" class="text-decoration-none">Открыть карту</a>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($hasPhotos): ?>
+                                    <div class="cms-place-photos">
+                                        <?php foreach ($placePhotos as $ph): ?>
+                                            <?php $photoUrl = base_url() . '/' . UPLOAD_URL . '/' . $ph['file_path']; ?>
+                                            <a class="cms-place-photo" href="<?= e($photoUrl) ?>"
+                                               data-lightbox="<?= e($photoUrl) ?>"
+                                               title="Фотография места">
+                                                <img src="<?= e($photoUrl) ?>" alt="Фотография места" loading="lazy">
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php elseif ($maps !== ''): ?>
                             <a href="<?= e($maps) ?>" target="_blank" rel="noopener" class="text-decoration-none">Показать на карте</a>

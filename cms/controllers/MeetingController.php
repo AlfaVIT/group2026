@@ -100,6 +100,10 @@ class MeetingController
             $checklist[$cl['item']] = ['checked' => (int)$cl['checked'], 'comment' => (string)$cl['comment']];
         }
 
+        $placePhotos = $meeting['place_id']
+            ? Db::fetchAll('SELECT * FROM place_photos WHERE place_id = ? ORDER BY sort, id', [(int)$meeting['place_id']])
+            : [];
+
         $presentCount = present_count($id);
         $guestNames = meeting_guest_names((string)$meeting['guests']);
         $guestCount = count_meeting_guests((string)$meeting['guests']);
@@ -118,6 +122,7 @@ class MeetingController
             'participantsCount' => $participantsCount,
             'guestNames' => $guestNames,
             'checklist' => $checklist,
+            'placePhotos' => $placePhotos,
         ]);
     }
 
