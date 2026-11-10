@@ -39,11 +39,11 @@ class AttendanceController
         // Куда вернуть: для AJAX с других страниц (главная/календарь) — обратно на них,
         // чтобы не уходить со страницы; иначе — на страницу встречи.
         $back = url('meeting', ['id' => $meetingId]);
-        if (is_ajax() && !empty($_SERVER['HTTP_REFERER'])) {
-            $refHost = (string)parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
-            $selfHost = (string)($_SERVER['HTTP_HOST'] ?? '');
-            if ($refHost !== '' && strcasecmp($refHost, $selfHost) === 0) {
-                $back = $_SERVER['HTTP_REFERER'];
+        if (is_ajax()) {
+            $refHost = referer_host();
+            $selfHost = request_host();
+            if ($refHost !== '' && $selfHost !== '' && $refHost === $selfHost) {
+                $back = (string)$_SERVER['HTTP_REFERER'];
             }
         }
 

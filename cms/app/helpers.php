@@ -74,6 +74,7 @@ function ui_icon(string $name, int $size = 16): string
         'video'    => '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
         'book'     => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
         'eye'      => '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+        'check'    => '<polyline points="20 6 9 17 4 12"/>',
     ];
     if (!isset($paths[$name])) {
         return '';
@@ -242,6 +243,31 @@ function pd_consent_cookie_on(): bool
     return ($_COOKIE['cms_pd_consent'] ?? '') === '1';
 }
 
+/**
+ * Хост текущего запроса без порта, в нижнем регистре.
+ * HTTP_HOST может содержать порт (например, на локальном сервере),
+ * а parse_url(HTTP_REFERER, PHP_URL_HOST) — нет; иначе сравнение не работает.
+ */
+function request_host(): string
+{
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    if ($host === '') {
+        return '';
+    }
+    $parsed = (string)(parse_url('http://' . $host, PHP_URL_HOST) ?: '');
+    return strtolower($parsed !== '' ? $parsed : $host);
+}
+
+/** Хост из Referer без порта ('' если заголовка нет). */
+function referer_host(): string
+{
+    $ref = (string)($_SERVER['HTTP_REFERER'] ?? '');
+    if ($ref === '') {
+        return '';
+    }
+    return strtolower((string)(parse_url($ref, PHP_URL_HOST) ?: ''));
+}
+
 function csrf_check(): void
 {
     if (hash_equals(csrf_token(), $_POST['csrf'] ?? '')) {
@@ -263,8 +289,8 @@ function csrf_check(): void
     set_flash('Защитная метка формы устарела. Повторите действие.', 'warning');
     $back = url('home');
     if (!empty($_SERVER['HTTP_REFERER'])) {
-        $refHost = strtolower((string)(parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST) ?? ''));
-        $selfHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+        $refHost = referer_host();
+        $selfHost = request_host();
         if ($refHost !== '' && $selfHost !== '' && $refHost === $selfHost) {
             $back = $_SERVER['HTTP_REFERER'];
         }
