@@ -366,6 +366,9 @@ function log_visit(int $userId): void
         'user_id' => $userId,
         'ip' => $ip,
         'user_agent' => $ua,
+        // SQLite datetime('now') — это UTC, а сайт живёт в Europe/Moscow;
+        // «последний вход» в статистике должен показывать местное время
+        'created_at' => date('Y-m-d H:i:s'),
     ]);
     Db::q(
         'DELETE FROM visits
