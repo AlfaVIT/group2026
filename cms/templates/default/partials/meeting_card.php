@@ -66,21 +66,13 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
             </div>
         <?php endif; ?>
 
-        <?php if ($meeting['stream_url'] !== ''): ?>
-            <div class="mt-1">
-                <a class="btn btn-sm btn-outline-danger" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener">
-                    Смотреть трансляцию
-                </a>
-            </div>
-        <?php endif; ?>
-
         <?php partial('role_badges', ['roles' => $roles]); ?>
         <?php partial('attendance_summary', ['meeting' => $meeting, 'attendanceSummary' => $attendanceSummary, 'myAttendance' => $myAttendance]); ?>
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
         <a class="btn btn-sm btn-primary" href="<?= url('meeting', ['id' => $meeting['id']]) ?>">Подробнее</a>
         <?php if ($meeting['stream_url'] !== ''): ?>
-            <a class="btn btn-sm btn-outline-danger" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener">
+            <a class="btn btn-sm btn-danger" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener">
                 Смотреть трансляцию
             </a>
         <?php endif; ?>
