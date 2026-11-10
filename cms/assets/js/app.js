@@ -520,7 +520,229 @@
             syncNoteBody();
         });
 
-        $(document).on('input', '#noteEditor', syncNoteBody);
+        // --- Markdown в редакторе конспекта ---
+        function mdEscape(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function mdInline(text) {
+            var s = mdEscape(text);
+            s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+            s = s.replace(/__([^_]+)__/g, '<b>$1</b>');
+            s = s.replace(/~~([^~]+)~~/g, '<s>$1</s>');
+            s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+            s = s.replace(/\*([^*]+)\*/g, '<i>$1</i>');
+            s = s.replace(/(^|[^_\w])_([^_]+)_/g, '$1<i>$2</i>');
+            s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
+            return s;
+        }
+
+        function mdToHtml(text) {
+            var lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+            var out = [];
+            var list = null;
+            function closeList() {
+                if (list) {
+                    out.push('</' + list + '>');
+                    list = null;
+                }
+            }
+            lines.forEach(function (line) {
+                var m;
+                if (/^\s*$/.test(line)) {
+                    closeList();
+                    return;
+                }
+                if ((m = line.match(/^\s{0,3}(#{1,6})\s+(.*)$/))) {
+                    closeList();
+                    var lvl = m[1].length <= 3 ? 'h3' : 'h4';
+                    out.push('<' + lvl + '>' + mdInline(m[2]) + '</' + lvl + '>');
+                    return;
+                }
+                if ((m = line.match(/^\s{0,3}>\s?(.*)$/))) {
+                    closeList();
+                    out.push('<blockquote>' + mdInline(m[1]) + '</blockquote>');
+                    return;
+                }
+                if ((m = line.match(/^\s{0,3}[-*+]\s+(.*)$/))) {
+                    if (list !== 'ul') {
+                        closeList();
+                        out.push('<ul>');
+                        list = 'ul';
+                    }
+                    out.push('<li>' + mdInline(m[1]) + '</li>');
+                    return;
+                }
+                if ((m = line.match(/^\s{0,3}\d+[.)]\s+(.*)$/))) {
+                    if (list !== 'ol') {
+                        closeList();
+                        out.push('<ol>');
+                        list = 'ol';
+                    }
+                    out.push('<li>' + mdInline(m[1]) + '</li>');
+                    return;
+                }
+                closeList();
+                out.push('<p>' + mdInline(line) + '</p>');
+            });
+            closeList();
+            return out.join('');
+        }
+
+        function looksLikeMarkdown(text) {
+            return /(^|\n)\s{0,3}(#{1,6}\s|>\s|[-*+]\s|\d+[.)]\s)/.test(text)
+                || /\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|`[^`\n]+`|\[[^\]\n]+\]\(https?:\/\//.test(text);
+        }
+
+        /** Узел текста под курсором, если курсор в редакторе. */
+        function caretTextNode() {
+            var editor = document.getElementById('noteEditor');
+            var sel = window.getSelection();
+            if (!editor || !sel || !sel.rangeCount) {
+                return null;
+            }
+            var range = sel.getRangeAt(0);
+            var node = range.startContainer;
+            if (!editor.contains(node)) {
+                return null;
+            }
+            return node.nodeType === 3 ? { node: node, offset: range.startOffset } : null;
+        }
+
+        /** Блочные сокращения на пробел: «# », «> », «- », «1. ». */
+        function applyBlockMarkdown() {
+            var sel = window.getSelection();
+            var editor = document.getElementById('noteEditor');
+            if (!editor || !sel || !sel.rangeCount) {
+                return false;
+            }
+            var range = sel.getRangeAt(0);
+            var node = range.startContainer;
+            if (!editor.contains(node)) {
+                return false;
+            }
+            var block = node.nodeType === 3 ? node.parentNode : node;
+            while (block && block !== editor && !/^(P|DIV|LI|H3|H4|BLOCKQUOTE)$/.test(block.tagName)) {
+                block = block.parentNode;
+            }
+            if (!block || block === editor || block.childNodes.length !== 1) {
+                return false;
+            }
+            var textNode = block.firstChild;
+            if (!textNode || textNode.nodeType !== 3) {
+                return false;
+            }
+            if (range.startContainer !== textNode || range.startOffset !== textNode.textContent.length) {
+                return false;
+            }
+            var text = textNode.textContent;
+            var cmd = null;
+            var arg = null;
+            if (/^#{1,6}\s$/.test(text)) {
+                cmd = 'formatBlock';
+                arg = 'h3';
+            } else if (/^>\s$/.test(text)) {
+                cmd = 'formatBlock';
+                arg = 'blockquote';
+            } else if (/^[-*+]\s$/.test(text)) {
+                cmd = 'insertUnorderedList';
+            } else if (/^\d+[.)]\s$/.test(text)) {
+                cmd = 'insertOrderedList';
+            }
+            if (!cmd) {
+                return false;
+            }
+            var r = document.createRange();
+            r.setStart(textNode, 0);
+            r.setEnd(textNode, textNode.textContent.length);
+            sel.removeAllRanges();
+            sel.addRange(r);
+            document.execCommand('delete', false, null);
+            if (cmd === 'formatBlock') {
+                document.execCommand('formatBlock', false, '<' + arg + '>');
+            } else {
+                document.execCommand(cmd, false, null);
+            }
+            return true;
+        }
+
+        /** Строчные сокращения: **жирный**, *курсив*, ~~зачёркнутый~~, `код`, [текст](url). */
+        function applyInlineMarkdown() {
+            var caret = caretTextNode();
+            if (!caret) {
+                return false;
+            }
+            var text = caret.node.textContent;
+            var before = text.slice(0, caret.offset);
+            var pattern = /(\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|`([^`\n]+)`|\*([^*\n]+)\*|_([^_\n]+)_|\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\))\s$/;
+            var m = before.match(pattern);
+            if (!m) {
+                return false;
+            }
+            var html;
+            if (m[2] !== undefined) {
+                html = '<b>' + mdEscape(m[2]) + '</b>';
+            } else if (m[3] !== undefined) {
+                html = '<b>' + mdEscape(m[3]) + '</b>';
+            } else if (m[4] !== undefined) {
+                html = '<s>' + mdEscape(m[4]) + '</s>';
+            } else if (m[5] !== undefined) {
+                html = '<code>' + mdEscape(m[5]) + '</code>';
+            } else if (m[6] !== undefined) {
+                html = '<i>' + mdEscape(m[6]) + '</i>';
+            } else if (m[7] !== undefined) {
+                html = '<i>' + mdEscape(m[7]) + '</i>';
+            } else {
+                html = '<a href="' + mdEscape(m[9]) + '">' + mdEscape(m[8]) + '</a>';
+            }
+            var start = caret.offset - m[0].length;
+            var range = document.createRange();
+            range.setStart(caret.node, start);
+            range.setEnd(caret.node, caret.offset);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            document.execCommand('insertHTML', false, html + ' ');
+            return true;
+        }
+
+        $(document).on('input', '#noteEditor', function () {
+            syncNoteBody();
+            var caret = caretTextNode();
+            if (!caret || caret.offset === 0) {
+                return;
+            }
+            // Chrome хранит пробел в конце строки как неразрывный (&nbsp;)
+            var last = caret.node.textContent.charAt(caret.offset - 1);
+            if (last !== ' ' && last !== '\u00A0') {
+                return;
+            }
+            if (applyBlockMarkdown() || applyInlineMarkdown()) {
+                syncNoteBody();
+            }
+        });
+
+        // Вставка Markdown-текста: сразу превращаем в разметку
+        $(document).on('paste', '#noteEditor', function (e) {
+            var ev = e.originalEvent;
+            if (!ev || !ev.clipboardData) {
+                return;
+            }
+            if (ev.clipboardData.getData('text/html')) {
+                return; // HTML вставит браузер, сервер всё равно очистит
+            }
+            var text = ev.clipboardData.getData('text/plain');
+            if (!text || !looksLikeMarkdown(text)) {
+                return;
+            }
+            e.preventDefault();
+            document.execCommand('insertHTML', false, mdToHtml(text));
+            syncNoteBody();
+        });
     });
 
     // Отметка присутствия за другого участника (Старший/Помощник):

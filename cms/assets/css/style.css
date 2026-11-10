@@ -247,6 +247,14 @@ body.cms-lightbox-open {
     padding: 0;
 }
 
+.cms-editor-area code,
+.cms-note-text code {
+    padding: .1rem .3rem;
+    border-radius: .3rem;
+    background: rgba(127, 127, 127, .16);
+    font-size: .92em;
+}
+
 .meeting-card .card-footer {
     background-color: transparent;
     border-top: 1px solid rgba(0, 0, 0, .05);

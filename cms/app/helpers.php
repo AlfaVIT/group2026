@@ -90,7 +90,7 @@ function human_size(int $bytes): string
 
 /** Разрешённые теги в конспекте встречи. */
 const NOTE_HTML_TAGS = ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del',
-    'ul', 'ol', 'li', 'blockquote', 'h3', 'h4', 'a'];
+    'ul', 'ol', 'li', 'blockquote', 'h3', 'h4', 'a', 'code'];
 
 /**
  * Очищает HTML конспекта: оставляет только безопасные теги, у ссылок —
