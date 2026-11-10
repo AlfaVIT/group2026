@@ -29,7 +29,11 @@ $items = [
         <span class="small text-body-secondary">отметок нет</span>
     <?php else: ?>
         <?php foreach ($items as $item): if (!$item[0]) continue; ?>
-            <span class="badge <?= $item[1] ?>"><?= $item[0] ?> <?= $item[2] ?></span>
+            <span class="badge text-nowrap <?= $item[1] ?>"><?= $item[0] ?> <?= $item[2] ?></span>
         <?php endforeach; ?>
+    <?php endif; ?>
+    <?php if ($myStatus !== '' && isset(ATTENDANCE_STATUSES[$myStatus])): ?>
+        <span class="badge text-nowrap ms-auto <?= attendance_badge_class($myStatus) ?>"
+              title="Ваша отметка"><?= e(ATTENDANCE_STATUSES[$myStatus]) ?></span>
     <?php endif; ?>
 </div>

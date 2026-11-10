@@ -3,7 +3,6 @@ $meeting = $meeting;
 $roles = $roleAssignment[$meeting['id']] ?? [];
 $address = address_parts($meeting, true);
 $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($meeting);
-$my = $myAttendance[$meeting['id']] ?? null;
 ?>
 <div class="card shadow-sm meeting-card" id="meeting-<?= (int)$meeting['id'] ?>">
     <a class="card-header card-header-link d-flex flex-wrap justify-content-between align-items-center gap-2"
@@ -77,14 +76,13 @@ $my = $myAttendance[$meeting['id']] ?? null;
 
         <?php partial('role_badges', ['roles' => $roles]); ?>
         <?php partial('attendance_summary', ['meeting' => $meeting, 'attendanceSummary' => $attendanceSummary, 'myAttendance' => $myAttendance]); ?>
-
-        <?php if ($my): ?>
-            <div class="mt-2 small">
-                <span class="badge <?= attendance_badge_class($my) ?>"><?= ATTENDANCE_STATUSES[$my] ?? $my ?></span>
-            </div>
-        <?php endif; ?>
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
         <a class="btn btn-sm btn-primary" href="<?= url('meeting', ['id' => $meeting['id']]) ?>">Подробнее</a>
+        <?php if ($meeting['stream_url'] !== ''): ?>
+            <a class="btn btn-sm btn-outline-danger" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener">
+                Смотреть трансляцию
+            </a>
+        <?php endif; ?>
     </div>
 </div>
