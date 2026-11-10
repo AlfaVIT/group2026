@@ -158,7 +158,7 @@ $me = Auth::id();
         <?php $mid = (int)$m['id']; ?>
         <article class="card shadow-sm mb-3">
             <div class="card-header p-0">
-                <button class="btn btn-link w-100 text-start text-decoration-none text-body p-3"
+                <button class="btn btn-link w-100 text-start text-decoration-none text-reset p-3"
                         type="button" data-bs-toggle="collapse" data-bs-target="#material-<?= $mid ?>"
                         aria-expanded="false" aria-controls="material-<?= $mid ?>">
                     <span class="d-flex flex-wrap justify-content-between align-items-start gap-2">

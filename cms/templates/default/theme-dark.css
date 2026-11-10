@@ -161,3 +161,8 @@ html[data-theme="dark"] .cms-vespers-text h5,
 html[data-theme="dark"] .cms-vespers-text .cms-vespers-reader {
     color: #1b2a4a;
 }
+/* --- Заголовки в шапках карточек: чистый белый на тёмной теме --- */
+html[data-theme="dark"] .card-header .h5,
+html[data-theme="dark"] .card-header .h5 a {
+    color: #fff;
+}
