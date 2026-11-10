@@ -130,8 +130,9 @@ body.cms-lightbox-open {
         font-size: 1rem;
     }
 
+    /* в мобильном виде кнопки подвала — только иконки, растягивать на всю ширину не нужно */
     .meeting-card .card-footer .btn {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
     }
 
     h1 {
