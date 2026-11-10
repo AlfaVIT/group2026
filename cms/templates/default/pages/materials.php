@@ -155,49 +155,60 @@ $me = Auth::id();
     <div class="alert alert-light border text-body-secondary">Материалов не найдено.</div>
 <?php else: ?>
     <?php foreach ($materials as $m): ?>
+        <?php $mid = (int)$m['id']; ?>
         <article class="card shadow-sm mb-3">
-            <div class="card-body">
-                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                    <div>
-                        <h2 class="h5 mb-1"><?= e($m['title']) ?></h2>
-                        <div class="small text-body-secondary mb-2">
-                            <?= e(full_name(['address_term' => $m['author_term'], 'name' => $m['author_name']])) ?>
-                            · <?= e(rdate(substr($m['created_at'], 0, 10))) ?>
-                            <?= e(date('H:i', strtotime($m['created_at']))) ?>
-                            <?php if ($m['updated_at']): ?>
-                                · Изменено: <?= e(full_name(['address_term' => $m['editor_term'] ?: 'брат', 'name' => $m['editor_name'] ?: '—'])) ?>
-                                <?= e(date('d.m.Y H:i', strtotime($m['updated_at']))) ?>
+            <div class="card-header p-0">
+                <button class="btn btn-link w-100 text-start text-decoration-none text-body p-3"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#material-<?= $mid ?>"
+                        aria-expanded="false" aria-controls="material-<?= $mid ?>">
+                    <span class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                        <span>
+                            <span class="h5 d-block mb-1"><?= e($m['title']) ?></span>
+                            <span class="small text-body-secondary d-block">
+                                <?= e(full_name(['address_term' => $m['author_term'], 'name' => $m['author_name']])) ?>
+                                · <?= e(rdate(substr($m['created_at'], 0, 10))) ?>
+                                <?= e(date('H:i', strtotime($m['created_at']))) ?>
+                                <?php if ($m['updated_at']): ?>
+                                    · Изменено: <?= e(full_name(['address_term' => $m['editor_term'] ?: 'брат', 'name' => $m['editor_name'] ?: '—'])) ?>
+                                    <?= e(date('d.m.Y H:i', strtotime($m['updated_at']))) ?>
+                                <?php endif; ?>
+                            </span>
+                        </span>
+                        <span class="d-flex align-items-center gap-2">
+                            <?php if ($m['tag']): ?>
+                                <span class="tag-badge"><?= e($m['tag']) ?></span>
                             <?php endif; ?>
-                        </div>
+                            <span class="cms-card-arrow" aria-hidden="true">›</span>
+                        </span>
+                    </span>
+                </button>
+            </div>
+            <div class="collapse" id="material-<?= $mid ?>">
+                <div class="card-body">
+                    <?php if ($m['description']): ?>
+                        <p class="text-body-secondary mb-2"><?= e($m['description']) ?></p>
+                    <?php endif; ?>
+
+                    <?php if ($m['image_path']): ?>
+                        <img src="<?= base_url() ?>/uploads/<?= e($m['image_path']) ?>"
+                             class="material-image mb-2" alt="<?= e($m['title']) ?>">
+                    <?php endif; ?>
+
+                    <?php if ($m['content']): ?>
+                        <div class="material-content cms-note-text"><?= material_html($m) ?></div>
+                    <?php endif; ?>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <?php if (Auth::can('manage_materials') || (int)$m['user_id'] === $me): ?>
+                            <a class="btn btn-sm btn-outline-primary" href="<?= e($murl(['edit' => $m['id']])) ?>">Редактировать</a>
+                            <form method="post" action="<?= url('material_delete') ?>" class="d-inline"
+                                  onsubmit="return confirm('Удалить материал?');">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="id" value="<?= $mid ?>">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
-                    <?php if ($m['tag']): ?>
-                        <span class="tag-badge"><?= e($m['tag']) ?></span>
-                    <?php endif; ?>
-                </div>
-
-                <?php if ($m['description']): ?>
-                    <p class="text-body-secondary mb-2"><?= e($m['description']) ?></p>
-                <?php endif; ?>
-
-                <?php if ($m['image_path']): ?>
-                    <img src="<?= base_url() ?>/uploads/<?= e($m['image_path']) ?>"
-                         class="material-image mb-2" alt="<?= e($m['title']) ?>">
-                <?php endif; ?>
-
-                <?php if ($m['content']): ?>
-                    <div class="material-content cms-note-text"><?= material_html($m) ?></div>
-                <?php endif; ?>
-
-                <div class="d-flex gap-2 mt-3">
-                    <?php if (Auth::can('manage_materials') || (int)$m['user_id'] === $me): ?>
-                        <a class="btn btn-sm btn-outline-primary" href="<?= e($murl(['edit' => $m['id']])) ?>">Редактировать</a>
-                        <form method="post" action="<?= url('material_delete') ?>" class="d-inline"
-                              onsubmit="return confirm('Удалить материал?');">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="id" value="<?= (int)$m['id'] ?>">
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
-                        </form>
-                    <?php endif; ?>
                 </div>
             </div>
         </article>

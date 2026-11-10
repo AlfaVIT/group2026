@@ -18,6 +18,12 @@
     font-size: 1.15rem;
     line-height: 1;
     opacity: .45;
+    transition: transform .15s ease;
+}
+
+/* стрелка-аккордеон поворачивается у раскрытого блока */
+button[aria-expanded="true"] .cms-card-arrow {
+    transform: rotate(90deg);
 }
 
 /* --- Место встречи: карта и фотографии --- */
