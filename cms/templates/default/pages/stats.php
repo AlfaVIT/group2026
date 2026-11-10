@@ -26,15 +26,15 @@ $colspan = count($months) + 3;
                 <thead>
                 <tr>
                     <th>
-                        <a class="link-body-emphasis text-decoration-none"
+                        <a class="text-reset text-decoration-none"
                            href="<?= e($sortLink('name')) ?>">Участник<?= $sortArrow('name') ?></a>
                     </th>
                     <?php foreach ($months as $month): ?>
                         <th class="text-end text-nowrap small"><?= e($monthLabels[$month] ?? $month) ?></th>
                     <?php endforeach; ?>
                     <th class="text-end">Всего</th>
-                    <th class="text-nowrap">
-                        <a class="link-body-emphasis text-decoration-none"
+                    <th class="text-end text-nowrap">
+                        <a class="text-reset text-decoration-none"
                            href="<?= e($sortLink('last')) ?>">Последний вход<?= $sortArrow('last') ?></a>
                     </th>
                 </tr>
@@ -42,7 +42,7 @@ $colspan = count($months) + 3;
                 <tbody>
                 <?php if (!$users): ?>
                     <tr>
-                        <td colspan="<?= $colspan ?>" class="text-body-secondary small">Участников пока нет</td>
+                        <td colspan="<?= $colspan ?>" class="text-body-secondary small">Входов пока не было</td>
                     </tr>
                 <?php endif; ?>
                 <?php foreach ($users as $u): ?>
@@ -64,7 +64,7 @@ $colspan = count($months) + 3;
                             </td>
                         <?php endforeach; ?>
                         <td class="text-end fw-semibold"><?= (int)$data['total'] > 0 ? (int)$data['total'] : '—' ?></td>
-                        <td class="small text-nowrap">
+                        <td class="small text-nowrap text-end">
                             <?= $data['last'] !== '' ? e(date('d.m.Y H:i', strtotime($data['last']))) : '—' ?>
                         </td>
                     </tr>

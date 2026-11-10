@@ -38,10 +38,10 @@ class StatsController
 
         $months = $this->monthsList(array_keys($monthKeys));
 
-        // В таблицу попадают активные участники и все, у кого есть входы
+        // В таблицу попадают только те, у кого есть входы
         $users = array_values(array_filter(
             Db::fetchAll('SELECT id, address_term, name, role, is_active FROM users'),
-            static fn(array $u): bool => (int)$u['is_active'] === 1 || isset($byUser[(int)$u['id']])
+            static fn(array $u): bool => isset($byUser[(int)$u['id']])
         ));
         usort($users, function (array $a, array $b) use ($sort, $dir, $byUser): int {
             if ($sort === 'last') {
