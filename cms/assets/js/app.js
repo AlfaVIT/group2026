@@ -468,6 +468,49 @@
                 noteRec.stop();
             }
         });
+
+        // Редактор конспекта: панель форматирования + синхронизация в скрытое поле
+        function syncNoteBody() {
+            var editor = document.getElementById('noteEditor');
+            var field = document.getElementById('noteBody');
+            if (editor && field) {
+                field.value = editor.innerHTML;
+            }
+        }
+
+        $(document).on('click', '[data-note-cmd]', function () {
+            var cmd = $(this).attr('data-note-cmd');
+            var arg = $(this).attr('data-note-arg') || null;
+            var editor = document.getElementById('noteEditor');
+            if (!editor) {
+                return false;
+            }
+            editor.focus();
+            if (cmd === 'link') {
+                var url = window.prompt('Адрес ссылки', 'https://');
+                if (!url) {
+                    return false;
+                }
+                url = url.trim();
+                if (!/^(https?:\/\/|mailto:)/i.test(url)) {
+                    alert('Ссылка должна начинаться с http:// или https://');
+                    return false;
+                }
+                document.execCommand('createLink', false, url);
+            } else if (cmd === 'formatBlock') {
+                document.execCommand('formatBlock', false, arg);
+            } else {
+                document.execCommand(cmd, false, null);
+            }
+            syncNoteBody();
+            return false;
+        });
+
+        $(document).on('submit', 'form[action*="note_save"]', function () {
+            syncNoteBody();
+        });
+
+        $(document).on('input', '#noteEditor', syncNoteBody);
     });
 
     // Отметка присутствия за другого участника (Старший/Помощник):

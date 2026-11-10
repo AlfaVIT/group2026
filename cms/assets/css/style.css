@@ -159,6 +159,94 @@ body.cms-lightbox-open {
     padding-left: .75rem;
 }
 
+/* --- Редактор конспекта --- */
+
+.cms-editor {
+    border: 1px solid var(--cms-line, #dee2e6);
+    border-radius: .5rem;
+    overflow: hidden;
+    background: var(--bs-body-bg, #fff);
+}
+
+.cms-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .15rem;
+    padding: .3rem .4rem;
+    border-bottom: 1px solid var(--cms-line, #dee2e6);
+    background: rgba(127, 127, 127, .06);
+}
+
+.cms-editor-btn {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 .4rem;
+    border: 1px solid transparent;
+    border-radius: .35rem;
+    background: none;
+    color: inherit;
+    font-size: .95rem;
+    line-height: 1;
+}
+
+.cms-editor-btn:hover {
+    background: rgba(127, 127, 127, .16);
+}
+
+.cms-editor-btn:focus-visible {
+    outline: 2px solid var(--cms-gold, #b08a2e);
+    outline-offset: 1px;
+}
+
+.cms-editor-sep {
+    width: 1px;
+    align-self: stretch;
+    margin: .15rem .3rem;
+    background: var(--cms-line, #dee2e6);
+}
+
+.cms-editor-area {
+    min-height: 8rem;
+    padding: .6rem .75rem;
+    outline: none;
+    overflow-wrap: anywhere;
+}
+
+.cms-editor-area:empty::before {
+    content: attr(data-placeholder);
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+/* Оформление HTML-конспекта — и в редакторе, и в публичном списке */
+.cms-editor-area h3,
+.cms-note-text h3 {
+    font-size: 1.15rem;
+    margin: .5rem 0 .25rem;
+}
+
+.cms-editor-area h4,
+.cms-note-text h4 {
+    font-size: 1.02rem;
+    margin: .5rem 0 .25rem;
+}
+
+.cms-editor-area blockquote,
+.cms-note-text blockquote {
+    margin: .5rem 0;
+    padding-left: .75rem;
+    border-left: 3px solid var(--cms-gold, #b08a2e);
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.cms-editor-area ul,
+.cms-editor-area ol,
+.cms-note-text ul,
+.cms-note-text ol {
+    margin: .35rem 0 .35rem 1.2rem;
+    padding: 0;
+}
+
 .meeting-card .card-footer {
     background-color: transparent;
     border-top: 1px solid rgba(0, 0, 0, .05);

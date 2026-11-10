@@ -88,6 +88,93 @@ function human_size(int $bytes): string
     return $bytes . ' Б';
 }
 
+/** Разрешённые теги в конспекте встречи. */
+const NOTE_HTML_TAGS = ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del',
+    'ul', 'ol', 'li', 'blockquote', 'h3', 'h4', 'a'];
+
+/**
+ * Очищает HTML конспекта: оставляет только безопасные теги, у ссылок —
+ * только http(s)/mailto. Всё остальное разворачивается в текст.
+ */
+function sanitize_html(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+    if (!class_exists('DOMDocument')) {
+        return nl2br(e(strip_tags($html)));
+    }
+    $doc = new DOMDocument('1.0', 'UTF-8');
+    $prev = libxml_use_internal_errors(true);
+    $doc->loadHTML('<?xml encoding="UTF-8"?><html><body>' . $html . '</body></html>', LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev);
+    $body = $doc->getElementsByTagName('body')->item(0);
+    if (!$body) {
+        return '';
+    }
+    $out = '';
+    foreach (iterator_to_array($body->childNodes) as $child) {
+        $out .= cms_sanitize_node($child);
+    }
+    return trim($out);
+}
+
+/** Рекурсивная очистка одного узла (см. sanitize_html). */
+function cms_sanitize_node(DOMNode $node, bool $inLink = false): string
+{
+    if ($node->nodeType === XML_TEXT_NODE || $node->nodeType === XML_CDATA_SECTION_NODE) {
+        // обычный текст: экранируем и превращаем голые ссылки в кликабельные;
+        // внутри <a> этого не делаем, чтобы не получить вложенные ссылки
+        return $inLink ? e($node->nodeValue) : linkify((string)$node->nodeValue);
+    }
+    if ($node->nodeType !== XML_ELEMENT_NODE) {
+        return '';
+    }
+    $tag = strtolower($node->nodeName);
+    $inner = '';
+    foreach (iterator_to_array($node->childNodes) as $child) {
+        $inner .= cms_sanitize_node($child, $tag === 'a' || $inLink);
+    }
+    if (!in_array($tag, NOTE_HTML_TAGS, true)) {
+        return $inner; // неизвестный тег выкидываем, содержимое оставляем
+    }
+    if ($tag === 'br') {
+        return '<br>';
+    }
+    $attrs = '';
+    if ($tag === 'a') {
+        $href = trim($node->getAttribute('href'));
+        if (!preg_match('~^(https?://|mailto:|/|#)~i', $href)) {
+            return $inner; // опасную ссылку разворачиваем в текст
+        }
+        $attrs = ' href="' . e($href) . '" target="_blank" rel="noopener nofollow"';
+    }
+    return '<' . $tag . $attrs . '>' . $inner . '</' . $tag . '>';
+}
+
+/** HTML конспекта для вывода: новый формат — очищенный HTML, старый — текст. */
+function note_html(array $note): string
+{
+    $body = (string)($note['body'] ?? '');
+    if (($note['format'] ?? 'text') === 'html') {
+        return sanitize_html($body);
+    }
+    return nl2br(linkify($body));
+}
+
+/** Пустой ли конспект (без учёта разметки и пробелов). */
+function note_is_empty(string $body, string $format = 'text'): bool
+{
+    if ($format !== 'html') {
+        return trim($body) === '';
+    }
+    $text = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace(["\xC2\xA0", "\u{00A0}"], ' ', $text);
+    return trim($text) === '';
+}
+
 /**
  * Встроенная SVG-иконка (feather, stroke = currentColor).
  * Неизвестное имя возвращает пустую строку — шаблон не ломается.
@@ -104,6 +191,7 @@ function ui_icon(string $name, int $size = 16): string
         'check'    => '<polyline points="20 6 9 17 4 12"/>',
         'mic'      => '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
         'stop'     => '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+        'link'     => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     ];
     if (!isset($paths[$name])) {
         return '';

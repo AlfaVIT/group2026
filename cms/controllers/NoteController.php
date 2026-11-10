@@ -60,13 +60,21 @@ class NoteController
         $userId = (int)Auth::id();
         $back = url('meeting', ['id' => $meetingId]) . '#note';
 
-        $body = trim((string)($_POST['body'] ?? ''));
+        $rawBody = (string)($_POST['body'] ?? '');
         $visibility = (string)($_POST['visibility'] ?? 'private') === 'public' ? 'public' : 'private';
 
         $errors = [];
-        if (mb_strlen($body) > 20000) {
+        if (mb_strlen($rawBody) > 100000) {
+            $errors[] = 'Текст конспекта слишком большой';
+        }
+        // пришёл HTML из редактора — храним только безопасную разметку
+        $body = sanitize_html($rawBody);
+        $format = 'html';
+        $plainBody = trim(html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if (mb_strlen($plainBody) > 20000) {
             $errors[] = 'Текст конспекта — не длиннее 20 000 символов';
         }
+        $emptyBody = note_is_empty($body, $format);
 
         $note = Db::fetch('SELECT * FROM meeting_notes WHERE meeting_id = ? AND user_id = ?', [$meetingId, $userId]);
         $noteId = $note ? (int)$note['id'] : 0;
@@ -79,7 +87,7 @@ class NoteController
             $errors[] = 'К конспекту можно приложить не больше ' . self::MAX_FILES . ' файлов';
             $uploads = [];
         }
-        if ($body === '' && $existing === 0 && !$uploads) {
+        if ($emptyBody && $existing === 0 && !$uploads) {
             if ($noteId) {
                 // конспект очистили — удаляем, чтобы он не висел пустым (тем более для всех)
                 Db::delete('meeting_notes', ['id' => $noteId]);
@@ -98,6 +106,7 @@ class NoteController
         if ($noteId) {
             Db::update('meeting_notes', [
                 'body' => $body,
+                'format' => $format,
                 'visibility' => $visibility,
                 'updated_at' => $now,
             ], ['id' => $noteId]);
@@ -106,6 +115,7 @@ class NoteController
                 'meeting_id' => $meetingId,
                 'user_id' => $userId,
                 'body' => $body,
+                'format' => $format,
                 'visibility' => $visibility,
                 'created_at' => $now,
                 'updated_at' => $now,

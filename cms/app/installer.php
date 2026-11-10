@@ -211,6 +211,7 @@ CREATE TABLE IF NOT EXISTS meeting_notes (
     meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     body TEXT DEFAULT '',
+    format TEXT NOT NULL DEFAULT 'text',
     visibility TEXT NOT NULL DEFAULT 'private',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -231,7 +232,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '25')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '26')");
 
     // предустановленные статьи расходов
     foreach (EXPENSE_ARTICLES as $preset) {
@@ -247,7 +248,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 25) {
+        if ($version >= 26) {
             return;
         }
         if ($version >= 21) {
@@ -255,6 +256,7 @@ function run_migrations(): void
             migrate_v23();
             migrate_v24();
             migrate_v25();
+            migrate_v26();
             return;
         }
 
@@ -404,6 +406,7 @@ function run_migrations(): void
         migrate_v23();
         migrate_v24();
         migrate_v25();
+        migrate_v26();
     } catch (Throwable $e) {
     }
 }
@@ -507,6 +510,17 @@ function migrate_v25(): void
     )');
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '25')");
     Db::q("UPDATE settings SET value = '25' WHERE key = 'schema_version'");
+}
+
+/** v26: у конспекта появился формат — обычный текст или HTML из редактора. */
+function migrate_v26(): void
+{
+    $cols = array_column(Db::fetchAll('PRAGMA table_info(meeting_notes)'), 'name');
+    if (!in_array('format', $cols, true)) {
+        Db::q("ALTER TABLE meeting_notes ADD COLUMN format TEXT NOT NULL DEFAULT 'text'");
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '26')");
+    Db::q("UPDATE settings SET value = '26' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

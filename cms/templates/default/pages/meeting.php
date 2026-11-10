@@ -155,10 +155,37 @@ foreach ($attendance as $a) {
                     <form method="post" action="<?= url('note_save') ?>" enctype="multipart/form-data" data-no-ajax>
                         <?= csrf_field() ?>
                         <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
-                        <div class="mb-2">
-                            <textarea class="form-control" name="body" rows="5" maxlength="20000"
-                                      placeholder="Текст конспекта: мысли, цитаты, ссылки…"><?= e((string)($myNote['body'] ?? '')) ?></textarea>
+                        <?php $noteEditorHtml = note_html($myNote ?? ['body' => '', 'format' => 'text']); ?>
+                        <div class="cms-editor mb-2">
+                            <div class="cms-editor-toolbar" role="toolbar" aria-label="Форматирование текста">
+                                <button type="button" class="cms-editor-btn" data-note-cmd="bold"
+                                        title="Жирный" aria-label="Жирный"><b>B</b></button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="italic"
+                                        title="Курсив" aria-label="Курсив"><i>I</i></button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="underline"
+                                        title="Подчёркнутый" aria-label="Подчёркнутый"><u>U</u></button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="strikeThrough"
+                                        title="Зачёркнутый" aria-label="Зачёркнутый"><s>S</s></button>
+                                <span class="cms-editor-sep" aria-hidden="true"></span>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="insertUnorderedList"
+                                        title="Список" aria-label="Маркированный список">•</button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="insertOrderedList"
+                                        title="Нумерованный список" aria-label="Нумерованный список">1.</button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="formatBlock"
+                                        data-note-arg="h3" title="Заголовок" aria-label="Заголовок">H</button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="formatBlock"
+                                        data-note-arg="blockquote" title="Цитата" aria-label="Цитата">“”</button>
+                                <span class="cms-editor-sep" aria-hidden="true"></span>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="link"
+                                        title="Ссылка" aria-label="Вставить ссылку"><?= ui_icon('link', 15) ?></button>
+                                <button type="button" class="cms-editor-btn" data-note-cmd="removeFormat"
+                                        title="Убрать форматирование" aria-label="Убрать форматирование">&times;</button>
+                            </div>
+                            <div class="cms-editor-area" id="noteEditor" contenteditable="true" role="textbox"
+                                 aria-multiline="true" aria-label="Текст конспекта"
+                                 data-placeholder="Текст конспекта: мысли, цитаты, ссылки…"><?= $noteEditorHtml ?></div>
                         </div>
+                        <input type="hidden" name="body" id="noteBody" value="<?= e($noteEditorHtml) ?>">
 
                         <div class="d-flex flex-wrap gap-3 mb-2">
                             <div class="form-check">
@@ -250,8 +277,8 @@ foreach ($attendance as $a) {
                                 <span class="fw-semibold"><?= e(full_name($pn)) ?></span>
                                 <span><?= e(date('d.m.Y H:i', strtotime($pn['updated_at']))) ?></span>
                             </div>
-                            <?php if (trim((string)$pn['body']) !== ''): ?>
-                                <div class="mt-1"><?= nl2br(linkify((string)$pn['body'])) ?></div>
+                            <?php if (!note_is_empty((string)$pn['body'], (string)($pn['format'] ?? 'text'))): ?>
+                                <div class="mt-1 cms-note-text"><?= note_html($pn) ?></div>
                             <?php endif; ?>
                             <?php if ($pn['files']): ?>
                                 <div class="cms-note-files mt-2">
