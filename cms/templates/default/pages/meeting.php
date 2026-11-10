@@ -25,11 +25,17 @@ foreach ($attendance as $a) {
     </h1>
     <?php if (Auth::can('manage_meetings')): ?>
         <div class="d-flex gap-2">
-            <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting_edit', ['id' => $m['id']]) ?>">Изменить</a>
+            <a class="btn btn-sm btn-outline-secondary cms-btn-icon" href="<?= url('meeting_edit', ['id' => $m['id']]) ?>"
+               title="Редактировать встречу" aria-label="Редактировать встречу">
+                <?= ui_icon('edit') ?><span class="cms-btn-label">Изменить</span>
+            </a>
             <form method="post" action="<?= url('meeting_delete') ?>" onsubmit="return confirm('Удалить встречу?');">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= (int)$m['id'] ?>">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                <button class="btn btn-sm btn-outline-danger cms-btn-icon" type="submit"
+                        title="Удалить встречу" aria-label="Удалить встречу">
+                    <?= ui_icon('trash') ?><span class="cms-btn-label">Удалить</span>
+                </button>
             </form>
         </div>
     <?php endif; ?>
@@ -109,12 +115,14 @@ foreach ($attendance as $a) {
                 <?php endif; ?>
 
                 <div class="d-flex flex-wrap gap-2 mt-3">
-                    <a class="btn btn-outline-primary" href="<?= url('vespers', ['meeting_id' => $m['id']]) ?>">
-                        Вечерня братским чином
+                    <a class="btn btn-outline-primary cms-btn-icon" href="<?= url('vespers', ['meeting_id' => $m['id']]) ?>"
+                       title="Вечерня братским чином" aria-label="Вечерня братским чином">
+                        <?= ui_icon('book') ?><span class="cms-btn-label">Вечерня братским чином</span>
                     </a>
                     <?php if ($m['stream_url'] !== ''): ?>
-                        <a class="btn btn-outline-danger" href="<?= e($m['stream_url']) ?>" target="_blank" rel="noopener">
-                            Смотреть трансляцию
+                        <a class="btn btn-outline-danger cms-btn-icon" href="<?= e($m['stream_url']) ?>" target="_blank" rel="noopener"
+                           title="Смотреть трансляцию" aria-label="Смотреть трансляцию">
+                            <?= ui_icon('video') ?><span class="cms-btn-label">Смотреть трансляцию</span>
                         </a>
                     <?php endif; ?>
                     <?php
@@ -125,8 +133,9 @@ foreach ($attendance as $a) {
                         $calHref = url('meeting_ics', ['id' => $m['id']]);
                     }
                     ?>
-                    <a class="btn btn-outline-success" href="<?= e($calHref) ?>">
-                        Добавить в календарь
+                    <a class="btn btn-outline-success cms-btn-icon" href="<?= e($calHref) ?>"
+                       title="Добавить в календарь" aria-label="Добавить в календарь">
+                        <?= ui_icon('calendar') ?><span class="cms-btn-label">Добавить в календарь</span>
                     </a>
                 </div>
             </div>

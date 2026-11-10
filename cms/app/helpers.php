@@ -62,6 +62,27 @@ function e(?string $value): string
 }
 
 /**
+ * Встроенная SVG-иконка (feather, stroke = currentColor).
+ * Неизвестное имя возвращает пустую строку — шаблон не ломается.
+ */
+function ui_icon(string $name, int $size = 16): string
+{
+    $paths = [
+        'edit'     => '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+        'trash'    => '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+        'calendar' => '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="19"/><line x1="9.5" y1="16.5" x2="14.5" y2="16.5"/>',
+        'video'    => '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+        'book'     => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    ];
+    if (!isset($paths[$name])) {
+        return '';
+    }
+    return '<svg class="cms-icon" width="' . (int)$size . '" height="' . (int)$size . '" viewBox="0 0 24 24"'
+        . ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+        . ' aria-hidden="true" focusable="false">' . $paths[$name] . '</svg>';
+}
+
+/**
  * Принимает «логин или email». Если введён email — логин берётся из части до «@»,
  * email заполняется. Если введён логин — email остаётся пустым.
  */
