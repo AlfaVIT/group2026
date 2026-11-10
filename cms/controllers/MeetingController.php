@@ -120,6 +120,8 @@ class MeetingController
                 'SELECT n.*, u.address_term, u.name
                  FROM meeting_notes n JOIN users u ON u.id = n.user_id
                  WHERE n.meeting_id = ? AND n.visibility = \'public\' AND n.user_id != ?
+                   AND (TRIM(COALESCE(n.body, \'\')) != \'\'
+                        OR EXISTS (SELECT 1 FROM meeting_note_files f WHERE f.note_id = n.id))
                  ORDER BY n.updated_at DESC',
                 [$id, Auth::id()]
             );

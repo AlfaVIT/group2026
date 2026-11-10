@@ -80,6 +80,12 @@ class NoteController
             $uploads = [];
         }
         if ($body === '' && $existing === 0 && !$uploads) {
+            if ($noteId) {
+                // конспект очистили — удаляем, чтобы он не висел пустым (тем более для всех)
+                Db::delete('meeting_notes', ['id' => $noteId]);
+                set_flash('Пустой конспект удалён', 'info');
+                redirect($back);
+            }
             $errors[] = 'Добавьте текст, изображение или запись звука';
         }
 
