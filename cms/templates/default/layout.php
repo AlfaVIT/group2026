@@ -52,12 +52,7 @@ $schemeCss = theme_scheme_css($user);
                         <a class="nav-link" href="<?= url('treasury') ?>">Казна</a>
                     </li>
                 <?php endif; ?>
-                <?php if (Auth::can('view_stats')): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= url('stats') ?>">Статистика</a>
-                    </li>
-                <?php endif; ?>
-                <?php if (Auth::can('manage_settings')): ?>
+                <?php if (Auth::can('manage_settings') || Auth::can('manage_places')): ?>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= url('settings') ?>">Настройки</a>
                     </li>
