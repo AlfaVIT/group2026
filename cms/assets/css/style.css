@@ -298,6 +298,17 @@ body.cms-lightbox-open {
     flex-shrink: 0;
 }
 
+/* маленький аватар места встречи в списке: фото хозяина или первое фото места */
+.cms-place-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid rgba(0, 0, 0, .1);
+    background: #eef2f8;
+}
+
 .cms-cookie {
     position: fixed;
     left: 50%;

@@ -617,6 +617,23 @@ function avatar_img(array $user, int $size = 28): string
 }
 
 /**
+ * Аватар места встречи: фотография хозяина (его аватар), если он задан,
+ * иначе первая фотография самого места. Пусто, если нет ни того, ни другого.
+ */
+function place_avatar_url(array $place): string
+{
+    $ownerAvatar = trim((string)($place['owner_avatar'] ?? ''));
+    if ($ownerAvatar !== '' && is_file(UPLOAD_DIR . '/avatars/' . $ownerAvatar)) {
+        return base_url() . '/' . UPLOAD_URL . '/avatars/' . rawurlencode($ownerAvatar);
+    }
+    $photo = trim((string)($place['first_photo'] ?? ''));
+    if ($photo !== '' && is_file(UPLOAD_DIR . '/' . $photo)) {
+        return base_url() . '/' . UPLOAD_URL . '/' . rawurlencode($photo);
+    }
+    return '';
+}
+
+/**
  * Приводит введённую дату рождения к формату YYYY-MM-DD.
  * Год можно не указывать: тогда сохраняется 0000-MM-DD, возраст не выводится.
  * Принимает ДД.ММ.ГГГГ, ДД.ММ или уже сохранённый YYYY-MM-DD.

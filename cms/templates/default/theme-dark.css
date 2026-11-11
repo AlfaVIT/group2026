@@ -186,3 +186,8 @@ html[data-theme="dark"] .cms-user-card-avatar-empty {
     background: linear-gradient(135deg, #2b3850 0%, #1d2739 100%);
     color: #b9cae4;
 }
+
+html[data-theme="dark"] .cms-place-avatar {
+    border-color: rgba(255, 255, 255, .16);
+    background: #1d2739;
+}

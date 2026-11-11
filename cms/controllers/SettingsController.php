@@ -22,8 +22,10 @@ class SettingsController
                             ORDER BY CASE role WHEN \'Старший\' THEN 0 WHEN \'Помощник\' THEN 1 WHEN \'Казначей\' THEN 2 ELSE 3 END, name')
             : [];
         $places = Db::fetchAll(
-            'SELECT p.*, u.name AS owner_name, u.address_term AS owner_term,
-                    (SELECT COUNT(*) FROM place_photos ph WHERE ph.place_id = p.id) AS photos_count
+            'SELECT p.*, u.name AS owner_name, u.address_term AS owner_term, u.avatar AS owner_avatar,
+                    (SELECT COUNT(*) FROM place_photos ph WHERE ph.place_id = p.id) AS photos_count,
+                    (SELECT ph.file_path FROM place_photos ph WHERE ph.place_id = p.id
+                     ORDER BY ph.sort, ph.id LIMIT 1) AS first_photo
              FROM places p LEFT JOIN users u ON u.id = p.owner_id
              ORDER BY p.title'
         );

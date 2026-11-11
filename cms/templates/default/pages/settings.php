@@ -111,14 +111,16 @@ if ($canViewStats ?? false) {
                             <span class="badge text-bg-danger">Нет</span>
                         <?php endif; ?>
                     </td>
-                    <td class="text-end">
-                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('user_edit', ['id' => $u['id']]) ?>">Изменить</a>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('user_edit', ['id' => $u['id']]) ?>"
+                           title="Изменить" aria-label="Изменить"><?= ui_icon('edit') ?></a>
                         <?php if ((int)$u['id'] !== Auth::id()): ?>
                             <form method="post" action="<?= url('user_delete') ?>" class="d-inline"
                                   onsubmit="return confirm('Удалить пользователя?');">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
-                                <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                                <button class="btn btn-sm btn-outline-danger" type="submit"
+                                        title="Удалить" aria-label="Удалить"><?= ui_icon('trash') ?></button>
                             </form>
                         <?php endif; ?>
                     </td>
@@ -147,17 +149,28 @@ if ($canViewStats ?? false) {
             <tbody>
             <?php foreach ($places as $p): ?>
                 <tr>
-                    <td class="fw-semibold"><?= e($p['title']) ?></td>
+                    <td class="fw-semibold">
+                        <div class="d-flex align-items-center gap-2">
+                            <?php $placeAvatar = place_avatar_url($p); ?>
+                            <?php if ($placeAvatar !== ''): ?>
+                                <img class="cms-place-avatar" src="<?= e($placeAvatar) ?>" alt=""
+                                     loading="lazy">
+                            <?php endif; ?>
+                            <span><?= e($p['title']) ?></span>
+                        </div>
+                    </td>
                     <td class="small"><?= $p['owner_name'] ? e(full_name(['address_term' => $p['owner_term'], 'name' => $p['owner_name']])) : '—' ?></td>
                     <td class="small"><?= $p['locality'] . ($p['street'] ? ', ' . e($p['street']) . ' ' . e($p['house'] . $p['house_letter']) : '') ?></td>
                     <td class="small"><?= (int)$p['photos_count'] ?></td>
-                    <td class="text-end">
-                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('place_edit', ['id' => $p['id']]) ?>">Изменить</a>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('place_edit', ['id' => $p['id']]) ?>"
+                           title="Изменить" aria-label="Изменить"><?= ui_icon('edit') ?></a>
                         <form method="post" action="<?= url('place_delete') ?>" class="d-inline"
                               onsubmit="return confirm('Удалить место встречи?');">
                             <?= csrf_field() ?>
                             <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                            <button class="btn btn-sm btn-outline-danger" type="submit"
+                                    title="Удалить" aria-label="Удалить"><?= ui_icon('trash') ?></button>
                         </form>
                     </td>
                 </tr>
@@ -191,14 +204,17 @@ if ($canViewStats ?? false) {
                     <td><?= $m['tag'] !== '' ? '<span class="tag-badge">' . e($m['tag']) . '</span>' : '—' ?></td>
                     <td class="small"><?= e($m['place_title']) ?: '—' ?></td>
                     <td class="small"><?= (int)($meetingParticipants[$m['id']] ?? 0) ?></td>
-                    <td class="text-end">
-                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting', ['id' => $m['id']]) ?>">Открыть</a>
-                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting_edit', ['id' => $m['id']]) ?>">Изменить</a>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting', ['id' => $m['id']]) ?>"
+                           title="Открыть" aria-label="Открыть"><?= ui_icon('eye') ?></a>
+                        <a class="btn btn-sm btn-outline-secondary" href="<?= url('meeting_edit', ['id' => $m['id']]) ?>"
+                           title="Изменить" aria-label="Изменить"><?= ui_icon('edit') ?></a>
                         <form method="post" action="<?= url('meeting_delete') ?>" class="d-inline"
                               onsubmit="return confirm('Удалить встречу?');">
                             <?= csrf_field() ?>
                             <input type="hidden" name="id" value="<?= (int)$m['id'] ?>">
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                            <button class="btn btn-sm btn-outline-danger" type="submit"
+                                    title="Удалить" aria-label="Удалить"><?= ui_icon('trash') ?></button>
                         </form>
                     </td>
                 </tr>
