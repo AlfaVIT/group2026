@@ -309,6 +309,15 @@ body.cms-lightbox-open {
     background: #eef2f8;
 }
 
+/* заглушка, если у места нет ни аватара хозяина, ни фотографий */
+.cms-place-avatar-empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a97a8;
+    background: #e9eef5;
+}
+
 .cms-cookie {
     position: fixed;
     left: 50%;

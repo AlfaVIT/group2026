@@ -191,3 +191,8 @@ html[data-theme="dark"] .cms-place-avatar {
     border-color: rgba(255, 255, 255, .16);
     background: #1d2739;
 }
+
+html[data-theme="dark"] .cms-place-avatar-empty {
+    color: #8ea0bb;
+    background: #232f44;
+}

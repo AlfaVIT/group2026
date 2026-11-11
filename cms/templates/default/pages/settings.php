@@ -155,6 +155,8 @@ if ($canViewStats ?? false) {
                             <?php if ($placeAvatar !== ''): ?>
                                 <img class="cms-place-avatar" src="<?= e($placeAvatar) ?>" alt=""
                                      loading="lazy">
+                            <?php else: ?>
+                                <span class="cms-place-avatar cms-place-avatar-empty" aria-hidden="true"><?= ui_icon('home', 18) ?></span>
                             <?php endif; ?>
                             <span><?= e($p['title']) ?></span>
                         </div>
