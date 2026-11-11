@@ -389,77 +389,87 @@ foreach ($attendance as $a) {
             </div>
         <?php endif; ?>
 
-        <?php if (Auth::can('view_attendance') || Auth::can('mark_attendance')): ?>
-            <div class="card shadow-sm mb-4" id="attendance">
-                <div class="card-header fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <span>Явка участников</span>
-                    <?php if (Auth::can('view_attendance')): ?>
-                        <span class="small text-body-secondary">Очно: <?= (int)$presentCount ?></span>
-                    <?php endif; ?>
-                </div>
-                <div class="card-body">
-                    <?php if (Auth::can('view_attendance')): ?>
-                        <?php
-                        $marked = array_values(array_filter($attendance, fn($a) => $a['status'] !== ''));
-                        $unmarked = array_values(array_filter($attendance, fn($a) => $a['status'] === ''));
-                        $stLabels = ['present' => 'Очно', 'online' => 'Онлайн', 'absent' => 'Отсутствует'];
-                        ?>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead>
-                                <tr>
-                                    <th>Участник</th>
-                                    <th>Статус</th>
-                                    <th>Причина</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <?php if (!$marked): ?>
-                                    <tr><td colspan="3" class="text-body-secondary small">Пока никто не отметился</td></tr>
-                                <?php endif; ?>
-                                <?php foreach ($marked as $a): ?>
-                                    <tr>
-                                        <td class="small"><?= user_link(['id' => (int)$a['user_id'], 'address_term' => $a['address_term'], 'name' => $a['name']]) ?></td>
-                                        <td><span class="badge <?= attendance_badge_class($a['status']) ?>"><?= $stLabels[$a['status']] ?? '' ?></span></td>
-                                        <td class="small text-body-secondary"><?= e($a['reason']) ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <?php if ($unmarked): ?>
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-outline-secondary" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#attendanceUnmarked"
-                                        aria-expanded="false" aria-controls="attendanceUnmarked">
-                                    Не отметились (<?= count($unmarked) ?>)
-                                </button>
-                                <div class="collapse mt-2" id="attendanceUnmarked">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm mb-0">
-                                            <thead>
-                                            <tr>
-                                                <th>Участник</th>
-                                                <th>Статус</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            <?php foreach ($unmarked as $a): ?>
-                                                <tr>
-                                                    <td class="small"><?= user_link(['id' => (int)$a['user_id'], 'address_term' => $a['address_term'], 'name' => $a['name']]) ?></td>
-                                                    <td><span class="badge text-bg-secondary">Не отметился</span></td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+        <?php
+        // Отметившихся видят все участники; причину и список неотметившихся —
+        // только те, кто может смотреть явку (Старший/Помощник).
+        $canViewAttendance = Auth::can('view_attendance');
+        $marked = array_values(array_filter($attendance, fn($a) => $a['status'] !== ''));
+        $unmarked = array_values(array_filter($attendance, fn($a) => $a['status'] === ''));
+        $stLabels = ['present' => 'Очно', 'online' => 'Онлайн', 'absent' => 'Отсутствует'];
+        ?>
+        <div class="card shadow-sm mb-4" id="attendance">
+            <div class="card-header fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span>Явка участников</span>
+                <?php if ($canViewAttendance): ?>
+                    <span class="small text-body-secondary">Очно: <?= (int)$presentCount ?></span>
+                <?php elseif ($marked): ?>
+                    <span class="small text-body-secondary">Отметок: <?= count($marked) ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th>Участник</th>
+                            <th>Статус</th>
+                            <?php if ($canViewAttendance): ?>
+                                <th>Причина</th>
+                            <?php endif; ?>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (!$marked): ?>
+                            <tr>
+                                <td colspan="<?= $canViewAttendance ? 3 : 2 ?>" class="text-body-secondary small">
+                                    Пока никто не отметился
+                                </td>
+                            </tr>
                         <?php endif; ?>
-                    <?php endif; ?>
+                        <?php foreach ($marked as $a): ?>
+                            <tr>
+                                <td class="small"><?= user_link(['id' => (int)$a['user_id'], 'address_term' => $a['address_term'], 'name' => $a['name']]) ?></td>
+                                <td><span class="badge <?= attendance_badge_class($a['status']) ?>"><?= $stLabels[$a['status']] ?? '' ?></span></td>
+                                <?php if ($canViewAttendance): ?>
+                                    <td class="small text-body-secondary"><?= e($a['reason']) ?></td>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
 
-                    <?php if (Auth::can('mark_attendance')): ?>
+                <?php if ($canViewAttendance && $unmarked): ?>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#attendanceUnmarked"
+                                aria-expanded="false" aria-controls="attendanceUnmarked">
+                            Не отметились (<?= count($unmarked) ?>)
+                        </button>
+                        <div class="collapse mt-2" id="attendanceUnmarked">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Участник</th>
+                                        <th>Статус</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($unmarked as $a): ?>
+                                        <tr>
+                                            <td class="small"><?= user_link(['id' => (int)$a['user_id'], 'address_term' => $a['address_term'], 'name' => $a['name']]) ?></td>
+                                            <td><span class="badge text-bg-secondary">Не отметился</span></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (Auth::can('mark_attendance')): ?>
                         <hr>
                         <div class="fw-semibold small mb-2">Моя отметка</div>
                         <?php $me = $myAttendance; ?>
@@ -505,10 +515,9 @@ foreach ($attendance as $a) {
                                 </div>
                             </div>
                         </form>
-                    <?php endif; ?>
-                </div>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
+        </div>
 
         <?php if (Auth::can('view_attendance')): ?>
             <div class="card shadow-sm mb-4">

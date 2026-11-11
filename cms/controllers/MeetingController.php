@@ -33,37 +33,38 @@ class MeetingController
             [$id]
         );
 
+        // Отметившихся участников видят все, причину отсутствия — только те,
+        // у кого есть право смотреть явку (Старший/Помощник).
+        $canViewAttendance = Auth::can('view_attendance');
         $attendance = [];
-        if (Auth::can('view_attendance')) {
-            $rows = Db::fetchAll(
-                'SELECT a.*, u.name, u.address_term
-                 FROM attendance a JOIN users u ON u.id = a.user_id
-                 WHERE a.meeting_id = ?',
-                [$id]
-            );
-            $byUser = [];
-            foreach ($rows as $r) {
-                $byUser[$r['user_id']] = $r;
-            }
-            $order = ['present' => 0, 'online' => 1, 'absent' => 2, '' => 3];
-            foreach (attendance_eligible() as $u) {
-                $row = $byUser[$u['id']] ?? null;
-                $status = $row ? $row['status'] : '';
-                $attendance[] = [
-                    'user_id'     => (int)$u['id'],
-                    'name'        => $u['name'],
-                    'address_term' => $u['address_term'],
-                    'role'        => $u['role'],
-                    'status'      => $status,
-                    'reason'      => $row ? trim((string)$row['reason']) : '',
-                    'updated_at'  => $row ? $row['updated_at'] : '',
-                    '_order'      => $order[$status],
-                ];
-            }
-            usort($attendance, function ($a, $b) {
-                return [$a['_order'], mb_strtolower($a['name'])] <=> [$b['_order'], mb_strtolower($b['name'])];
-            });
+        $rows = Db::fetchAll(
+            'SELECT a.*, u.name, u.address_term
+             FROM attendance a JOIN users u ON u.id = a.user_id
+             WHERE a.meeting_id = ?',
+            [$id]
+        );
+        $byUser = [];
+        foreach ($rows as $r) {
+            $byUser[$r['user_id']] = $r;
         }
+        $order = ['present' => 0, 'online' => 1, 'absent' => 2, '' => 3];
+        foreach (attendance_eligible() as $u) {
+            $row = $byUser[$u['id']] ?? null;
+            $status = $row ? $row['status'] : '';
+            $attendance[] = [
+                'user_id'     => (int)$u['id'],
+                'name'        => $u['name'],
+                'address_term' => $u['address_term'],
+                'role'        => $u['role'],
+                'status'      => $status,
+                'reason'      => ($row && $canViewAttendance) ? trim((string)$row['reason']) : '',
+                'updated_at'  => $row ? $row['updated_at'] : '',
+                '_order'      => $order[$status] ?? 3,
+            ];
+        }
+        usort($attendance, function ($a, $b) {
+            return [$a['_order'], mb_strtolower($a['name'])] <=> [$b['_order'], mb_strtolower($b['name'])];
+        });
 
         $expenses = [];
         $expensesTotal = 0.0;
