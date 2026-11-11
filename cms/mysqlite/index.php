@@ -5,6 +5,8 @@ require_once __DIR__ . '/../app/init.php';
 const MS_DATA_DIR = BASE_PATH . '/data';
 const MS_PER_PAGE = 50;
 const MS_SQL_ROWS = 200;
+// таблицы, которые Помощник может только читать: учётные записи и настройки сайта
+const MS_LOCKED_TABLES = ['users', 'settings'];
 
 header('Content-Type: text/html; charset=UTF-8');
 
@@ -156,14 +158,25 @@ function ms_page_window(int $page, int $pages): array
     return $items;
 }
 
+/** Может ли пользователь менять данные этой таблицы. */
+function ms_can_edit_table(string $table, bool $isAdmin): bool
+{
+    if ($isAdmin) {
+        return true;
+    }
+    return !in_array(mb_strtolower($table), MS_LOCKED_TABLES, true);
+}
+
 $user = Auth::user();
-$allowed = $user && $user['role'] === 'Старший';
+$role = (string)($user['role'] ?? '');
+$allowed = in_array($role, ['Старший', 'Помощник'], true);
+$isAdmin = $role === 'Старший';
 if (!$allowed) {
     http_response_code(403);
     echo '<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Доступ запрещён</title>';
     echo '<link rel="stylesheet" href="../assets/vendor/bootstrap/css/bootstrap.min.css"></head><body>';
     echo '<div class="container py-5 text-center"><h1 class="h3">403</h1>';
-    echo '<p class="text-body-secondary">Доступ к панели управления базой данных разрешён только Старшему.</p>';
+    echo '<p class="text-body-secondary">Доступ к панели управления базой данных разрешён только Старшему и Помощнику.</p>';
     echo '<a class="btn btn-outline-primary" href="../index.php">На сайт</a></div></body></html>';
     exit;
 }
@@ -214,6 +227,10 @@ if ($isPost) {
     csrf_check();
     try {
         if ($action === 'sql') {
+            if (!$isAdmin) {
+                set_flash('SQL-консоль доступна только Старшему', 'danger');
+                redirect(ms_link(['db' => $dbName, 'table' => $table, 'action' => 'browse']));
+            }
             $sql = (string)($_POST['sql'] ?? '');
             if (trim($sql) === '') {
                 set_flash('Введите SQL-запрос', 'danger');
@@ -259,6 +276,12 @@ if ($isPost) {
         if (!in_array($postTable, $tables, true)) {
             set_flash('Таблица не найдена', 'danger');
             redirect(ms_link(['db' => $dbName]));
+        }
+
+        if (in_array($action, ['insert_row', 'update_row', 'delete_row'], true)
+            && !ms_can_edit_table($postTable, $isAdmin)) {
+            set_flash('Таблица «' . $postTable . '» доступна только для просмотра', 'danger');
+            redirect(ms_link(['db' => $dbName, 'table' => $postTable, 'action' => 'browse']));
         }
 
         $cols = $pdo->query('PRAGMA table_info(' . $pdo->quote($postTable) . ')')->fetchAll();
@@ -382,6 +405,15 @@ if ($isPost && in_array($action, ['insert', 'edit', 'browse'], true)) {
 if ($table !== '' && !in_array($table, $tables, true)) {
     $table = '';
 }
+if (!$isAdmin && $action === 'sql') {
+    set_flash('SQL-консоль доступна только Старшему', 'info');
+    redirect(ms_link(['db' => $dbName, 'table' => $table, 'action' => 'browse']));
+}
+if (!$isAdmin && in_array($action, ['insert', 'edit'], true)
+    && $table !== '' && !ms_can_edit_table($table, $isAdmin)) {
+    set_flash('Таблица «' . $table . '» доступна только для просмотра', 'info');
+    redirect(ms_link(['db' => $dbName, 'table' => $table, 'action' => 'browse']));
+}
 if (!$isPost && $action === 'sql') {
     $sqlResult = $_SESSION['ms_sql_result'] ?? null;
     unset($_SESSION['ms_sql_result']);
@@ -421,6 +453,9 @@ $flash = get_flash();
 <nav class="navbar navbar-expand-lg navbar-dark" style="background:#212529;">
     <div class="container-fluid">
         <span class="navbar-brand fw-bold">MySQLite</span>
+        <?php if (!$isAdmin): ?>
+            <span class="badge text-bg-secondary">Помощник: без SQL</span>
+        <?php endif; ?>
         <span class="navbar-text small text-light-emphasis">
             <?= $dbName !== '' ? 'База: <b>' . ms_esc($dbName) . '</b>' : '— база не выбрана —' ?>
         </span>
@@ -453,10 +488,14 @@ $flash = get_flash();
         <ul class="nav nav-tabs mb-3">
             <li class="nav-item"><a class="nav-link <?= $action === 'browse' ? 'active' : '' ?>" href="<?= ms_esc(ms_link(['action' => 'browse'])) ?>">Записи</a></li>
             <li class="nav-item"><a class="nav-link <?= $action === 'structure' ? 'active' : '' ?>" href="<?= ms_esc(ms_link(['action' => 'structure'])) ?>">Структура</a></li>
-            <li class="nav-item"><a class="nav-link <?= $action === 'sql' ? 'active' : '' ?>" href="<?= ms_esc(ms_link(['action' => 'sql'])) ?>">SQL</a></li>
-            <li class="nav-item ms-auto">
-                <a class="nav-link fw-semibold" href="<?= ms_esc(ms_link(['action' => 'insert'])) ?>">+ Добавить запись</a>
-            </li>
+            <?php if ($isAdmin): ?>
+                <li class="nav-item"><a class="nav-link <?= $action === 'sql' ? 'active' : '' ?>" href="<?= ms_esc(ms_link(['action' => 'sql'])) ?>">SQL</a></li>
+            <?php endif; ?>
+            <?php if (ms_can_edit_table($table, $isAdmin)): ?>
+                <li class="nav-item ms-auto">
+                    <a class="nav-link fw-semibold" href="<?= ms_esc(ms_link(['action' => 'insert'])) ?>">+ Добавить запись</a>
+                </li>
+            <?php endif; ?>
         </ul>
     <?php endif; ?>
 
@@ -745,7 +784,10 @@ $flash = get_flash();
             <div class="card shadow-sm">
                 <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold">Таблица <span class="ms-table-name"><?= ms_esc($table) ?></span>
-                        <span class="small text-body-secondary ms-2">всего: <?= $total ?></span></span>
+                        <span class="small text-body-secondary ms-2">всего: <?= $total ?></span>
+                        <?php if (!ms_can_edit_table($table, $isAdmin)): ?>
+                            <span class="badge text-bg-secondary ms-1" title="Изменение доступно только Старшему">только чтение</span>
+                        <?php endif; ?></span>
                     <span class="small text-body-secondary d-flex align-items-center gap-1">
                         <?php $prevPage = 0; ?>
                         <?php foreach ($pageWindow as $i): ?>
@@ -784,16 +826,20 @@ $flash = get_flash();
                                 ?>
                                 <tr>
                                     <td class="text-nowrap">
-                                        <a class="btn btn-sm btn-outline-primary py-0" title="Редактировать"
-                                           href="<?= ms_esc(ms_link(['table' => $table, 'action' => 'edit', 'row' => $rowKey])) ?>">✎</a>
-                                        <form class="d-inline" method="post" onsubmit="return confirm('Удалить запись?');">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="delete_row">
-                                            <input type="hidden" name="db" value="<?= ms_esc($dbName) ?>">
-                                            <input type="hidden" name="table" value="<?= ms_esc($table) ?>">
-                                            <input type="hidden" name="row" value="<?= ms_esc($rowKey) ?>">
-                                            <button class="btn btn-sm btn-outline-danger py-0" type="submit" title="Удалить">✕</button>
-                                        </form>
+                                        <?php if (ms_can_edit_table($table, $isAdmin)): ?>
+                                            <a class="btn btn-sm btn-outline-primary py-0" title="Редактировать"
+                                               href="<?= ms_esc(ms_link(['table' => $table, 'action' => 'edit', 'row' => $rowKey])) ?>">✎</a>
+                                            <form class="d-inline" method="post" onsubmit="return confirm('Удалить запись?');">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="delete_row">
+                                                <input type="hidden" name="db" value="<?= ms_esc($dbName) ?>">
+                                                <input type="hidden" name="table" value="<?= ms_esc($table) ?>">
+                                                <input type="hidden" name="row" value="<?= ms_esc($rowKey) ?>">
+                                                <button class="btn btn-sm btn-outline-danger py-0" type="submit" title="Удалить">✕</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="text-body-tertiary" title="Только просмотр">🔒</span>
+                                        <?php endif; ?>
                                     </td>
                                     <?php foreach ($tableInfo as $col): ?>
                                         <td class="ms-fixed"><?= ms_val($r[$col['name']], $col['name']) ?></td>
