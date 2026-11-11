@@ -318,6 +318,12 @@ body.cms-lightbox-open {
     background: #e9eef5;
 }
 
+/* уменьшенный вариант для карточки встречи */
+.cms-place-avatar-sm {
+    width: 28px;
+    height: 28px;
+}
+
 .cms-cookie {
     position: fixed;
     left: 50%;

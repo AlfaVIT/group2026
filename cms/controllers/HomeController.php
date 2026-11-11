@@ -131,7 +131,10 @@ class HomeController
             'SELECT m.*, p.title AS place_title, p.region, p.district, p.locality, p.street,
                     p.house, p.house_letter, p.entrance, p.floor, p.apartment, p.intercom,
                     p.geo_link, p.note AS place_note,
-                    u.name AS owner_name, u.address_term AS owner_term
+                    u.name AS owner_name, u.address_term AS owner_term,
+                    u.avatar AS place_owner_avatar,
+                    (SELECT ph.file_path FROM place_photos ph WHERE ph.place_id = p.id
+                     ORDER BY ph.sort, ph.id LIMIT 1) AS place_first_photo
              FROM meetings m
              LEFT JOIN places p ON p.id = m.place_id
              LEFT JOIN users u ON u.id = p.owner_id
@@ -150,7 +153,10 @@ class HomeController
             'SELECT m.*, p.title AS place_title, p.region, p.district, p.locality, p.street,
                     p.house, p.house_letter, p.entrance, p.floor, p.apartment, p.intercom,
                     p.geo_link, p.note AS place_note,
-                    u.name AS owner_name, u.address_term AS owner_term
+                    u.name AS owner_name, u.address_term AS owner_term,
+                    u.avatar AS place_owner_avatar,
+                    (SELECT ph.file_path FROM place_photos ph WHERE ph.place_id = p.id
+                     ORDER BY ph.sort, ph.id LIMIT 1) AS place_first_photo
              FROM meetings m
              LEFT JOIN places p ON p.id = m.place_id
              LEFT JOIN users u ON u.id = p.owner_id
@@ -164,7 +170,10 @@ class HomeController
             'SELECT m.*, p.title AS place_title, p.region, p.district, p.locality, p.street,
                     p.house, p.house_letter, p.entrance, p.floor, p.apartment, p.intercom,
                     p.geo_link, p.note AS place_note,
-                    u.name AS owner_name, u.address_term AS owner_term
+                    u.name AS owner_name, u.address_term AS owner_term,
+                    u.avatar AS place_owner_avatar,
+                    (SELECT ph.file_path FROM place_photos ph WHERE ph.place_id = p.id
+                     ORDER BY ph.sort, ph.id LIMIT 1) AS place_first_photo
              FROM meetings m
              LEFT JOIN places p ON p.id = m.place_id
              LEFT JOIN users u ON u.id = p.owner_id

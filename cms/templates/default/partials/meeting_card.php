@@ -25,8 +25,18 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
 
         <?php if ($meeting['place_id']): ?>
             <?php if ($address): ?>
-                <div class="small">
-                    <span class="text-body-secondary">Место:</span>
+                <div class="small d-flex align-items-center gap-2">
+                    <?php $placeAvatar = place_avatar_url([
+                        'owner_avatar' => $meeting['place_owner_avatar'] ?? '',
+                        'first_photo' => $meeting['place_first_photo'] ?? '',
+                    ]); ?>
+                    <?php if ($placeAvatar !== ''): ?>
+                        <img class="cms-place-avatar cms-place-avatar-sm" src="<?= e($placeAvatar) ?>"
+                             alt="" loading="lazy">
+                    <?php else: ?>
+                        <span class="cms-place-avatar cms-place-avatar-sm cms-place-avatar-empty"
+                              aria-hidden="true"><?= ui_icon('home', 16) ?></span>
+                    <?php endif; ?>
                     <span><?= e(implode(', ', $address)) ?></span>
                 </div>
             <?php endif; ?>
