@@ -33,4 +33,10 @@ class Setting
         $theme = (string)self::get('theme', DEFAULT_THEME);
         return in_array($theme, THEMES, true) ? $theme : DEFAULT_THEME;
     }
+
+    /** Общая ссылка на трансляцию: используется во встречах без своей ссылки. */
+    public static function streamUrl(): string
+    {
+        return trim((string)self::get('stream_url', ''));
+    }
 }

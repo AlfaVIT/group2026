@@ -56,6 +56,15 @@ if ($canViewStats ?? false) {
             <div class="form-text">Используется в письмах восстановления пароля</div>
         </div>
 
+        <div class="col-md-8">
+            <label class="form-label" for="stream_url">Ссылка на трансляцию</label>
+            <input class="form-control" type="url" id="stream_url" name="stream_url"
+                   value="<?= e($streamUrl ?? '') ?>" placeholder="https://">
+            <div class="form-text">
+                Общая ссылка на трансляцию. Предлагается во встречах, где не указана своя ссылка.
+            </div>
+        </div>
+
         <div class="col-12">
             <button class="btn btn-primary" type="submit">Сохранить настройки</button>
         </div>

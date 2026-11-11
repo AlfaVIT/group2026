@@ -123,10 +123,13 @@ foreach ($attendance as $a) {
                        title="Вечерня братским чином" aria-label="Вечерня братским чином">
                         <?= ui_icon('book') ?><span class="cms-btn-label">Вечерня братским чином</span>
                     </a>
-                    <?php if ($m['stream_url'] !== ''): ?>
-                        <a class="btn btn-outline-danger cms-btn-icon" href="<?= e($m['stream_url']) ?>" target="_blank" rel="noopener"
-                           title="Смотреть трансляцию" aria-label="Смотреть трансляцию">
-                            <?= ui_icon('video') ?><span class="cms-btn-label">Смотреть трансляцию</span>
+                    <?php $streamLink = meeting_stream_url($m); ?>
+                    <?php if ($streamLink !== ''): ?>
+                        <?php $streamCommon = meeting_stream_is_common($m); ?>
+                        <a class="btn btn-outline-danger cms-btn-icon" href="<?= e($streamLink) ?>" target="_blank" rel="noopener"
+                           title="<?= $streamCommon ? 'Подключиться к общей трансляции (ссылка из настроек)' : 'Смотреть трансляцию' ?>"
+                           aria-label="<?= $streamCommon ? 'Подключиться к общей трансляции' : 'Смотреть трансляцию' ?>">
+                            <?= ui_icon('video') ?><span class="cms-btn-label"><?= $streamCommon ? 'Подключиться к трансляции' : 'Смотреть трансляцию' ?></span>
                         </a>
                     <?php endif; ?>
                     <?php

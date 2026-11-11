@@ -95,10 +95,13 @@ $maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($m
            title="Добавить в календарь" aria-label="Добавить в календарь">
             <?= ui_icon('calendar') ?><span class="cms-btn-label">Добавить в календарь</span>
         </a>
-        <?php if ($meeting['stream_url'] !== ''): ?>
-            <a class="btn btn-sm btn-danger cms-btn-icon" href="<?= e($meeting['stream_url']) ?>" target="_blank" rel="noopener"
-               title="Смотреть трансляцию" aria-label="Смотреть трансляцию">
-                <?= ui_icon('video') ?><span class="cms-btn-label">Смотреть трансляцию</span>
+        <?php $streamLink = meeting_stream_url($meeting); ?>
+        <?php if ($streamLink !== ''): ?>
+            <?php $streamCommon = meeting_stream_is_common($meeting); ?>
+            <a class="btn btn-sm btn-danger cms-btn-icon" href="<?= e($streamLink) ?>" target="_blank" rel="noopener"
+               title="<?= $streamCommon ? 'Подключиться к общей трансляции (ссылка из настроек)' : 'Смотреть трансляцию' ?>"
+               aria-label="<?= $streamCommon ? 'Подключиться к общей трансляции' : 'Смотреть трансляцию' ?>">
+                <?= ui_icon('video') ?><span class="cms-btn-label"><?= $streamCommon ? 'Подключиться к трансляции' : 'Смотреть трансляцию' ?></span>
             </a>
         <?php endif; ?>
     </div>

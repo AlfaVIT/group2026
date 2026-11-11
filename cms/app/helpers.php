@@ -1006,6 +1006,24 @@ function ics_fold(string $line): string
     return $out;
 }
 
+/**
+ * Ссылка на трансляцию встречи: своя у встречи, иначе общая из настроек.
+ */
+function meeting_stream_url(array $meeting): string
+{
+    $own = trim((string)($meeting['stream_url'] ?? ''));
+    if ($own !== '') {
+        return $own;
+    }
+    return Setting::streamUrl();
+}
+
+/** Ссылка на трансляцию взята из общих настроек (у встречи своей нет). */
+function meeting_stream_is_common(array $meeting): bool
+{
+    return trim((string)($meeting['stream_url'] ?? '')) === '' && Setting::streamUrl() !== '';
+}
+
 /** Формирует событие iCalendar для встречи (добавление в календарь устройства). */
 function build_meeting_ics(array $meeting): string
 {
