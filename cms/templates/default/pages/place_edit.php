@@ -1,6 +1,6 @@
 <?php
 $isEdit = (bool)$place;
-$mapsPreview = !empty($data['geo_link']) ? $data['geo_link'] : null;
+$mapsPreview = safe_url($data['geo_link'] ?? '');
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0"><?= e($title) ?></h1>
@@ -13,7 +13,7 @@ $mapsPreview = !empty($data['geo_link']) ? $data['geo_link'] : null;
     <div class="alert alert-danger"><?= implode('<br>', array_map('e', $errors)) ?></div>
 <?php endif; ?>
 
-<form method="post" action="<?= url('place_save') ?>" enctype="multipart/form-data" class="row g-3">
+<form method="post" action="<?= url('place_save') ?>" enctype="multipart/form-data" class="row g-3" data-no-ajax>
     <?= csrf_field() ?>
     <?php if ($isEdit): ?>
         <input type="hidden" name="id" value="<?= (int)$place['id'] ?>">
@@ -109,12 +109,9 @@ $mapsPreview = !empty($data['geo_link']) ? $data['geo_link'] : null;
                         <div class="position-relative">
                             <img src="<?= base_url() ?>/<?= e(UPLOAD_URL) ?>/<?= e($ph['file_path']) ?>"
                                  class="img-fluid rounded border" alt="Фото места">
-                            <form method="post" action="<?= url('photo_delete') ?>" class="position-absolute top-0 end-0 m-1"
-                                  onsubmit="return confirm('Удалить фотографию?');">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="id" value="<?= (int)$ph['id'] ?>">
-                                <button class="btn btn-sm btn-danger" type="submit" title="Удалить">&times;</button>
-                            </form>
+                            <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" type="submit"
+                                    form="photo-del-<?= (int)$ph['id'] ?>" title="Удалить фотографию"
+                                    aria-label="Удалить фотографию">&times;</button>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -127,3 +124,15 @@ $mapsPreview = !empty($data['geo_link']) ? $data['geo_link'] : null;
         <a class="btn btn-outline-secondary" href="<?= url('settings', ['tab' => 'places']) ?>">Отмена</a>
     </div>
 </form>
+
+<?php
+// Формы удаления фото вынесены из основной формы: вложенные <form> недопустимы,
+// и кнопка «×» отправляла бы сохранение места вместо удаления снимка.
+?>
+<?php foreach ($photos as $ph): ?>
+    <form method="post" action="<?= url('photo_delete') ?>" id="photo-del-<?= (int)$ph['id'] ?>" class="d-none"
+          onsubmit="return confirm('Удалить фотографию?');">
+        <?= csrf_field() ?>
+        <input type="hidden" name="id" value="<?= (int)$ph['id'] ?>">
+    </form>
+<?php endforeach; ?>

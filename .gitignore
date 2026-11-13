@@ -32,6 +32,8 @@ cms/uploads/*
 cms/data/*.sqlite-shm
 cms/data/*.sqlite-wal
 cms/data/cache/
+# личные конспекты встреч (изображения и аудио) — не для репозитория
+cms/data/notes/
 
 # Архив для деплоя
 cms/cms.zip

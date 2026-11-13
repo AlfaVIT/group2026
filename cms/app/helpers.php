@@ -50,6 +50,8 @@ const PERMISSIONS = [
     'view_treasury'    => ['Казначей'],
     'view_treasury_graph' => ['Старший'],
     'manage_materials' => ['Старший', 'Помощник'],
+    // добавление своих материалов: все активные участники, кроме Гостя
+    'materials'        => ['Старший', 'Помощник', 'Казначей', 'СестраБрат'],
     'manage_articles'  => ['Старший', 'Казначей'],
     'write_notes'      => ['Старший', 'Помощник', 'Казначей', 'СестраБрат'],
     'view_stats'       => ['Старший', 'Помощник'],
@@ -227,7 +229,13 @@ function resolve_login_email(string $value): array
         if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return ['email' => '', 'login' => '', 'error' => 'Укажите корректный email'];
         }
-        return ['email' => $value, 'login' => explode('@', $value, 2)[0], 'error' => null];
+        $login = explode('@', $value, 2)[0];
+        if (mb_strlen($login) < 3) {
+            // логин из части до «@» должен подчиняться тем же правилам, что и обычный:
+            // иначе учётную запись потом нельзя сохранить без смены логина
+            return ['email' => '', 'login' => '', 'error' => 'Логин (часть email до «@») должен быть не короче 3 символов'];
+        }
+        return ['email' => $value, 'login' => $login, 'error' => null];
     }
     if (preg_match('/[\s@]/', $value)) {
         return ['email' => '', 'login' => '', 'error' => 'Логин не должен содержать пробелы и символ @'];
@@ -314,12 +322,24 @@ function redirect(string $url): void
 
 function input(string $key, string $default = ''): string
 {
-    return trim((string)($_POST[$key] ?? $default));
+    // в $_POST может оказаться массив (например, name[]=…), а trim() ждёт строку
+    $value = $_POST[$key] ?? null;
+    return is_string($value) ? trim($value) : $default;
 }
 
 function post(string $key, $default = null)
 {
     return $_POST[$key] ?? $default;
+}
+
+/**
+ * Строковый GET-параметр. Массив вместо строки (p[]=…) не должен ронять
+ * preg_match/trim фатальной ошибкой — возвращаем значение по умолчанию.
+ */
+function get_str(string $key, string $default = ''): string
+{
+    $value = $_GET[$key] ?? null;
+    return is_string($value) ? $value : $default;
 }
 
 function set_flash(string $message, string $type = 'success'): void
@@ -399,7 +419,8 @@ function referer_host(): string
 
 function csrf_check(): void
 {
-    if (hash_equals(csrf_token(), $_POST['csrf'] ?? '')) {
+    $sent = $_POST['csrf'] ?? '';
+    if (is_string($sent) && hash_equals(csrf_token(), $sent)) {
         return;
     }
     // Метка не совпала: сессия могла быть пересоздана (например, после смены версии
@@ -590,31 +611,42 @@ function user_link(array $user, string $tag = 'a', string $class = '', ?string $
         . ' data-user-card="' . $id . '">' . $name . '</a>';
 }
 
-/**
- * URL аватара пользователя (файл в uploads/avatars). Пусто, если аватар не задан
- * или файл отсутствует.
- */
-function avatar_url(array $user): string
+/** Есть ли у пользователя загруженный аватар (и файл на диске существует). */
+function has_custom_avatar(array $user): bool
 {
     $file = trim((string)($user['avatar'] ?? ''));
-    if ($file === '') {
-        return '';
-    }
-    $path = UPLOAD_DIR . '/avatars/' . $file;
-    return is_file($path) ? base_url() . '/' . UPLOAD_URL . '/avatars/' . rawurlencode($file) : '';
+    return $file !== '' && is_file(UPLOAD_DIR . '/avatars/' . $file);
 }
 
 /**
- * HTML маленького круглого аватара рядом с именем. Пусто, если аватара нет.
+ * URL аватара пользователя (файл в uploads/avatars). Пусто, если аватар не задан
+ * или файл отсутствует. Для вывода на странице используйте user_avatar_url().
  */
-function avatar_img(array $user, int $size = 28): string
+function avatar_url(array $user): string
 {
-    $url = avatar_url($user);
-    if ($url === '') {
+    if (!has_custom_avatar($user)) {
         return '';
     }
-    return '<img class="cms-avatar" style="width:' . (int)$size . 'px;height:' . (int)$size . 'px;"'
-        . ' src="' . e($url) . '" alt="' . e(full_name($user)) . '" loading="lazy">';
+    return base_url() . '/' . UPLOAD_URL . '/avatars/' . rawurlencode(trim((string)$user['avatar']));
+}
+
+/**
+ * Аватар по умолчанию: мужской силуэт для «брат», женский — для «сестра».
+ */
+function default_avatar_url(string $addressTerm): string
+{
+    $file = $addressTerm === 'сестра' ? 'img/avatar-female.svg' : 'img/avatar-male.svg';
+    return asset_url($file);
+}
+
+/** Аватар для вывода: загруженный пользователем, иначе — по умолчанию по обращению. */
+function user_avatar_url(array $user): string
+{
+    $url = avatar_url($user);
+    if ($url !== '') {
+        return $url;
+    }
+    return default_avatar_url((string)($user['address_term'] ?? 'брат'));
 }
 
 /**
@@ -630,29 +662,6 @@ function place_avatar_url(array $place): string
     $photo = trim((string)($place['first_photo'] ?? ''));
     if ($photo !== '' && is_file(UPLOAD_DIR . '/' . $photo)) {
         return base_url() . '/' . UPLOAD_URL . '/' . rawurlencode($photo);
-    }
-    return '';
-}
-
-/**
- * Приводит введённую дату рождения к формату YYYY-MM-DD.
- * Год можно не указывать: тогда сохраняется 0000-MM-DD, возраст не выводится.
- * Принимает ДД.ММ.ГГГГ, ДД.ММ или уже сохранённый YYYY-MM-DD.
- */
-function parse_birthday(string $raw): string
-{
-    $raw = trim($raw);
-    if ($raw === '') {
-        return '';
-    }
-    if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $m)) {
-        return checkdate((int)$m[2], (int)$m[3], (int)$m[1]) ? sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]) : '';
-    }
-    if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $raw, $m)) {
-        return checkdate((int)$m[2], (int)$m[1], (int)$m[3]) ? sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]) : '';
-    }
-    if (preg_match('/^(\d{1,2})\.(\d{1,2})$/', $raw, $m)) {
-        return checkdate((int)$m[2], (int)$m[1], 2000) ? sprintf('0000-%02d-%02d', $m[2], $m[1]) : '';
     }
     return '';
 }
@@ -1007,21 +1016,42 @@ function ics_fold(string $line): string
 }
 
 /**
+ * URL для вывода в href/src: разрешены только http(s) (и относительные пути,
+ * если явно разрешено). Всё остальное (javascript:, data:, vbscript: …) → ''.
+ * Нужен как защита от сохранённых ранее «плохих» ссылок.
+ */
+function safe_url(?string $url, bool $allowRelative = false): string
+{
+    $url = trim((string)$url);
+    if ($url === '') {
+        return '';
+    }
+    if (preg_match('~^https?://~i', $url)) {
+        return $url;
+    }
+    if ($allowRelative && preg_match('~^/(?!/)~', $url)) {
+        return $url;
+    }
+    return '';
+}
+
+/**
  * Ссылка на трансляцию встречи: своя у встречи, иначе общая из настроек.
  */
 function meeting_stream_url(array $meeting): string
 {
-    $own = trim((string)($meeting['stream_url'] ?? ''));
+    $own = safe_url((string)($meeting['stream_url'] ?? ''));
     if ($own !== '') {
         return $own;
     }
-    return Setting::streamUrl();
+    return safe_url(Setting::streamUrl());
 }
 
 /** Ссылка на трансляцию взята из общих настроек (у встречи своей нет). */
 function meeting_stream_is_common(array $meeting): bool
 {
-    return trim((string)($meeting['stream_url'] ?? '')) === '' && Setting::streamUrl() !== '';
+    return safe_url((string)($meeting['stream_url'] ?? '')) === ''
+        && safe_url(Setting::streamUrl()) !== '';
 }
 
 /** Формирует событие iCalendar для встречи (добавление в календарь устройства). */

@@ -154,6 +154,9 @@ class ProfileController
                 'telegram' => '',
                 'telegram_chat_id' => null,
                 'telegram_username' => '',
+                // код активации тоже сбрасываем: старая ссылка «Подключить бота»
+                // не должна снова привязать чужой чат к учётной записи
+                'telegram_code' => '',
             ], ['id' => $id]);
             pd_consent_cookie(false);
             set_flash('Согласие отозвано. Персональные данные (телефон, email, дата рождения, Telegram) удалены.', 'info');

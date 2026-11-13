@@ -74,11 +74,11 @@ class ArticleController
     /** JSON-подсказки по похожести для поля ввода статьи. */
     public function suggest(): void
     {
-        $kind = (string)($_GET['kind'] ?? 'income');
+        $kind = get_str('kind', 'income');
         if (!Article::isValidKind($kind)) {
             $kind = 'income';
         }
-        $items = Article::suggest($kind, (string)($_GET['q'] ?? ''));
+        $items = Article::suggest($kind, get_str('q'));
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: no-store');
         echo json_encode(['ok' => true, 'items' => $items], JSON_UNESCAPED_UNICODE);

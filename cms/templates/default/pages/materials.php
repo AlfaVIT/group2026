@@ -17,13 +17,16 @@ $me = Auth::id();
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">Материалы</h1>
+    <?php if (Auth::can('materials')): ?>
     <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addMaterialCard"
             aria-expanded="<?= $isEdit || $formData ? 'true' : 'false' ?>"
             aria-controls="addMaterialCard">
         <?= $isEdit ? 'Редактирование' : 'Разместить материал' ?>
     </button>
+    <?php endif; ?>
 </div>
 
+<?php if (Auth::can('materials')): ?>
 <div class="collapse <?= $isEdit || $formData ? 'show' : '' ?>" id="addMaterialCard">
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -33,7 +36,7 @@ $me = Auth::id();
             <?php endif; ?>
         </div>
         <div class="card-body">
-            <form method="post" action="<?= url('material_save') ?>" enctype="multipart/form-data" class="row g-3">
+            <form method="post" action="<?= url('material_save') ?>" enctype="multipart/form-data" class="row g-3" data-no-ajax>
                 <?= csrf_field() ?>
                 <?php if ($isEdit): ?>
                     <input type="hidden" name="id" value="<?= (int)$editMaterial['id'] ?>">
@@ -104,6 +107,7 @@ $me = Auth::id();
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <form method="get" action="<?= url('materials') ?>" class="card shadow-sm mb-4">
     <input type="hidden" name="p" value="materials">
@@ -210,7 +214,7 @@ $me = Auth::id();
                     <?php endif; ?>
 
                     <div class="d-flex gap-2 mt-3">
-                        <?php if (Auth::can('manage_materials') || (int)$m['user_id'] === $me): ?>
+                        <?php if (Auth::can('manage_materials') || (Auth::can('materials') && (int)$m['user_id'] === $me)): ?>
                             <a class="btn btn-sm btn-outline-primary" href="<?= e($murl(['edit' => $m['id']])) ?>">Редактировать</a>
                             <form method="post" action="<?= url('material_delete') ?>" class="d-inline"
                                   onsubmit="return confirm('Удалить материал?');">

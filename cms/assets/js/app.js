@@ -32,7 +32,6 @@
             $row.find('.mat-link').addClass('d-none').val('');
             $row.find('.mat-text').removeClass('d-none').val(item.text || '');
         } else {
-            $row.find('.mat-url-fix');
             $row.find('.mat-link').val(item.url || '');
         }
         return $row;
@@ -46,6 +45,11 @@
         var s = '+' + d.charAt(0);
         if (d.length > 1) {
             s += ' (' + d.slice(1, 4);
+            // пока код города не дописан, скобку всё равно закрываем:
+            // иначе в поле висит «+7 (9» без пары
+            if (d.length <= 4) {
+                s += ')';
+            }
         }
         if (d.length > 4) {
             s += ') ' + d.slice(4, 7);
@@ -158,17 +162,23 @@
     });
 
     $(function () {
-        var $atForm = $('#attendance form');
-        if ($atForm.length) {
-            var $reason = $atForm.find('#attendance_reason');
-            var updateReasonRequired = function () {
-                var v = $atForm.find('input[name="status"]:checked').val();
-                $reason.prop('required', v === 'absent');
-                $reason.attr('placeholder', v === 'absent' ? 'Обязательно укажите причину' : '');
-            };
-            $atForm.on('change', 'input[name="status"]', updateReasonRequired);
-            updateReasonRequired();
-        }
+        // Карточка «Явка» перерисовывается AJAX-обновлением (#attendance), поэтому
+        // обработчик вешаем делегированно — иначе после сохранения формы он теряется.
+        var updateReasonRequired = function ($form) {
+            if (!$form || !$form.length) {
+                return;
+            }
+            var $reason = $form.find('#attendance_reason');
+            var v = $form.find('input[name="status"]:checked').val();
+            $reason.prop('required', v === 'absent');
+            $reason.attr('placeholder', v === 'absent' ? 'Обязательно укажите причину' : '');
+        };
+        $(document).on('change', '#attendance form input[name="status"]', function () {
+            updateReasonRequired($(this).closest('form'));
+        });
+        $('#attendance form').each(function () {
+            updateReasonRequired($(this));
+        });
 
         $(document).on('input', '[data-bday-mask]', function () {
             maskDigits(this, parseInt($(this).attr('data-bday-mask'), 10) || 0);
@@ -319,7 +329,8 @@
             el.value = formatPhone(digits);
         });
 
-        // Подсказки по похожести для полей «Статья» (справочник казны).        var suggestTimers = {};
+        // Подсказки по похожести для полей «Статья» (справочник казны).
+        var suggestTimers = {};
         $(document).on('input', 'input[data-article-suggest]', function () {
             var $input = $(this);
             var inputId = this.id;

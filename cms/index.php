@@ -26,8 +26,8 @@ $routes = [
     'vespers_readers_save' => ['VespersController', 'saveReaders', ['assign_readers']],
     'checklist_save'  => ['ChecklistController', 'save', ['mark_attendance']],
     'materials'       => ['MaterialController', 'index', ['any']],
-    'material_save'   => ['MaterialController', 'save', ['any']],
-    'material_delete' => ['MaterialController', 'delete', ['any']],
+    'material_save'   => ['MaterialController', 'save', ['materials']],
+    'material_delete' => ['MaterialController', 'delete', ['materials']],
     'help'            => ['HelpController', 'index', ['any']],
     'stats'           => ['SettingsController', 'stats', ['view_stats']],
     'meeting_edit'    => ['MeetingController', 'edit', ['manage_meetings']],
@@ -74,14 +74,14 @@ $routes = [
     'logout'          => ['AuthController', 'logout', ['any']],
 ];
 
-$page = $_GET['p'] ?? 'home';
+$page = get_str('p', 'home');
 
 // Страница «Календарь встреч» убрана: календарь и встречи показывает главная.
 // Старые ссылки и закладки ведут туда же, выбранный месяц/дата сохраняются.
 if ($page === 'calendar') {
     $keep = [];
     foreach (['m', 'sel'] as $key) {
-        $value = (string)($_GET[$key] ?? '');
+        $value = get_str($key);
         if (preg_match('/^\d{4}-\d{2}(-\d{2})?$/', $value)) {
             $keep[$key] = $value;
         }
@@ -98,6 +98,14 @@ if (!isset($routes[$page])) {
 [$class, $method, $roles] = $routes[$page];
 
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+
+// Действия, меняющие состояние, принимаем только POST: иначе GET-ссылка
+// (?p=logout, ?p=telegram_save, ?p=telegram_webhook) выполнит их без CSRF-метки.
+$postOnly = ['logout', 'telegram_save', 'telegram_webhook'];
+if (!$isPost && in_array($page, $postOnly, true)) {
+    http_response_code(405);
+    exit('Метод не поддерживается');
+}
 
 if ($roles === ['public']) {
     if (Auth::check()) {

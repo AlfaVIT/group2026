@@ -751,6 +751,14 @@ a.cms-cal-cell:hover {
     color: var(--cms-navy, #1b2a4a);
 }
 
+/* аватар чтеца (свой или по умолчанию) — маленький, в строку */
+.cms-vespers-text .cms-vespers-avatar {
+    width: 24px;
+    height: 24px;
+    margin-right: .25rem;
+    vertical-align: -6px;
+}
+
 .cms-vespers-text .Red {
     color: #a32626;
     font-weight: 600;

@@ -5,6 +5,8 @@ if (Auth::check()) {
     $consented = (int)($uu['personal_consent'] ?? 0) === 1;
 }
 $siteName = Setting::siteName();
+$themeCss = theme_asset('theme.css');
+$schemeCss = theme_scheme_css();
 ?>
 <!DOCTYPE html>
 <html lang="ru" data-theme="<?= e(theme_scheme()) ?>">
@@ -15,6 +17,12 @@ $siteName = Setting::siteName();
     <link rel="icon" type="image/svg+xml" href="<?= base_url() ?>/fish.php">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= base_url() ?>/assets/css/style.css">
+    <?php if ($themeCss): ?>
+        <link rel="stylesheet" href="<?= e($themeCss) ?>">
+    <?php endif; ?>
+    <?php if ($schemeCss): ?>
+        <link rel="stylesheet" href="<?= e($schemeCss) ?>">
+    <?php endif; ?>
 </head>
 <body class="auth-body">
 <main class="container" style="max-width: 720px; padding-top: 6vh;">

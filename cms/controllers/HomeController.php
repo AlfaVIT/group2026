@@ -7,12 +7,14 @@ class HomeController
         $data = $this->meetingsData();
 
         $sel = null;
-        if (isset($_GET['sel']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['sel'])) {
-            $sel = $_GET['sel'];
+        $selParam = get_str('sel');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $selParam)) {
+            $sel = $selParam;
         }
         $mParam = null;
-        if (isset($_GET['m']) && preg_match('/^\d{4}-\d{2}$/', $_GET['m'])) {
-            $mParam = $_GET['m'];
+        $monthParam = get_str('m');
+        if (preg_match('/^\d{4}-\d{2}$/', $monthParam)) {
+            $mParam = $monthParam;
         }
 
         $selected = null;
@@ -26,7 +28,9 @@ class HomeController
         } elseif (!$mParam) {
             $selected = $data['upcoming'][0] ?? null;
         } else {
-            foreach ($data['upcoming'] as $meeting) {
+            // в прошедшие месяцы встреч в upcoming нет — ищем и среди прошедших,
+            // иначе при листании календаря назад карточка не показывается
+            foreach (array_merge($data['upcoming'], $data['past']) as $meeting) {
                 if (substr($meeting['date'], 0, 7) === $mParam) {
                     $selected = $meeting;
                     break;
@@ -62,7 +66,7 @@ class HomeController
         $canViewPd = Auth::can('view_pd');
         if ($canViewPd) {
             foreach (Db::fetchAll(
-                "SELECT name, avatar, birthday FROM users
+                "SELECT id, address_term, name, avatar, birthday FROM users
                  WHERE is_active = 1 AND personal_consent = 1 AND birthday != ''"
             ) as $u) {
                 $b = $u['birthday'];
@@ -87,7 +91,7 @@ class HomeController
                 $birthdays[$m][] = [
                     'id'        => (int)$u['id'],
                     'name'      => $u['name'],
-                    'avatarUrl' => avatar_url($u),
+                    'avatarUrl' => user_avatar_url($u),
                     'day'       => $day,
                     'month'     => $monthNames[$m],
                     'turns'     => $turns,
@@ -101,11 +105,18 @@ class HomeController
         }
         unset($list);
 
+        // Телефон показываем только тем, кто его не скрыл, но участник с email
+        // или Telegram должен оставаться в списке контактов, даже скрыв телефон.
         $contacts = $canViewPd ? Db::fetchAll(
-            'SELECT name, address_term, avatar, phone, hide_phone, email, telegram, id
+            "SELECT name, address_term, avatar, phone, hide_phone, email, telegram, id
              FROM users
-             WHERE is_active = 1 AND personal_consent = 1 AND hide_phone = 0 AND COALESCE(phone, \'\') != \'\'
-             ORDER BY name'
+             WHERE is_active = 1 AND personal_consent = 1
+               AND (
+                    (hide_phone = 0 AND COALESCE(phone, '') != '')
+                    OR COALESCE(email, '') != ''
+                    OR COALESCE(telegram, '') != ''
+               )
+             ORDER BY name"
         ) : [];
 
         view('home', [

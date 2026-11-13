@@ -1,6 +1,3 @@
-<?php
-$webhookUrl = $configured ? url('telegram_webhook') : '';
-?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">Telegram-бот</h1>
     <a class="btn btn-sm btn-outline-secondary" href="<?= url('home') ?>">← На главную</a>

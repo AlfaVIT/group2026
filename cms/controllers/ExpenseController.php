@@ -24,6 +24,9 @@ class ExpenseController
             'amount' => $amount,
             'description' => $description,
             'article' => expense_article_for_meeting_type((string)$meeting['meeting_type']),
+            // datetime('now') по умолчанию — UTC; дата расхода показывается как
+            // местная, поэтому пишем её явно
+            'created_at' => date('Y-m-d H:i:s'),
         ]);
 
         set_flash('Расход записан');

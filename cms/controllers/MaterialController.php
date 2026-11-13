@@ -6,12 +6,12 @@ class MaterialController
 
     public function index(): void
     {
-        $q = trim((string)($_GET['q'] ?? ''));
-        $tag = trim((string)($_GET['tag'] ?? ''));
+        $q = trim(get_str('q'));
+        $tag = trim(get_str('tag'));
         $author = (int)($_GET['author'] ?? 0);
         $sortKey = 'date';
         $order = 'desc';
-        if (preg_match('/^(date|title)_(asc|desc)$/', (string)($_GET['sort'] ?? ''), $m)) {
+        if (preg_match('/^(date|title)_(asc|desc)$/', get_str('sort'), $m)) {
             $sortKey = $m[1];
             $order = $m[2];
         }
@@ -74,7 +74,8 @@ class MaterialController
         $edit = (int)($_GET['edit'] ?? 0);
         if ($edit) {
             $candidate = Db::fetch('SELECT * FROM materials WHERE id = ?', [$edit]);
-            if ($candidate && (Auth::can('manage_materials') || (int)$candidate['user_id'] === (int)Auth::id())) {
+            if ($candidate && (Auth::can('manage_materials')
+                    || (Auth::can('materials') && (int)$candidate['user_id'] === (int)Auth::id()))) {
                 $editMaterial = $candidate;
             }
         }

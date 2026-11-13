@@ -52,7 +52,7 @@
 
                 <hr class="my-3">
                 <div class="fw-semibold small mb-2">Редактировать</div>
-                <form method="post" action="<?= url('profile_save') ?>" class="row g-3">
+                <form method="post" action="<?= url('profile_save') ?>" class="row g-3" data-ajax-update="#currentUserName">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="data">
                     <div class="col-12">
@@ -139,8 +139,9 @@
             <div class="card-body" id="avatar-block">
                 <div class="d-flex gap-3 align-items-start">
                     <div class="flex-shrink-0">
-                        <?php if (avatar_url($user) !== ''): ?>
-                            <img class="cms-avatar" style="width:96px;height:96px;" src="<?= e(avatar_url($user)) ?>" alt="Аватар">
+                        <?php $profileAvatar = user_avatar_url($user); ?>
+                        <?php if ($profileAvatar !== ''): ?>
+                            <img class="cms-avatar" style="width:96px;height:96px;" src="<?= e($profileAvatar) ?>" alt="Аватар">
                         <?php else: ?>
                             <div class="cms-avatar d-inline-flex align-items-center justify-content-center border bg-body-secondary text-body-secondary"
                                  style="width:96px;height:96px;">Нет</div>
@@ -159,13 +160,13 @@
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <button class="btn btn-primary btn-sm" type="submit">Загрузить аватар</button>
-                                <?php if (avatar_url($user) !== ''): ?>
+                                <?php if (has_custom_avatar($user)): ?>
                                     <button class="btn btn-outline-danger btn-sm" type="submit"
                                             form="avatar-remove-form">Удалить</button>
                                 <?php endif; ?>
                             </div>
                         </form>
-                        <?php if (avatar_url($user) !== ''): ?>
+                        <?php if (has_custom_avatar($user)): ?>
                             <form method="post" action="<?= url('profile_save') ?>" id="avatar-remove-form"
                                   class="d-none" onsubmit="return confirm('Удалить аватар?');">
                                 <?= csrf_field() ?>
@@ -183,7 +184,7 @@
                 <p class="text-body-secondary small mb-3">
                     Как к вам обращаться на встречах: брат или сестра.
                 </p>
-                <form method="post" action="<?= url('profile_save') ?>">
+                <form method="post" action="<?= url('profile_save') ?>" data-no-ajax>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="address_term">
                     <div class="form-check">
@@ -205,7 +206,7 @@
                 <p class="text-body-secondary small mb-3">
                     Выберите тему для отображения сайта. «По умолчанию» — используется тема из настроек сайта.
                 </p>
-                <form method="post" action="<?= url('profile_save') ?>">
+                <form method="post" action="<?= url('profile_save') ?>" data-no-ajax>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="theme">
                     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -231,7 +232,7 @@
                 <p class="text-body-secondary small mb-3">
                     Выберите удобный размер текста для всех страниц сайта.
                 </p>
-                <form method="post" action="<?= url('font_size_save') ?>" class="cms-font-size d-flex align-items-center gap-2">
+                <form method="post" action="<?= url('font_size_save') ?>" class="cms-font-size d-flex align-items-center gap-2" data-no-ajax>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="font_size">
                     <button type="submit" name="font_size" value="<?= user_font_size($user) - FONT_SIZE_STEP ?>"
@@ -252,7 +253,7 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header fw-semibold">Сменить пароль</div>
             <div class="card-body">
-                <form method="post" action="<?= url('profile_save') ?>" class="row g-3">
+                <form method="post" action="<?= url('profile_save') ?>" class="row g-3" data-no-ajax>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="password">
                     <div class="col-12">

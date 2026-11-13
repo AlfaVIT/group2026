@@ -249,7 +249,11 @@ class MeetingController
     {
         $id = (int)($_POST['id'] ?? 0);
         $placeId = (int)input('place_id');
-        $date = input('date');
+        // дату храним в одном формате (datetime-local): сравнения m.date с today()
+        // в остальном коде строковые, поэтому «1.2.2026 18:00» недопустимо
+        $dateRaw = input('date');
+        $dateTs = $dateRaw !== '' ? strtotime($dateRaw) : false;
+        $date = $dateTs !== false ? date('Y-m-d\TH:i', $dateTs) : '';
         $topic = input('topic');
         $tag = trim(input('tag'));
         $meetingType = trim(input('meeting_type'));
@@ -273,11 +277,14 @@ class MeetingController
         }
         $guests = implode(',', $guestIds);
 
-        if (!strtotime($date)) {
+        if ($date === '') {
             $errors[] = 'Укажите корректную дату проведения';
         }
         if (mb_strlen($tag) > 50) {
             $errors[] = 'Метка встречи не длиннее 50 символов';
+        }
+        if ($streamUrl !== '' && (!filter_var($streamUrl, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $streamUrl))) {
+            $errors[] = 'Ссылка на трансляцию должна начинаться с http:// или https://';
         }
         if ($placeId && !Db::fetch('SELECT id FROM places WHERE id = ?', [$placeId])) {
             $errors[] = 'Указанное место не найдено';
@@ -313,19 +320,24 @@ class MeetingController
         }
 
         if ($errors) {
-            $_SESSION['meeting_form'] = [
-                'date' => $date,
-                'place_id' => $placeId,
-                'topic' => $topic,
-                'tag' => $tag,
-                'meeting_type' => $meetingType,
-                'materials' => json_encode($materials, JSON_UNESCAPED_UNICODE),
-                'guests' => $guests,
-                'stream_url' => $streamUrl,
-                'senior_user_id' => $seniorUserId ?: null,
-            ];
+            // при AJAX-отправке страница не перезагружается, введённые значения
+            // остаются в форме — черновик в сессии не нужен и потом «всплыл» бы
+            // при следующем открытии формы
+            if (!is_ajax()) {
+                $_SESSION['meeting_form'] = [
+                    'date' => $date,
+                    'place_id' => $placeId,
+                    'topic' => $topic,
+                    'tag' => $tag,
+                    'meeting_type' => $meetingType,
+                    'materials' => json_encode($materials, JSON_UNESCAPED_UNICODE),
+                    'guests' => $guests,
+                    'stream_url' => $streamUrl,
+                    'senior_user_id' => $seniorUserId ?: null,
+                ];
+            }
             set_flash(implode('<br>', $errors), 'danger');
-            redirect(url($id ? 'meeting_edit' : 'meeting_edit', ['id' => $id ?: null]));
+            redirect(url('meeting_edit', ['id' => $id ?: null]));
         }
 
         $data = [

@@ -8,12 +8,12 @@ class TreasuryController
         $monthStart = date('Y-m-01');
         $monthEnd = date('Y-m-t');
 
-        $start = $_GET['from'] ?? $monthStart;
-        $end = $_GET['to'] ?? $monthEnd;
-        $purposeFilter = $_GET['purpose'] ?? '';
-        $expStart = $_GET['exp_from'] ?? $monthStart;
-        $expEnd = $_GET['exp_to'] ?? $monthEnd;
-        $expType = $_GET['exp_type'] ?? '';
+        $start = get_str('from', $monthStart);
+        $end = get_str('to', $monthEnd);
+        $purposeFilter = get_str('purpose');
+        $expStart = get_str('exp_from', $monthStart);
+        $expEnd = get_str('exp_to', $monthEnd);
+        $expType = get_str('exp_type');
 
         $where = [];
         $params = [];
@@ -187,9 +187,9 @@ class TreasuryController
      */
     public function report(): void
     {
-        $from = $_GET['from'] ?? date('Y-m-01');
-        $to = $_GET['to'] ?? date('Y-m-t');
-        $mode = ($_GET['mode'] ?? 'cash') === 'budget' ? 'budget' : 'cash';
+        $from = get_str('from', date('Y-m-01'));
+        $to = get_str('to', date('Y-m-t'));
+        $mode = get_str('mode', 'cash') === 'budget' ? 'budget' : 'cash';
         $data = $this->reportData($from, $to, $mode);
 
         view('treasury_report', array_merge([
@@ -203,9 +203,9 @@ class TreasuryController
     /** Экспорт консолидированного отчёта в Excel (.xlsx, при отсутствии zip — CSV). */
     public function reportExport(): void
     {
-        $from = $_GET['from'] ?? date('Y-m-01');
-        $to = $_GET['to'] ?? date('Y-m-t');
-        $mode = ($_GET['mode'] ?? 'cash') === 'budget' ? 'budget' : 'cash';
+        $from = get_str('from', date('Y-m-01'));
+        $to = get_str('to', date('Y-m-t'));
+        $mode = get_str('mode', 'cash') === 'budget' ? 'budget' : 'cash';
         $d = $this->reportData($from, $to, $mode);
 
         if (class_exists('ZipArchive')) {
@@ -545,7 +545,14 @@ class TreasuryController
 
     public function save(): void
     {
-        $date = input('date');
+        // дату приводим к машинному виду: фильтры и отчёты сравнивают строки,
+        // поэтому «1.2.2026» из браузера без поддержки input[type=date] хранить нельзя
+        $dateRaw = input('date');
+        $dateTs = $dateRaw !== '' ? strtotime($dateRaw) : false;
+        $date = $dateTs !== false ? date('Y-m-d', $dateTs) : '';
+        $periodRaw = input('period');
+        $periodTs = $periodRaw !== '' ? strtotime($periodRaw) : false;
+        $period = $periodTs !== false ? date('Y-m-d', $periodTs) : '';
         $from = input('from');
         // статью приводим к единому виду: без лишних пробелов, с заглавной буквы
         $purpose = article_canonical(input('purpose'));
@@ -568,7 +575,7 @@ class TreasuryController
             }
         }
 
-        if (!strtotime($date)) {
+        if ($date === '') {
             set_flash('Укажите корректную дату поступления', 'danger');
             redirect(url('treasury'));
         }
@@ -590,7 +597,7 @@ class TreasuryController
 
         Db::insert('treasury_entries', [
             'date' => $date,
-            'period' => input('period'),
+            'period' => $period,
             'from_user_id' => $fromUserId ?: null,
             'from_text' => $fromText,
             'purpose' => $purpose,
@@ -616,7 +623,13 @@ class TreasuryController
 
     public function addExpense(): void
     {
-        $date = input('date');
+        // см. save(): дата и период — только в формате YYYY-MM-DD
+        $dateRaw = input('date');
+        $dateTs = $dateRaw !== '' ? strtotime($dateRaw) : false;
+        $date = $dateTs !== false ? date('Y-m-d', $dateTs) : '';
+        $periodRaw = input('period');
+        $periodTs = $periodRaw !== '' ? strtotime($periodRaw) : false;
+        $period = $periodTs !== false ? date('Y-m-d', $periodTs) : '';
         $amount = (float)str_replace([',', ' '], ['.', ''], input('amount'));
         // статью приводим к единому виду: без лишних пробелов, с заглавной буквы
         $type = article_canonical(input('type'));
@@ -635,7 +648,7 @@ class TreasuryController
             }
         }
 
-        if (!strtotime($date)) {
+        if ($date === '') {
             set_flash('Укажите корректную дату расхода', 'danger');
             redirect(url('treasury'));
         }
@@ -657,7 +670,7 @@ class TreasuryController
 
         Db::insert('treasury_expenses', [
             'date' => $date,
-            'period' => input('period'),
+            'period' => $period,
             'amount' => $amount,
             'type' => $type,
             'description' => $description,

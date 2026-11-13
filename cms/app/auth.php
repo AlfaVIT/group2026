@@ -32,8 +32,11 @@ class Auth
 
     public static function attempt(string $identifier, string $password): bool
     {
+        // SQLite lower() не понимает кириллицу, поэтому нормализуем в PHP:
+        // иначе «Иван» не найдёт сохранённый логин «иван»
+        $identifier = mb_strtolower(trim($identifier));
         $user = Db::fetch(
-            'SELECT * FROM users WHERE lower(email) = lower(?) OR (login != \'\' AND lower(login) = lower(?))',
+            'SELECT * FROM users WHERE lower(email) = ? OR (login != \'\' AND lower(login) = ?)',
             [$identifier, $identifier]
         );
         if (!$user || !password_verify($password, $user['password_hash'])) {

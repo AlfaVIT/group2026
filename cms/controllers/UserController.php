@@ -66,7 +66,7 @@ class UserController
 
         $data = [
             'cardUser' => $user,
-            'cardAvatar' => avatar_url($user),
+            'cardAvatar' => user_avatar_url($user),
             'cardPhone' => $phone,
             'cardEmail' => $email,
             'cardTelegram' => $tgNick,
@@ -196,14 +196,18 @@ class UserController
         }
 
         if ($errors) {
-            $_SESSION['user_form'] = [
-                'address_term' => $addressTerm, 'name' => $name, 'phone' => $phone,
-                'hide_phone' => $hidePhone, 'birthday' => $birthday, 'login' => $login,
-                'email' => $email, 'telegram' => $telegram,
-                'role' => $role, 'is_active' => $isActive,
-                'birthday_day' => $birthdayDay, 'birthday_month' => $birthdayMonth,
-                'birthday_year' => $birthdayYear, 'birthday_no_year' => $birthdayNoYear ? 1 : 0,
-            ];
+            // при AJAX-отправке форма остаётся на экране — сессионный черновик
+            // сохраняем только для обычного POST (например, при отключённом JS)
+            if (!is_ajax()) {
+                $_SESSION['user_form'] = [
+                    'address_term' => $addressTerm, 'name' => $name, 'phone' => $phone,
+                    'hide_phone' => $hidePhone, 'birthday' => $birthday, 'login' => $login,
+                    'email' => $email, 'telegram' => $telegram,
+                    'role' => $role, 'is_active' => $isActive,
+                    'birthday_day' => $birthdayDay, 'birthday_month' => $birthdayMonth,
+                    'birthday_year' => $birthdayYear, 'birthday_no_year' => $birthdayNoYear ? 1 : 0,
+                ];
+            }
             set_flash(implode('<br>', $errors), 'danger');
             redirect(url('user_edit', ['id' => $id ?: null]));
         }
@@ -222,6 +226,10 @@ class UserController
         ];
         if ($password !== '') {
             $data['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+            // старые «запомнить меня» на устройствах участника больше не действуют:
+            // иначе после принудительной смены пароля сессия на них остаётся живой
+            $data['remember_token'] = '';
+            $data['remember_expires'] = null;
         } elseif (!$id) {
             $data['password_hash'] = '';
         }

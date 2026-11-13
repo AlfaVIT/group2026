@@ -1,7 +1,7 @@
 <?php
 $m = $meeting;
 $address = address_parts($m, true);
-$maps = $m['geo_link'] !== '' ? $m['geo_link'] : yandex_maps_link($m);
+$maps = safe_url($m['geo_link'] ?? '') ?: yandex_maps_link($m);
 $materials = decode_materials($m['materials']);
 $rolesByRole = [];
 foreach ($roles as $r) {
@@ -201,13 +201,11 @@ foreach ($attendance as $a) {
                                             <audio class="cms-note-audio" controls preload="none"
                                                    src="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"></audio>
                                         <?php endif; ?>
-                                        <form method="post" action="<?= url('note_file_delete') ?>" class="cms-note-file-del"
-                                              data-no-ajax onsubmit="return confirm('Удалить файл?');">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
-                                            <button class="btn btn-sm btn-danger" type="submit" title="Удалить файл"
-                                                    aria-label="Удалить файл">&times;</button>
-                                        </form>
+                                        <span class="cms-note-file-del">
+                                            <button class="btn btn-sm btn-danger" type="submit"
+                                                    form="note-file-del-<?= (int)$f['id'] ?>"
+                                                    title="Удалить файл" aria-label="Удалить файл">&times;</button>
+                                        </span>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -251,6 +249,18 @@ foreach ($attendance as $a) {
                             <?php endif; ?>
                         </div>
                     </form>
+                    <?php
+                    // Формы удаления файлов конспекта вынесены из формы сохранения:
+                    // вложенные <form> недопустимы, иначе «×» сохраняла бы конспект.
+                    ?>
+                    <?php foreach ($myNoteFiles as $f): ?>
+                        <form method="post" action="<?= url('note_file_delete') ?>"
+                              id="note-file-del-<?= (int)$f['id'] ?>" class="d-none"
+                              onsubmit="return confirm('Удалить файл?');">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+                        </form>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <p class="text-body-secondary small mb-0">Конспекты могут вести участники группы.</p>
                 <?php endif; ?>
@@ -311,13 +321,13 @@ foreach ($attendance as $a) {
                         type="button" data-bs-toggle="collapse" data-bs-target="#checklistBody"
                         aria-expanded="false" aria-controls="checklistBody">
                     <span class="fw-semibold">Чеклист подготовки</span>
-                    <span class="small text-body-secondary">Готово: <?= $clDone ?> из <?= $clTotal ?></span>
+                    <span class="small text-body-secondary" id="checklistProgress">Готово: <?= $clDone ?> из <?= $clTotal ?></span>
                 </button>
             </div>
             <div class="collapse" id="checklistBody">
                 <div class="card-body">
                 <?php if (Auth::can('mark_attendance')): ?>
-                    <form method="post" action="<?= url('checklist_save') ?>">
+                    <form method="post" action="<?= url('checklist_save') ?>" data-ajax-update="#checklistProgress">
                         <?= csrf_field() ?>
                         <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
                         <?php foreach (MEETING_CHECKLIST as $clGroup => $clItems): ?>
@@ -476,7 +486,7 @@ foreach ($attendance as $a) {
                         <hr>
                         <div class="fw-semibold small mb-2">Моя отметка</div>
                         <?php $me = $myAttendance; ?>
-                        <form method="post" action="<?= url('attendance_save') ?>">
+                        <form method="post" action="<?= url('attendance_save') ?>" data-ajax-update="#attendance">
                             <?= csrf_field() ?>
                             <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
                             <?php if (Auth::can('view_attendance')): ?>
@@ -511,7 +521,10 @@ foreach ($attendance as $a) {
                                     <label class="form-label" for="attendance_reason">
                                         Причина (обязательна при отсутствии)
                                     </label>
-                                    <textarea class="form-control" id="attendance_reason" name="reason" rows="2"><?= e($me['reason'] ?? '') ?></textarea>
+                                    <textarea class="form-control" id="attendance_reason" name="reason" rows="2"
+                                              <?php $reasonNeeded = ($me['status'] ?: 'present') === 'absent'; ?>
+                                              placeholder="<?= $reasonNeeded ? 'Обязательно укажите причину' : '' ?>"
+                                              <?= $reasonNeeded ? 'required' : '' ?>><?= e($me['reason'] ?? '') ?></textarea>
                                 </div>
                                 <div class="col-12">
                                     <button class="btn btn-primary" type="submit">Сохранить отметку</button>
@@ -531,7 +544,7 @@ foreach ($attendance as $a) {
                 </div>
                 <div class="collapse" id="rolesBody">
                     <div class="card-body">
-                    <form method="post" action="<?= url('roles_save') ?>">
+                    <form method="post" action="<?= url('roles_save') ?>" data-no-ajax>
                         <?= csrf_field() ?>
                         <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
                         <div class="table-responsive">
@@ -576,7 +589,7 @@ foreach ($attendance as $a) {
                     <button class="btn btn-link d-flex flex-wrap justify-content-between align-items-center gap-2 w-100 text-start text-decoration-none py-2 px-3"
                             type="button" data-bs-toggle="collapse" data-bs-target="#expensesBody"
                             aria-expanded="false" aria-controls="expensesBody">
-                        <span class="fw-semibold">Мои расходы по встрече</span>
+                        <span class="fw-semibold"><?= Auth::can('view_expenses') ? 'Расходы по встрече' : 'Мои расходы по встрече' ?></span>
                         <span class="badge text-bg-light border">итого: <?= money($expensesTotal) ?></span>
                     </button>
                 </div>

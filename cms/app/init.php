@@ -19,6 +19,22 @@ date_default_timezone_set('Europe/Moscow');
 mb_internal_encoding('UTF-8');
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    // Явные параметры сессионной cookie: не полагаемся на php.ini хостинга
+    // (по умолчанию HttpOnly и SameSite могут быть выключены).
+    $https = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+    if (!$https && strpos(strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')), 'https') === 0) {
+        $https = true;
+    }
+    $current = session_get_cookie_params();
+    session_set_cookie_params([
+        'lifetime' => (int)($current['lifetime'] ?? 0),
+        // путь/домен не меняем: на хостинге они могут быть настроены под подкаталог
+        'path' => (string)($current['path'] ?? '') !== '' ? (string)$current['path'] : '/',
+        'domain' => (string)($current['domain'] ?? ''),
+        'httponly' => true,
+        'secure' => $https || !empty($current['secure']),
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

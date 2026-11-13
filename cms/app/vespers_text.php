@@ -243,7 +243,7 @@ function vespers_parts_block(array $parts, string $path, ?string $serviceType = 
 }
 
 /** Убирает из parts-HTML аудио, тултипы, кнопки, svg и css-обвязку приложения. */
-function vespers_clean(string $html): string
+function vespers_clean(string $html, bool $external = true): string
 {
     // служебные маркеры Parts-компонента
     $html = str_replace(['ЗАМЕНА', 'НЕТЗАМЕНЫ', 'УБРАТЬИНЫНЕ', 'УБРАТЬСЛАВА'], '', $html);
@@ -271,7 +271,92 @@ function vespers_clean(string $html): string
     $html = preg_replace('~<p class="P">\s*</p>~i', '', $html);
     $html = preg_replace('~<div>\s*</div>~i', '', $html);
 
-    return trim($html);
+    $html = trim($html);
+    // HTML из внешнего API перед выводом прогоняем через белый список тегов
+    return $external ? vespers_sanitize_external($html) : $html;
+}
+
+/** Теги, которые допустимы в тексте чина (только текстовая разметка). */
+const VESPERS_SANITIZE_TAGS = ['p', 'div', 'span', 'br', 'b', 'strong', 'i', 'em', 'u', 's',
+    'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'sup', 'sub'];
+
+/** Классы оформления чина, которые можно сохранять. */
+const VESPERS_SANITIZE_CLASSES = ['P', 'H1', 'H2', 'H3', 'H4', 'Petit', 'PetitInline', 'Red',
+    'Super', 'main', 'normaltext', 'minortext', 'invert', 'customPrayers'];
+
+/**
+ * Санитайз HTML, пришедшего от внешнего API (api.c.psmb.ru).
+ * Оставляет только безопасную текстовую разметку: скрипты, стили, iframe,
+ * картинки и обработчики событий отбрасываются.
+ */
+function vespers_sanitize_external(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+    if (!class_exists('DOMDocument')) {
+        return nl2br(htmlspecialchars(strip_tags($html), ENT_QUOTES, 'UTF-8'));
+    }
+    $doc = new DOMDocument('1.0', 'UTF-8');
+    $prev = libxml_use_internal_errors(true);
+    $doc->loadHTML('<?xml encoding="UTF-8"?><html><body>' . $html . '</body></html>', LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev);
+    $body = $doc->getElementsByTagName('body')->item(0);
+    if (!$body) {
+        return '';
+    }
+    $out = '';
+    foreach (iterator_to_array($body->childNodes) as $child) {
+        $out .= vespers_sanitize_node($child);
+    }
+    return trim($out);
+}
+
+/** Рекурсивная очистка одного узла внешнего HTML (см. vespers_sanitize_external). */
+function vespers_sanitize_node(DOMNode $node): string
+{
+    if ($node->nodeType === XML_TEXT_NODE || $node->nodeType === XML_CDATA_SECTION_NODE) {
+        return htmlspecialchars((string)$node->nodeValue, ENT_QUOTES, 'UTF-8');
+    }
+    if ($node->nodeType !== XML_ELEMENT_NODE) {
+        return '';
+    }
+    $tag = strtolower($node->nodeName);
+    // опасные элементы выбрасываем вместе с содержимым
+    if (in_array($tag, ['script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet',
+        'link', 'meta', 'base', 'form', 'input', 'textarea', 'select', 'option', 'button',
+        'audio', 'video', 'img', 'svg', 'math', 'canvas', 'template'], true)) {
+        return '';
+    }
+    $inner = '';
+    foreach (iterator_to_array($node->childNodes) as $child) {
+        $inner .= vespers_sanitize_node($child);
+    }
+    if (!in_array($tag, VESPERS_SANITIZE_TAGS, true)) {
+        return $inner; // неизвестный тег разворачиваем в текст, содержимое оставляем
+    }
+    if ($tag === 'br') {
+        return '<br>';
+    }
+    $attrs = '';
+    if ($tag === 'a') {
+        $href = trim($node->getAttribute('href'));
+        if (preg_match('~^(https?://|mailto:|/|#)~i', $href)) {
+            $attrs = ' href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" rel="noopener nofollow"';
+        }
+    } else {
+        $classes = preg_split('/\s+/', trim((string)$node->getAttribute('class'))) ?: [];
+        $classes = array_values(array_filter(
+            $classes,
+            static fn(string $c): bool => in_array($c, VESPERS_SANITIZE_CLASSES, true)
+        ));
+        if ($classes) {
+            $attrs = ' class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '"';
+        }
+    }
+    return '<' . $tag . $attrs . '>' . $inner . '</' . $tag . '>';
 }
 
 /** Очищает saints-блок: убирает иконки, оставляет текст ссылок. */
@@ -282,7 +367,7 @@ function vespers_clean_saints(string $html): string
     $html = preg_replace('~</a>~i', '', $html);
     $html = preg_replace('~<span\b[^>]*>~i', '', $html);
     $html = preg_replace('~</span>~i', '', $html);
-    return trim($html);
+    return vespers_sanitize_external(trim($html));
 }
 
 /* ------------------------------------------------------------------ */
@@ -293,7 +378,7 @@ function vespers_frag(string $name): string
 {
     $file = BASE_PATH . '/templates/' . theme_dir() . '/partials/vespers/' . $name . '.html';
     $c = is_file($file) ? @file_get_contents($file) : false;
-    return $c === false ? '' : trim(vespers_clean($c));
+    return $c === false ? '' : trim(vespers_clean($c, false));
 }
 
 /* ------------------------------------------------------------------ */

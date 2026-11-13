@@ -37,7 +37,7 @@ class VespersController
         $readerAvatars = [];
         foreach ($presentUsers as $u) {
             $readerNames[(int)$u['id']] = full_name($u);
-            $readerAvatars[(int)$u['id']] = avatar_url($u);
+            $readerAvatars[(int)$u['id']] = user_avatar_url($u);
         }
         $readerMap = [];
         $readerAvatarMap = [];

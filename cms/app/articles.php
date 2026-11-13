@@ -128,6 +128,14 @@ class Article
             }
         }
         Db::update('treasury_articles', ['name' => $name, 'key' => $key, 'archived' => 0], ['id' => $id]);
+        if ($key !== $row['key']) {
+            // отметки «это разные статьи» привязаны к прежнему ключу — после
+            // переименования пара снова всплыла бы в «Похожих статьях»
+            Db::q(
+                'DELETE FROM treasury_article_pairs WHERE kind = ? AND (key_a = ? OR key_b = ?)',
+                [$row['kind'], $row['key'], $row['key']]
+            );
+        }
         return null;
     }
 
@@ -178,6 +186,9 @@ class Article
             }
         }
         Db::delete('treasury_articles', ['id' => $fromId]);
+        // целевая статья могла быть скрыта — раз на неё теперь есть записи,
+        // она снова должна быть доступна для выбора
+        Db::update('treasury_articles', ['archived' => 0], ['id' => $toId]);
         Db::q(
             'DELETE FROM treasury_article_pairs WHERE kind = ? AND (key_a = ? OR key_b = ?)',
             [$from['kind'], $from['key'], $from['key']]

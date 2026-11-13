@@ -27,7 +27,7 @@ if ($canViewStats ?? false) {
 </ul>
 
 <?php if ($tab === 'general'): ?>
-    <form method="post" action="<?= url('settings_save') ?>" class="row g-3">
+    <form method="post" action="<?= url('settings_save') ?>" class="row g-3" data-no-ajax>
         <?= csrf_field() ?>
         <input type="hidden" name="section" value="general">
 
@@ -93,8 +93,9 @@ if ($canViewStats ?? false) {
                 <tr>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <?php if (avatar_url($u) !== ''): ?>
-                                <img class="cms-avatar" style="width:28px;height:28px;" src="<?= e(avatar_url($u)) ?>" alt="">
+                            <?php $userAvatar = user_avatar_url($u); ?>
+                            <?php if ($userAvatar !== ''): ?>
+                                <img class="cms-avatar" style="width:28px;height:28px;" src="<?= e($userAvatar) ?>" alt="">
                             <?php endif; ?>
                             <span><?= e(full_name($u)) ?></span>
                         </div>
@@ -171,7 +172,7 @@ if ($canViewStats ?? false) {
                         </div>
                     </td>
                     <td class="small"><?= $p['owner_name'] ? e(full_name(['address_term' => $p['owner_term'], 'name' => $p['owner_name']])) : '—' ?></td>
-                    <td class="small"><?= $p['locality'] . ($p['street'] ? ', ' . e($p['street']) . ' ' . e($p['house'] . $p['house_letter']) : '') ?></td>
+                    <td class="small"><?= e((string)$p['locality']) . ($p['street'] ? ', ' . e($p['street']) . ' ' . e($p['house'] . $p['house_letter']) : '') ?></td>
                     <td class="small"><?= (int)$p['photos_count'] ?></td>
                     <td class="text-end text-nowrap">
                         <a class="btn btn-sm btn-outline-secondary" href="<?= url('place_edit', ['id' => $p['id']]) ?>"

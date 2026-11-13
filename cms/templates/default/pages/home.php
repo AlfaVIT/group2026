@@ -106,11 +106,12 @@
                     </div>
                     <div class="cms-contacts">
                         <?php foreach ($contacts as $u): ?>
-                            <?php $phone = $u['phone']; ?>
+                            <?php $phone = empty($u['hide_phone']) ? (string)$u['phone'] : ''; ?>
+                            <?php $contactAvatar = user_avatar_url($u); ?>
                             <div class="cms-contact-row py-2 border-bottom" data-term="<?= e($u['address_term']) ?>">
                                 <div class="fw-semibold small d-flex align-items-center gap-2">
-                                    <?php if (avatar_url($u) !== ''): ?>
-                                        <img class="cms-avatar" style="width:26px;height:26px;" src="<?= e(avatar_url($u)) ?>" alt="">
+                                    <?php if ($contactAvatar !== ''): ?>
+                                        <img class="cms-avatar" style="width:26px;height:26px;" src="<?= e($contactAvatar) ?>" alt="">
                                     <?php endif; ?>
                                     <span><?= user_link($u, 'a', 'fw-semibold') ?></span>
                                 </div>

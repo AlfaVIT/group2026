@@ -6,9 +6,11 @@ class AuthController
     {
         $this->ensure_valid_session();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $email = input('email');
+            // логины и email у нас хранятся в нижнем регистре — сравниваем так же,
+            // чтобы вход не зависел от регистра даже в кириллице
+            $email = mb_strtolower(input('email'));
             $user = Db::fetch(
-                'SELECT id, email, login, role FROM users WHERE lower(email) = lower(?) OR (login != \'\' AND lower(login) = lower(?))',
+                'SELECT id, email, login, role FROM users WHERE lower(email) = ? OR (login != \'\' AND lower(login) = ?)',
                 [$email, $email]
             );
             $error = 'Неверный логин или пароль';
@@ -78,15 +80,14 @@ class AuthController
                     . '<p><a href="' . e($link) . '">' . e($link) . '</a></p>'
                     . '<p>Ссылка действительна в течение 1 часа.</p>'
                     . '<p>Если вы не запрашивали восстановление пароля, просто проигнорируйте это письмо.</p>';
-                $sent = send_email($user['email'], 'Восстановление пароля — ' . Setting::siteName(), $html);
-                if ($sent) {
-                    set_flash('Если пользователь с таким email существует, на него отправлена ссылка для восстановления пароля', 'info');
-                } else {
-                    set_flash('Email не настроен на этом сервере. Воспользуйтесь ссылкой восстановления: ' . e($link), 'warning');
+                if (!send_email($user['email'], 'Восстановление пароля — ' . Setting::siteName(), $html)) {
+                    // ссылку ни в коем случае не показываем: иначе любой посетитель
+                    // мог бы сбросить пароль чужой учётной записи, не имея доступа к почте
+                    error_log('Password reset email could not be sent for user #' . (int)$user['id']);
                 }
-            } else {
-                set_flash('Если пользователь с таким email существует, на него отправлена ссылка для восстановления пароля', 'info');
             }
+            // одинаковый ответ и для существующего, и для несуществующего email
+            set_flash('Если пользователь с таким email существует, на него отправлена ссылка для восстановления пароля', 'info');
             redirect(url('login'));
         }
         view('forgot', ['title' => 'Восстановление пароля', 'error' => null], false);
@@ -95,12 +96,13 @@ class AuthController
     public function reset(): void
     {
         $this->ensure_valid_session();
-        $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
+        $token = trim(input('token', get_str('token')));
         $row = Db::fetch(
             'SELECT pr.*, u.email FROM password_resets pr
              JOIN users u ON u.id = pr.user_id
-             WHERE pr.token = ? AND pr.used = 0 AND pr.expires_at > datetime(\'now\')',
-            [$token]
+             WHERE pr.token = ? AND pr.used = 0 AND pr.expires_at > ?',
+            // expires_at хранится в местном времени (date()), а SQLite datetime('now') — UTC
+            [$token, date('Y-m-d H:i:s')]
         );
         if (!$row) {
             view('reset', ['title' => 'Восстановление пароля', 'token' => '', 'valid' => false, 'error' => 'Ссылка недействительна или истекла. Запросите восстановление пароля заново.'], false);

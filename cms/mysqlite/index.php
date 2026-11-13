@@ -45,7 +45,7 @@ function ms_ident(string $name): string
 
 function ms_link(array $params = []): string
 {
-    $defaults = ['db' => $_GET['db'] ?? '', 'table' => $_GET['table'] ?? '', 'action' => ''];
+    $defaults = ['db' => ms_str($_GET['db'] ?? null), 'table' => ms_str($_GET['table'] ?? null), 'action' => ''];
     $params = array_merge($defaults, $params);
     $qs = http_build_query(array_filter($params, fn($v) => $v !== '' && $v !== null));
     return 'index.php' . ($qs !== '' ? '?' . $qs : '');
@@ -54,6 +54,12 @@ function ms_link(array $params = []): string
 function ms_esc($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+/** Строка из запроса: массив (name[]=…) не должен давать предупреждений. */
+function ms_str($value): string
+{
+    return is_string($value) ? $value : '';
 }
 
 /** Колонки, которые нельзя показывать открыто. */
@@ -181,7 +187,7 @@ if (!$allowed) {
     exit;
 }
 
-$dbName = basename((string)($_GET['db'] ?? $_POST['db'] ?? ''));
+$dbName = basename(ms_str($_GET['db'] ?? $_POST['db'] ?? null));
 $pdo = null;
 $tables = [];
 $tableInfo = [];
@@ -205,17 +211,17 @@ if ($dbName !== '') {
 
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 $action = $isPost
-    ? (string)($_POST['action'] ?? '')
-    : (string)($_GET['action'] ?? '');
+    ? ms_str($_POST['action'] ?? null)
+    : ms_str($_GET['action'] ?? null);
 if ($action === '') {
     $action = $dbName !== '' ? 'browse' : 'list';
 }
 
-$table = (string)($_GET['table'] ?? '');
-$postTable = (string)($_POST['table'] ?? '');
+$table = ms_str($_GET['table'] ?? null);
+$postTable = ms_str($_POST['table'] ?? null);
 $sqlResult = null;
 $formRow = null;
-$keyParam = (string)($_POST['row'] ?? $_GET['row'] ?? '');
+$keyParam = ms_str($_POST['row'] ?? $_GET['row'] ?? null);
 $sql = '';
 
 if ($isPost && !$pdo) {
@@ -231,7 +237,7 @@ if ($isPost) {
                 set_flash('SQL-консоль доступна только Старшему', 'danger');
                 redirect(ms_link(['db' => $dbName, 'table' => $table, 'action' => 'browse']));
             }
-            $sql = (string)($_POST['sql'] ?? '');
+            $sql = ms_str($_POST['sql'] ?? null);
             if (trim($sql) === '') {
                 set_flash('Введите SQL-запрос', 'danger');
                 redirect(ms_link(['db' => $dbName, 'table' => $table, 'action' => 'sql']));
@@ -294,11 +300,11 @@ if ($isPost) {
                 $name = $col['name'];
                 $data[$name] = isset($_POST['null__' . $name])
                     ? null
-                    : (string)($_POST['col__' . $name] ?? '');
+                    : ms_str($_POST['col__' . $name] ?? null);
             }
 
             if ($action === 'update_row') {
-                $keyMap = ms_key_decode((string)($_POST['row'] ?? ''));
+                $keyMap = ms_key_decode(ms_str($_POST['row'] ?? null));
                 $keyValues = $keyMap ? ms_key_values($keyCols, $keyMap) : null;
                 if ($keyValues === null) {
                     set_flash('Некорректная ссылка на запись', 'danger');
@@ -361,7 +367,7 @@ if ($isPost) {
         }
 
         if ($action === 'delete_row') {
-            $keyMap = ms_key_decode((string)($_POST['row'] ?? ''));
+            $keyMap = ms_key_decode(ms_str($_POST['row'] ?? null));
             $keyValues = $keyMap ? ms_key_values($keyCols, $keyMap) : null;
             if ($keyValues === null) {
                 set_flash('Некорректная ссылка на запись', 'danger');

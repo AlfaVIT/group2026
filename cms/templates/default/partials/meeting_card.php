@@ -2,7 +2,7 @@
 $meeting = $meeting;
 $roles = $roleAssignment[$meeting['id']] ?? [];
 $address = address_parts($meeting, true);
-$maps = $meeting['geo_link'] !== '' ? $meeting['geo_link'] : yandex_maps_link($meeting);
+$maps = safe_url($meeting['geo_link'] ?? '') ?: yandex_maps_link($meeting);
 ?>
 <div class="card shadow-sm meeting-card" id="meeting-<?= (int)$meeting['id'] ?>">
     <a class="card-header card-header-link d-flex flex-wrap justify-content-between align-items-center gap-2"

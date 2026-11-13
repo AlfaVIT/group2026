@@ -58,9 +58,20 @@ class PlaceController
             'note' => input('note'),
         ];
 
+        $errors = [];
         if (mb_strlen($data['title']) < 2) {
-            $_SESSION['place_form'] = $data;
-            set_flash('Укажите наименование места', 'danger');
+            $errors[] = 'Укажите наименование места';
+        }
+        // ссылка на карту должна быть обычной http(s)-ссылкой: javascript:/data:
+        // в href недопустимы
+        if ($data['geo_link'] !== '' && !preg_match('~^https?://~i', $data['geo_link'])) {
+            $errors[] = 'Ссылка на карту должна начинаться с http:// или https://';
+        }
+        if ($errors) {
+            if (!is_ajax()) {
+                $_SESSION['place_form'] = $data;
+            }
+            set_flash(implode('<br>', $errors), 'danger');
             redirect(url('place_edit', ['id' => $id ?: null]));
         }
 

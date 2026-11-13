@@ -10,14 +10,15 @@ class SettingsController
         if ($canViewStats) {
             $tabs[] = 'stats';
         }
-        $tab = (string)($_GET['tab'] ?? $tabs[0]);
+        $tab = get_str('tab', $tabs[0]);
         if (!in_array($tab, $tabs, true)) {
             $tab = $tabs[0];
         }
 
         // список пользователей содержит учётные данные — только администратору
         $users = $canManage
-            ? Db::fetchAll('SELECT id, address_term, name, role, is_active, phone, email, telegram, login
+            ? Db::fetchAll('SELECT id, address_term, name, role, is_active, phone, hide_phone,
+                                   birthday, email, telegram, telegram_chat_id, avatar, login
                             FROM users
                             ORDER BY CASE role WHEN \'Старший\' THEN 0 WHEN \'Помощник\' THEN 1 WHEN \'Казначей\' THEN 2 ELSE 3 END, name')
             : [];
@@ -88,11 +89,11 @@ class SettingsController
      */
     private function statsData(): array
     {
-        $sort = (string)($_GET['sort'] ?? 'name');
+        $sort = get_str('sort', 'name');
         if (!in_array($sort, ['name', 'last'], true)) {
             $sort = 'name';
         }
-        $dir = (string)($_GET['dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+        $dir = get_str('dir', 'asc') === 'desc' ? 'desc' : 'asc';
 
         $visits = Db::fetchAll(
             'SELECT v.*, u.address_term, u.name

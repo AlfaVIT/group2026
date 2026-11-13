@@ -16,15 +16,19 @@ AddDefaultCharset UTF-8
     RewriteEngine On
 
     # --- Блокировка известных поисковых ботов (код 403) ---
-    RewriteCond %{HTTP_USER_AGENT} "(Googlebot|Google-InspectionTool|YandexBot|YandexImages|YandexMedia|YandexMobileBot|YandexAccessibilityBot|YandexVideoParser|YandexNews|YandexDirect|YandexPagechecker|YandexMetrika|bingbot|BingPreview|MSNBot|Baiduspider|Sogou|Exabot|facebookexternalhit|Twitterbot|TelegramBot|SemrushBot|AhrefsBot|MJ12bot|DotBot|serpstatbot|MegaIndex|rogerbot|Screaming Frog|SeznamBot|Applebot|ia_archiver|archive.org_bot|CCBot|PetalBot)" [NC]
+    # Внимание: TelegramBot сюда добавлять нельзя — с этим User-Agent к нам
+    # приходят вебхуки Telegram, и бот перестаёт подключаться.
+    RewriteCond %{HTTP_USER_AGENT} "(Googlebot|Google-InspectionTool|YandexBot|YandexImages|YandexMedia|YandexMobileBot|YandexAccessibilityBot|YandexVideoParser|YandexNews|YandexDirect|YandexPagechecker|YandexMetrika|bingbot|BingPreview|MSNBot|Baiduspider|Sogou|Exabot|facebookexternalhit|Twitterbot|SemrushBot|AhrefsBot|MJ12bot|DotBot|serpstatbot|MegaIndex|rogerbot|Screaming Frog|SeznamBot|Applebot|ia_archiver|archive.org_bot|CCBot|PetalBot)" [NC]
     RewriteRule ^ - [F,L]
+
+    # --- Служебный каталог data/ (БД, кэш, файлы конспектов) по HTTP не отдаём ---
+    # Правило должно идти ДО отдачи статики, иначе изображения конспектов
+    # из data/notes отдавались бы напрямую.
+    RewriteRule ^data(/|$) - [F,L]
 
     # --- Статические файлы отдаём напрямую (не через фронт-контроллер) ---
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule \.(css|js|mjs|png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|eot|otf|map|pdf|txt)$ - [L,NC]
-
-    # --- Служебный каталог data/ (БД, кэш, файлы конспектов) по HTTP не отдаём ---
-    RewriteRule ^data(/|$) - [F,L]
 
     # --- Остальные запросы — фронт-контроллер ---
     RewriteCond %{REQUEST_FILENAME} !-f

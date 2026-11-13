@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Аватар по умолчанию">
+  <circle cx="32" cy="32" r="32" fill="#e8e1d1"/>
+  <rect x="28" y="30" width="8" height="14" rx="4" fill="#b08a2e"/>
+  <circle cx="32" cy="24" r="10.5" fill="#b08a2e"/>
+  <path d="M11 64c0-11.6 9.4-21 21-21s21 9.4 21 21z" fill="#b08a2e"/>
+</svg>

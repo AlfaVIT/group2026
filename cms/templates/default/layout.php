@@ -56,15 +56,16 @@ $schemeCss = theme_scheme_css($user);
                 <?php endif; ?>
             </ul>
             <ul class="navbar-nav align-items-lg-center gap-lg-2">
+                <?php if ($user): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                        aria-expanded="false">
-                        <?= e(full_name($user)) ?>
+                        <span id="currentUserName"><?= e(full_name($user)) ?></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
                             <span class="dropdown-item-text small">
-                                <span class="badge <?= role_badge_class($user['role']) ?>"><?= e($user['role']) ?></span>
+                                <span class="badge <?= role_badge_class((string)$user['role']) ?>"><?= e($user['role']) ?></span>
                             </span>
                         </li>
                         <li><hr class="dropdown-divider"></li>
@@ -77,6 +78,11 @@ $schemeCss = theme_scheme_css($user);
                         </li>
                     </ul>
                 </li>
+                <?php else: ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= url('login') ?>">Войти</a>
+                    </li>
+                <?php endif; ?>
                 <li class="nav-item">
                     <a class="nav-link d-flex align-items-center" href="<?= url('help') ?>" title="Справка" aria-label="Справка">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
