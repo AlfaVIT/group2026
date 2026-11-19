@@ -159,7 +159,7 @@ foreach ($attendance as $a) {
             </div>
             <div class="card-body">
                 <?php if ($canWriteNotes): ?>
-                    <form method="post" action="<?= url('note_save') ?>" enctype="multipart/form-data" data-no-ajax>
+                    <form method="post" action="<?= url('note_save') ?>" enctype="multipart/form-data" data-ajax-navigate>
                         <?= csrf_field() ?>
                         <input type="hidden" name="meeting_id" value="<?= (int)$m['id'] ?>">
                         <?php $noteEditorHtml = note_html($myNote ?? ['body' => '', 'format' => 'text']); ?>
@@ -215,12 +215,16 @@ foreach ($attendance as $a) {
                             <div class="col-md-6">
                                 <label class="form-label small" for="note_files">Изображения и звук</label>
                                 <input class="form-control form-control-sm" type="file" id="note_files" name="files[]"
-                                       accept="image/*,audio/*" multiple>
+                                       accept="image/*,audio/*" multiple
+                                       data-max-image="<?= (int)NOTE_MAX_IMAGE ?>"
+                                       data-max-audio="<?= (int)NOTE_MAX_AUDIO ?>">
                                 <div class="form-text">До 5 файлов: изображения до 10 МБ, звук до 25 МБ</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small d-block">Записать звук</label>
-                                <input class="d-none" type="file" id="note_audio" name="audio" accept="audio/*">
+                                <input class="d-none" type="file" id="note_audio" name="audio" accept="audio/*"
+                                       data-max-image="<?= (int)NOTE_MAX_IMAGE ?>"
+                                       data-max-audio="<?= (int)NOTE_MAX_AUDIO ?>">
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     <button class="btn btn-sm btn-outline-danger cms-btn-icon" type="button" id="noteRecStart"
                                             title="Начать запись" aria-label="Начать запись">
@@ -232,6 +236,18 @@ foreach ($attendance as $a) {
                                     </button>
                                     <span class="small text-body-secondary" id="noteRecStatus"></span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="cms-upload-progress d-none mb-2" data-upload-progress>
+                            <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                                <span data-upload-label>Отправка…</span>
+                                <span data-upload-percent>0%</span>
+                            </div>
+                            <div class="progress" role="progressbar" aria-label="Отправка файлов"
+                                 aria-valuemin="0" aria-valuemax="100" style="height:.5rem;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     style="width:0%"></div>
                             </div>
                         </div>
 

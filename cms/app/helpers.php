@@ -8,6 +8,11 @@ const ATTENDANCE_STATUSES = [
     'absent'  => 'Буду отсутствовать',
 ];
 const ATTENDANCE_ROLES = ['Старший', 'Помощник', 'Казначей', 'СестраБрат'];
+// Файлы конспекта встречи. Те же лимиты шаблон отдаёт в браузер, чтобы форма
+// не отправляла заведомо отвергнутый файл (data-max-image / data-max-audio).
+const NOTE_MAX_IMAGE = 10 * 1024 * 1024;
+const NOTE_MAX_AUDIO = 25 * 1024 * 1024;
+const NOTE_MAX_FILES = 5;
 const ADDRESS_TERMS = ['брат', 'сестра'];
 const MEETING_TYPE_PRESETS = ['Встреча группы', 'Агапа'];
 const EXPENSE_ARTICLES = ['Трапеза', 'Агапа', 'Прочее'];

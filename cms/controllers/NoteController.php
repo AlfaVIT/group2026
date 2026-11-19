@@ -9,9 +9,10 @@
  */
 class NoteController
 {
-    private const MAX_IMAGE = 10 * 1024 * 1024;
-    private const MAX_AUDIO = 25 * 1024 * 1024;
-    private const MAX_FILES = 5;
+    // лимиты общие с шаблоном (см. helpers.php): их же знает браузер
+    private const MAX_IMAGE = NOTE_MAX_IMAGE;
+    private const MAX_AUDIO = NOTE_MAX_AUDIO;
+    private const MAX_FILES = NOTE_MAX_FILES;
 
     /** mime => [kind, extension] */
     private const TYPES = [

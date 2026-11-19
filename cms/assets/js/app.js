@@ -96,31 +96,132 @@
         }, 4000);
     }
 
+    /** Размер в байтах → «1,2 МБ» (для индикатора отправки). */
+    function formatBytes(bytes) {
+        if (bytes >= 1048576) {
+            return (bytes / 1048576).toFixed(1).replace('.', ',') + ' МБ';
+        }
+        if (bytes >= 1024) {
+            return Math.round(bytes / 1024) + ' КБ';
+        }
+        return bytes + ' Б';
+    }
+
+    /**
+     * Проверяет размеры выбранных файлов до отправки: незачем грузить десятки
+     * мегабайт, чтобы потом получить отказ сервера. Лимиты берём из data-*
+     * формы, чтобы не дублировать серверные константы в JS.
+     */
+    function uploadSizeError(form) {
+        var inputs = form.querySelectorAll('input[type="file"]');
+        for (var i = 0; i < inputs.length; i++) {
+            var input = inputs[i];
+            var maxImage = parseInt(input.getAttribute('data-max-image') || '0', 10);
+            var maxAudio = parseInt(input.getAttribute('data-max-audio') || '0', 10);
+            if (!maxImage && !maxAudio) {
+                continue;
+            }
+            var files = input.files || [];
+            for (var j = 0; j < files.length; j++) {
+                var file = files[j];
+                var isImage = (file.type || '').indexOf('image/') === 0;
+                var max = isImage ? maxImage : maxAudio;
+                if (max && file.size > max) {
+                    return (isImage ? 'Изображение' : 'Аудиозапись') + ' больше ' + formatBytes(max) +
+                        '. Сократите запись или выберите файл поменьше';
+                }
+            }
+        }
+        return '';
+    }
+
+    /** Есть ли в форме выбранные файлы: прогресс отправки нужен только им. */
+    function formHasFiles(form) {
+        var inputs = form.querySelectorAll('input[type="file"]');
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i].files && inputs[i].files.length) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     $(function () {
         $(document).on('submit', 'form[method="post"][action]:not([data-no-ajax]):not([onsubmit])', function (e) {
-            var $form = $(this);
+            var form = this;
+            var $form = $(form);
+            var sizeError = uploadSizeError(form);
+            if (sizeError) {
+                e.preventDefault();
+                showToast(sizeError, 'danger');
+                return;
+            }
+            // кнопка может переопределять адрес через formaction (например, «Удалить»)
+            var submitter = e.originalEvent && e.originalEvent.submitter;
+            var action = (submitter && submitter.getAttribute('formaction')) || $form.attr('action');
             var $btn = $form.find('[type="submit"]');
             var wasDisabled = $btn.prop('disabled');
+            var $progress = $form.find('[data-upload-progress]').first();
+            // прогресс показываем только когда действительно едут файлы
+            var showProgress = $progress.length > 0 && formHasFiles(form);
             e.preventDefault();
             if ($btn.length) {
                 $btn.prop('disabled', true);
             }
+            if (showProgress) {
+                $progress.removeClass('d-none');
+                $progress.find('[data-upload-percent]').text('0%');
+                $progress.find('.progress-bar').css('width', '0%');
+                $progress.find('[data-upload-label]').text('Отправка…');
+            }
             $.ajax({
-                url: $form.attr('action'),
+                url: action,
                 method: 'POST',
                 data: new FormData(this),
                 processData: false,
                 contentType: false,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                dataType: 'json'
+                dataType: 'json',
+                xhr: function () {
+                    var xhr = new window.XMLHttpRequest();
+                    if (!showProgress) {
+                        return xhr;
+                    }
+                    // прогресс самой отправки: большая запись идёт десятки секунд,
+                    // без него страница выглядит зависшей
+                    xhr.upload.addEventListener('progress', function (ev) {
+                        if (!ev.lengthComputable) {
+                            return;
+                        }
+                        var pct = Math.round(ev.loaded / ev.total * 100);
+                        $progress.find('[data-upload-percent]').text(pct + '%');
+                        $progress.find('.progress-bar').css('width', pct + '%');
+                        $progress.find('[data-upload-label]').text(pct >= 100
+                            ? 'Обработка…'
+                            : 'Отправка: ' + formatBytes(ev.loaded) + ' из ' + formatBytes(ev.total));
+                    });
+                    return xhr;
+                }
             }).done(function (data) {
+                if ($progress.length) {
+                    $progress.addClass('d-none');
+                }
                 if (data && data.ok) {
                     if (data.navigate && data.redirect) {
                         window.location.href = data.redirect;
                         return;
                     }
-                    if (data.toast && data.toast.message) {
-                        showToast(data.toast.message, data.toast.type || 'success');
+                    // формы с data-ajax-navigate перезагружают страницу, чтобы
+                    // показать новый файл/текст; но при ошибке валидации
+                    // остаёмся на месте, чтобы не потерять введённое
+                    var toast = data.toast && data.toast.message ? data.toast : null;
+                    if ($form.is('[data-ajax-navigate]') && data.redirect
+                            && !(toast && toast.type === 'danger')) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
+                    if (toast) {
+                        showToast(toast.message, toast.type || 'success');
                     } else {
                         showToast('Сохранено', 'success');
                     }
@@ -152,9 +253,17 @@
                         });
                     });
                 }
-            }).fail(function () {
+            }).fail(function (jqXHR) {
+                if ($progress.length) {
+                    $progress.addClass('d-none');
+                }
                 if ($btn.length) {
                     $btn.prop('disabled', wasDisabled);
+                }
+                // 413 — сервер не принял файл целиком (лимит хостинга)
+                if (jqXHR && jqXHR.status === 413) {
+                    showToast('Файл слишком большой для сервера', 'danger');
+                    return;
                 }
                 showToast('Ошибка сети. Попробуйте ещё раз.', 'danger');
             });
@@ -430,8 +539,14 @@
                 if (window.MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
                     mime = 'audio/webm;codecs=opus';
                 }
+                // 32 кбит/с для речи: запись в ~4 раза меньше при том же
+                // разборчивом звуке, поэтому и сохранение быстрее
+                var recOpts = { audioBitsPerSecond: 32000 };
+                if (mime) {
+                    recOpts.mimeType = mime;
+                }
                 try {
-                    noteRec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+                    noteRec = new MediaRecorder(stream, recOpts);
                 } catch (err) {
                     noteRec = new MediaRecorder(stream);
                 }
