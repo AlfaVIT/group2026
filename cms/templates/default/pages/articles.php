@@ -15,7 +15,7 @@ $counts = ['income' => count($byKind['income']), 'expense' => count($byKind['exp
         </p>
     </div>
     <div class="d-flex gap-2">
-        <?php if (Auth::can('view_treasury') || Auth::can('view_treasury_graph')): ?>
+        <?php if (Setting::financeEnabled() && (Auth::can('view_treasury') || Auth::can('view_treasury_graph'))): ?>
             <a class="btn btn-sm btn-outline-secondary" href="<?= url('treasury') ?>">← Казна</a>
         <?php endif; ?>
     </div>

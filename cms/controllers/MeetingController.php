@@ -69,7 +69,7 @@ class MeetingController
         $expenses = [];
         $expensesTotal = 0.0;
         $myExpensesTotal = 0.0;
-        if (Auth::can('view_expenses') || Auth::can('add_expense')) {
+        if (Setting::financeEnabled() && (Auth::can('view_expenses') || Auth::can('add_expense'))) {
             $expenses = Db::fetchAll(
                 'SELECT e.*, u.name, u.address_term
                  FROM expenses e JOIN users u ON u.id = e.user_id

@@ -39,4 +39,13 @@ class Setting
     {
         return trim((string)self::get('stream_url', ''));
     }
+
+    /**
+     * Финансовый раздел сайта (страница «Казна», статьи и расходы по встречам).
+     * Пока настройка не задана, раздел считается включённым — как было до её появления.
+     */
+    public static function financeEnabled(): bool
+    {
+        return (string)self::get('finance_enabled', '1') !== '0';
+    }
 }

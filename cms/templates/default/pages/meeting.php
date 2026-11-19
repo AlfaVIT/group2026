@@ -583,7 +583,7 @@ foreach ($attendance as $a) {
             </div>
         <?php endif; ?>
 
-        <?php if (Auth::can('add_expense')): ?>
+        <?php if (Setting::financeEnabled() && Auth::can('add_expense')): ?>
             <div class="card shadow-sm mb-4" id="expenses">
                 <div class="card-header p-0">
                     <button class="btn btn-link d-flex flex-wrap justify-content-between align-items-center gap-2 w-100 text-start text-decoration-none py-2 px-3"

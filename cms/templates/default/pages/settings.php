@@ -66,6 +66,19 @@ if ($canViewStats ?? false) {
         </div>
 
         <div class="col-12">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="finance_enabled"
+                       name="finance_enabled" value="1"
+                       <?= ($financeEnabled ?? true) ? 'checked' : '' ?>>
+                <label class="form-check-label" for="finance_enabled">Финансы</label>
+            </div>
+            <div class="form-text">
+                Раздел «Казна» и блок «Расходы по встрече» на странице встречи.
+                Если выключить, эти разделы скрыты для всех участников.
+            </div>
+        </div>
+
+        <div class="col-12">
             <button class="btn btn-primary" type="submit">Сохранить настройки</button>
         </div>
     </form>

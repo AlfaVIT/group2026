@@ -95,6 +95,19 @@ if (!isset($routes[$page])) {
     exit;
 }
 
+// Финансовый раздел выключается в настройках сайта («Настройки» → «Общее» →
+// «Финансы»): страницы казны, статей и расходов по встречам тогда недоступны
+// никому, независимо от роли. Прямые ссылки возвращают на главную.
+$financePages = [
+    'treasury', 'treasury_report', 'treasury_report_export', 'treasury_save', 'treasury_delete',
+    'expense_t_edit', 'expense_t_del', 'expense_add', 'expense_delete',
+    'articles', 'article_save', 'article_update', 'article_merge', 'article_dismiss', 'article_suggest',
+];
+if (in_array($page, $financePages, true) && !Setting::financeEnabled()) {
+    set_flash('Финансовый раздел отключён в настройках сайта', 'warning');
+    redirect(url('home'));
+}
+
 [$class, $method, $roles] = $routes[$page];
 
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';

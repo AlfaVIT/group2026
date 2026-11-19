@@ -11,7 +11,9 @@
                     <a class="nav-link py-1 px-0 text-body-secondary" href="#help-meeting" data-help="meeting">Встречи</a>
                     <a class="nav-link py-1 px-0 text-body-secondary" href="#help-vespers" data-help="vespers">Вечерня и чтецы</a>
                     <a class="nav-link py-1 px-0 text-body-secondary" href="#help-materials" data-help="materials">Материалы</a>
-                    <a class="nav-link py-1 px-0 text-body-secondary" href="#help-treasury" data-help="treasury">Казна</a>
+                    <?php if (Setting::financeEnabled()): ?>
+                        <a class="nav-link py-1 px-0 text-body-secondary" href="#help-treasury" data-help="treasury">Казна</a>
+                    <?php endif; ?>
                     <a class="nav-link py-1 px-0 text-body-secondary" href="#help-telegram" data-help="telegram">Telegram-бот и рассылка</a>
                     <a class="nav-link py-1 px-0 text-body-secondary" href="#help-settings" data-help="settings">Настройки</a>
                     <a class="nav-link py-1 px-0 text-body-secondary" href="#help-faq" data-help="faq">Вопросы и ответы</a>
@@ -223,6 +225,7 @@
             </div>
         </section>
 
+        <?php if (Setting::financeEnabled()): ?>
         <section id="help-treasury" class="help-section card shadow-sm mb-4 d-none">
             <div class="card-header fw-semibold">Казна</div>
             <div class="card-body">
@@ -244,6 +247,7 @@
                 </p>
             </div>
         </section>
+        <?php endif; ?>
 
         <section id="help-telegram" class="help-section card shadow-sm mb-4 d-none">
             <div class="card-header fw-semibold">Telegram-бот и рассылка</div>

@@ -74,6 +74,7 @@ class SettingsController
             'theme' => Setting::theme(),
             'mailFrom' => mail_from(),
             'streamUrl' => Setting::streamUrl(),
+            'financeEnabled' => Setting::financeEnabled(),
         ], $stats));
     }
 
@@ -197,6 +198,8 @@ class SettingsController
             $theme = input('theme');
             $mailFrom = mb_strtolower(trim(input('mail_from')));
             $streamUrl = trim(input('stream_url'));
+            // невыбранный чекбокс браузер не отправляет — это и есть «выключено»
+            $financeEnabled = input('finance_enabled') === '1';
             if (mb_strlen($siteName) < 2) {
                 set_flash('Укажите название сайта', 'danger');
                 redirect(url('settings'));
@@ -217,6 +220,7 @@ class SettingsController
             Setting::set('theme', $theme);
             Setting::set('mail_from', $mailFrom);
             Setting::set('stream_url', $streamUrl);
+            Setting::set('finance_enabled', $financeEnabled ? '1' : '0');
             set_flash('Настройки сохранены');
         }
 

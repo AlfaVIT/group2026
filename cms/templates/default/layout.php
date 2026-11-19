@@ -44,7 +44,7 @@ $schemeCss = theme_scheme_css($user);
                         <a class="nav-link" href="<?= url('telegram') ?>">Рассылка</a>
                     </li>
                 <?php endif; ?>
-                <?php if (Auth::can('view_treasury') || Auth::can('view_treasury_graph')): ?>
+                <?php if (Setting::financeEnabled() && (Auth::can('view_treasury') || Auth::can('view_treasury_graph'))): ?>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= url('treasury') ?>">Казна</a>
                     </li>
