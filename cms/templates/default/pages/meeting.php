@@ -190,7 +190,7 @@ foreach ($attendance as $a) {
                         <?php if ($myNoteFiles): ?>
                             <div class="cms-note-files mb-2">
                                 <?php foreach ($myNoteFiles as $f): ?>
-                                    <div class="cms-note-file">
+                                    <div class="cms-note-file<?= $f['kind'] === 'audio' ? ' cms-note-file-audio' : '' ?>">
                                         <?php if ($f['kind'] === 'image'): ?>
                                             <a class="cms-note-thumb" href="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>"
                                                data-lightbox="<?= e(url('note_file', ['id' => (int)$f['id']])) ?>">

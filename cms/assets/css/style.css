@@ -164,6 +164,23 @@ body.cms-lightbox-open {
     max-width: 100%;
 }
 
+/* Кнопка удаления аудиозаписи стоит рядом с плеером, а не поверх него:
+   в правом верхнем углу она перекрывала элементы управления плеера. */
+.cms-note-file-audio {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    max-width: 100%;
+}
+
+.cms-note-file-audio .cms-note-file-del {
+    position: static;
+}
+
+.cms-note-file-audio .cms-note-audio {
+    min-width: 0;
+}
+
 .cms-note-public {
     border-left: 3px solid var(--cms-gold, #b08a2e);
     padding-left: .75rem;
