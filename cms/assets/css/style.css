@@ -156,8 +156,12 @@ body.cms-lightbox-open {
 }
 
 .cms-note-audio {
-    width: 100%;
-    max-width: 420px;
+    display: block;
+    /* Ширина числом, а не процентами: обёртка .cms-note-file в flex-контейнере
+       сжимается по содержимому, и width:100% давал нулевой плеер.
+       max-width не даёт выйти за пределы карточки на узком экране. */
+    width: 420px;
+    max-width: 100%;
 }
 
 .cms-note-public {
