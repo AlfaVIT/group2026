@@ -226,6 +226,16 @@ CREATE TABLE IF NOT EXISTS meeting_note_files (
     file_path TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    identifier TEXT NOT NULL DEFAULT '',
+    ip TEXT NOT NULL DEFAULT '',
+    user_agent TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_attempts_created ON login_attempts (created_at);
 SQL;
 
     $pdo->exec($schema);
@@ -233,7 +243,14 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '27')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_enabled', '0')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_freq', 'daily')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_time', '03:00')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_weekday', '1')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_day', '1')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '28')");
 
     // предустановленные статьи расходов
     foreach (EXPENSE_ARTICLES as $preset) {
@@ -249,7 +266,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 27) {
+        if ($version >= 28) {
             return;
         }
         if ($version >= 21) {
@@ -259,6 +276,7 @@ function run_migrations(): void
             migrate_v25();
             migrate_v26();
             migrate_v27();
+            migrate_v28();
             return;
         }
 
@@ -410,6 +428,7 @@ function run_migrations(): void
         migrate_v25();
         migrate_v26();
         migrate_v27();
+        migrate_v28();
     } catch (Throwable $e) {
     }
 }
@@ -535,6 +554,33 @@ function migrate_v27(): void
     }
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '27')");
     Db::q("UPDATE settings SET value = '27' WHERE key = 'schema_version'");
+}
+
+/** v28: журнал неудачных входов и настройки обслуживания (бекапы, уведомления). */
+function migrate_v28(): void
+{
+    Db::q('CREATE TABLE IF NOT EXISTS login_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        identifier TEXT NOT NULL DEFAULT \'\',
+        ip TEXT NOT NULL DEFAULT \'\',
+        user_agent TEXT NOT NULL DEFAULT \'\',
+        created_at TEXT NOT NULL DEFAULT \'\'
+    )');
+    Db::q('CREATE INDEX IF NOT EXISTS idx_login_attempts_created ON login_attempts (created_at)');
+    $defaults = [
+        'backup_enabled'     => '0',
+        'backup_freq'        => 'daily',
+        'backup_time'        => '03:00',
+        'backup_weekday'     => '1',
+        'backup_day'         => '1',
+        'notify_bruteforce'  => '1',
+        'notify_admin_login' => '1',
+    ];
+    foreach ($defaults as $key => $value) {
+        Db::q('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', [$key, $value]);
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '28')");
+    Db::q("UPDATE settings SET value = '28' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

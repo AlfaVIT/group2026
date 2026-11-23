@@ -10,6 +10,7 @@ require_once __DIR__ . '/installer.php';
 require_once __DIR__ . '/articles.php';
 require_once __DIR__ . '/vespers_text.php';
 require_once __DIR__ . '/telegram.php';
+require_once __DIR__ . '/maintenance.php';
 
 foreach (glob(__DIR__ . '/../controllers/*.php') ?: [] as $controllerFile) {
     require_once $controllerFile;
@@ -18,7 +19,7 @@ foreach (glob(__DIR__ . '/../controllers/*.php') ?: [] as $controllerFile) {
 date_default_timezone_set('Europe/Moscow');
 mb_internal_encoding('UTF-8');
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
+if (PHP_SAPI !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
     // Явные параметры сессионной cookie: не полагаемся на php.ini хостинга
     // (по умолчанию HttpOnly и SameSite могут быть выключены).
     $https = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';

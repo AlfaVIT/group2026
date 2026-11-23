@@ -1354,3 +1354,37 @@ function send_email(string $to, string $subject, string $html): bool
         . 'MIME-Version: 1.0' . "\r\n";
     return (bool)@mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $html, $headers);
 }
+
+/**
+ * Письмо с вложением (multipart/mixed, base64). Нужно для бекапов базы:
+ * send_email() умеет только HTML-тело без файлов.
+ */
+function send_email_attachment(string $to, string $subject, string $text, string $filePath, string $filename, string $mime = 'application/octet-stream'): bool
+{
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL) || !is_file($filePath)) {
+        return false;
+    }
+    $data = @file_get_contents($filePath);
+    if ($data === false) {
+        return false;
+    }
+    $safeName = preg_replace('/[^A-Za-z0-9._-]+/', '_', $filename);
+    if ($safeName === '' || $safeName === null) {
+        $safeName = 'attachment.bin';
+    }
+    $boundary = 'cms-' . bin2hex(random_bytes(12));
+    $headers = 'From: ' . mail_from() . "\r\n"
+        . 'MIME-Version: 1.0' . "\r\n"
+        . 'Content-Type: multipart/mixed; boundary="' . $boundary . '"' . "\r\n";
+    $body = '--' . $boundary . "\r\n"
+        . "Content-Type: text/plain; charset=UTF-8\r\n"
+        . "Content-Transfer-Encoding: 8bit\r\n\r\n"
+        . $text . "\r\n"
+        . '--' . $boundary . "\r\n"
+        . 'Content-Type: ' . $mime . '; name="' . $safeName . '"' . "\r\n"
+        . "Content-Transfer-Encoding: base64\r\n"
+        . 'Content-Disposition: attachment; filename="' . $safeName . '"' . "\r\n\r\n"
+        . chunk_split(base64_encode($data), 76, "\r\n")
+        . '--' . $boundary . "--";
+    return (bool)@mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers);
+}

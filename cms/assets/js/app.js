@@ -1090,4 +1090,16 @@
         $form.find('#attendance_reason').val(reason);
         $form.find('input[name="status"][value="' + status + '"]').prop('checked', true).trigger('change');
     });
+
+    // Настройки → «Обслуживание»: показываем поле, которое относится к
+    // выбранной периодичности бекапа (день недели или число месяца)
+    $(function () {
+        var syncBackupFreq = function () {
+            var freq = $('#backup_freq').val();
+            $('.js-backup-weekly').toggleClass('d-none', freq !== 'weekly');
+            $('.js-backup-monthly').toggleClass('d-none', freq !== 'monthly');
+        };
+        $(document).on('change', '#backup_freq', syncBackupFreq);
+        syncBackupFreq();
+    });
 })(jQuery);

@@ -8,6 +8,7 @@ if ($canManage) {
 $tabs['places'] = 'Места встреч';
 if ($canManage) {
     $tabs['meetings'] = 'Встречи';
+    $tabs['maintenance'] = 'Обслуживание';
 }
 if ($canViewStats ?? false) {
     $tabs['stats'] = 'Статистика';
@@ -253,6 +254,159 @@ if ($canViewStats ?? false) {
             <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+<?php elseif ($tab === 'maintenance'): ?>
+    <?php
+    $freqLabels = ['daily' => 'Ежедневно', 'weekly' => 'Еженедельно', 'monthly' => 'Ежемесячно'];
+    $weekdayLabels = [1 => 'Понедельник', 2 => 'Вторник', 3 => 'Среда', 4 => 'Четверг',
+        5 => 'Пятница', 6 => 'Суббота', 7 => 'Воскресенье'];
+    $lastSent = (string)($backup['last'] ?? '') !== ''
+        ? date('d.m.Y H:i', strtotime((string)$backup['last']))
+        : 'ещё не отправлялся';
+    $nextRun = $backupNext ? date('d.m.Y H:i', $backupNext) : '—';
+    $lastError = (string)($backup['last_error'] ?? '');
+    $noEmail = Setting::adminEmail() === '';
+    ?>
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <form method="post" action="<?= url('settings_save') ?>" class="card shadow-sm h-100">
+                <?= csrf_field() ?>
+                <input type="hidden" name="section" value="maintenance">
+                <input type="hidden" name="action" value="save">
+                <div class="card-header fw-semibold">Резервные копии базы</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="backup_enabled"
+                               name="backup_enabled" value="1"
+                               <?= !empty($backup['enabled']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="backup_enabled">Отправлять бекап базы на почту</label>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <label class="form-label" for="backup_freq">Периодичность</label>
+                            <select class="form-select" id="backup_freq" name="backup_freq">
+                                <?php foreach ($freqLabels as $freqKey => $freqLabel): ?>
+                                    <option value="<?= e($freqKey) ?>"
+                                        <?= ($backup['freq'] ?? 'daily') === $freqKey ? 'selected' : '' ?>>
+                                        <?= e($freqLabel) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label" for="backup_time">Время</label>
+                            <input class="form-control" type="time" id="backup_time" name="backup_time"
+                                   value="<?= e($backup['time'] ?? '03:00') ?>" required>
+                        </div>
+                        <div class="col-sm-4 js-backup-weekly <?= ($backup['freq'] ?? 'daily') === 'weekly' ? '' : 'd-none' ?>">
+                            <label class="form-label" for="backup_weekday">День недели</label>
+                            <select class="form-select" id="backup_weekday" name="backup_weekday">
+                                <?php foreach ($weekdayLabels as $weekdayNum => $weekdayLabel): ?>
+                                    <option value="<?= (int)$weekdayNum ?>"
+                                        <?= (int)($backup['weekday'] ?? 1) === $weekdayNum ? 'selected' : '' ?>>
+                                        <?= e($weekdayLabel) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-4 js-backup-monthly <?= ($backup['freq'] ?? 'daily') === 'monthly' ? '' : 'd-none' ?>">
+                            <label class="form-label" for="backup_day">Число месяца</label>
+                            <select class="form-select" id="backup_day" name="backup_day">
+                                <?php for ($dayNum = 1; $dayNum <= 28; $dayNum++): ?>
+                                    <option value="<?= (int)$dayNum ?>"
+                                        <?= (int)($backup['day'] ?? 1) === $dayNum ? 'selected' : '' ?>>
+                                        <?= (int)$dayNum ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-text mt-2">
+                        Бекап уходит на «Почту администратора» (вкладка «Общее»).
+                        <?php if ($noEmail): ?>
+                            <span class="text-danger">Сейчас адрес не задан — отправка не сработает.</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <ul class="list-unstyled small text-body-secondary mt-3 mb-0">
+                        <li>Последняя отправка: <?= e($lastSent) ?></li>
+                        <li>Следующая по расписанию: <?= e($nextRun) ?></li>
+                        <?php if ($lastError !== ''): ?>
+                            <li class="text-danger">Последняя ошибка: <?= e($lastError) ?></li>
+                        <?php endif; ?>
+                    </ul>
+
+                    <hr>
+                    <h2 class="h6">Системные уведомления</h2>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="notify_bruteforce"
+                               name="notify_bruteforce" value="1"
+                               <?= !empty($notifyBruteforce) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="notify_bruteforce">Попытка подбора пароля</label>
+                        <div class="form-text">
+                            Письмо, если за 10 минут было 5 и больше неудачных входов (не чаще раза в час).
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="notify_admin_login"
+                               name="notify_admin_login" value="1"
+                               <?= !empty($notifyAdminLogin) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="notify_admin_login">Попытка авторизации admin</label>
+                        <div class="form-text">
+                            Любая попытка входа с логином admin — удачная или нет (не чаще раза в 30 минут).
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary" type="submit">Сохранить</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-semibold">Запуск по расписанию</div>
+                <div class="card-body">
+                    <p class="small text-body-secondary">
+                        Скрипт можно запускать по cron хоть каждый час — письмо уйдёт только
+                        в запланированный момент.
+                    </p>
+                    <label class="form-label small" for="cronCommand">Команда для cron</label>
+                    <input class="form-control form-control-sm font-monospace" id="cronCommand" readonly
+                           value="<?= e($cronCommand) ?>">
+                    <label class="form-label small mt-2" for="cronUrl">Или URL для внешнего планировщика</label>
+                    <input class="form-control form-control-sm font-monospace" id="cronUrl" readonly
+                           value="<?= e($cronUrl) ?>">
+                    <div class="form-text">В URL секретный токен — не пересылайте его.</div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">Действия</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <form method="post" action="<?= url('settings_save') ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="section" value="maintenance">
+                        <input type="hidden" name="action" value="backup_now">
+                        <button class="btn btn-outline-primary w-100" type="submit"
+                                onclick="return confirm('Отправить бекап базы сейчас?');">
+                            Отправить бекап сейчас
+                        </button>
+                    </form>
+                    <form method="post" action="<?= url('settings_save') ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="section" value="maintenance">
+                        <input type="hidden" name="action" value="rotate_token">
+                        <button class="btn btn-outline-secondary w-100" type="submit"
+                                onclick="return confirm('Старый URL перестанет работать. Обновить токен?');">
+                            Обновить токен
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 <?php elseif ($tab === 'stats'): ?>
     <?php

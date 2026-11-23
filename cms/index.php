@@ -64,6 +64,7 @@ $routes = [
     'telegram_save'   => ['TelegramController', 'save', ['manage_settings']],
     'telegram_webhook' => ['TelegramController', 'webhook', ['manage_settings']],
     'telegram_send'   => ['TelegramController', 'send', ['send_broadcast']],
+    'backup_cron'     => ['BackupController', 'cron', ['everyone']],
     'profile'         => ['ProfileController', 'index', ['any']],
     'profile_save'    => ['ProfileController', 'save', ['any']],
     'consent'         => ['ConsentController', 'index', ['everyone']],

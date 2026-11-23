@@ -19,9 +19,12 @@ class AuthController
                 if (isset($_POST['remember'])) {
                     Auth::issueRemember((int)$user['id']);
                 }
+                security_on_login_success($email);
                 set_flash('Добро пожаловать!');
                 redirect(url('home'));
             }
+            // неудачная попытка: журнал и системные уведомления (если включены)
+            security_on_login_failure($email);
             if ($user && !Db::value('SELECT is_active FROM users WHERE id = ?', [$user['id']])) {
                 $error = 'Аккаунт отключён. Обратитесь к Старшему.';
             }

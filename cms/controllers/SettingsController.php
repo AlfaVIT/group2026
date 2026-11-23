@@ -6,7 +6,7 @@ class SettingsController
     {
         $canManage = Auth::can('manage_settings');
         $canViewStats = Auth::can('view_stats');
-        $tabs = $canManage ? ['general', 'users', 'places', 'meetings'] : ['places'];
+        $tabs = $canManage ? ['general', 'users', 'places', 'meetings', 'maintenance'] : ['places'];
         if ($canViewStats) {
             $tabs[] = 'stats';
         }
@@ -60,6 +60,12 @@ class SettingsController
 
         $stats = $tab === 'stats' ? $this->statsData() : [];
 
+        // вкладка «Обслуживание»: расписание бекапов, токен запуска и уведомления
+        $backup = $canManage ? backup_schedule() : [];
+        $backupNext = $backup ? backup_next_slot($backup) : null;
+        $cronUrl = $canManage ? url('backup_cron', ['token' => Setting::cronToken()]) : '';
+        $cronCommand = 'php ' . BASE_PATH . '/cron/backup.php';
+
         view('settings', array_merge([
             'title' => 'Настройки',
             'tab' => $tab,
@@ -76,6 +82,12 @@ class SettingsController
             'adminEmail' => Setting::adminEmail(),
             'streamUrl' => Setting::streamUrl(),
             'financeEnabled' => Setting::financeEnabled(),
+            'backup' => $backup,
+            'backupNext' => $backupNext,
+            'cronUrl' => $cronUrl,
+            'cronCommand' => $cronCommand,
+            'notifyBruteforce' => (string)Setting::get('notify_bruteforce', '1') === '1',
+            'notifyAdminLogin' => (string)Setting::get('notify_admin_login', '1') === '1',
         ], $stats));
     }
 
@@ -194,6 +206,11 @@ class SettingsController
     {
         $section = input('section', 'general');
 
+        if ($section === 'maintenance') {
+            $this->saveMaintenance();
+            redirect(url('settings', ['tab' => 'maintenance']));
+        }
+
         if ($section === 'general') {
             $siteName = input('site_name');
             $theme = input('theme');
@@ -233,5 +250,55 @@ class SettingsController
         }
 
         redirect(url('settings', ['tab' => $section]));
+    }
+
+    /** Вкладка «Обслуживание»: расписание бекапов, уведомления, ручные действия. */
+    private function saveMaintenance(): void
+    {
+        $action = input('action', 'save');
+
+        if ($action === 'backup_now') {
+            $res = backup_send(true);
+            set_flash($res['message'], $res['ok'] ? 'success' : 'danger');
+            return;
+        }
+
+        if ($action === 'rotate_token') {
+            Setting::set('cron_token', bin2hex(random_bytes(24)));
+            set_flash('Токен обновлён: старый URL больше не работает', 'info');
+            return;
+        }
+
+        $enabled = input('backup_enabled') === '1';
+        $freq = input('backup_freq', 'daily');
+        if (!in_array($freq, ['daily', 'weekly', 'monthly'], true)) {
+            $freq = 'daily';
+        }
+        $time = input('backup_time', '03:00');
+        if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
+            $time = '03:00';
+        }
+        $weekday = (int)input('backup_weekday', '1');
+        if ($weekday < 1 || $weekday > 7) {
+            $weekday = 1;
+        }
+        $day = (int)input('backup_day', '1');
+        if ($day < 1 || $day > 28) {
+            $day = 1;
+        }
+
+        Setting::set('backup_enabled', $enabled ? '1' : '0');
+        Setting::set('backup_freq', $freq);
+        Setting::set('backup_time', $time);
+        Setting::set('backup_weekday', (string)$weekday);
+        Setting::set('backup_day', (string)$day);
+        Setting::set('notify_bruteforce', input('notify_bruteforce') === '1' ? '1' : '0');
+        Setting::set('notify_admin_login', input('notify_admin_login') === '1' ? '1' : '0');
+
+        if ($enabled && Setting::adminEmail() === '') {
+            set_flash('Расписание сохранено, но бекапы не будут отправляться: заполните «Почту администратора» на вкладке «Общее»', 'warning');
+            return;
+        }
+        set_flash('Настройки обслуживания сохранены');
     }
 }
