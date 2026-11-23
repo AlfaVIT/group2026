@@ -56,6 +56,13 @@ if ($canViewStats ?? false) {
             <div class="form-text">Используется в письмах восстановления пароля</div>
         </div>
 
+        <div class="col-md-4">
+            <label class="form-label" for="admin_email">Почта администратора</label>
+            <input class="form-control" type="email" id="admin_email" name="admin_email"
+                   value="<?= e($adminEmail ?? '') ?>" placeholder="admin@example.ru">
+            <div class="form-text">Системные уведомления и резервные копии</div>
+        </div>
+
         <div class="col-md-8">
             <label class="form-label" for="stream_url">Ссылка на трансляцию</label>
             <input class="form-control" type="url" id="stream_url" name="stream_url"
