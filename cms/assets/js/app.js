@@ -482,6 +482,40 @@
             }, 250);
         });
 
+        // Android: пробуем открыть установленное приложение по intent:, а если оно
+        // не открылось (или браузер intent: игнорирует) — через 1,5 с уходим на
+        // обычный веб-адрес из href. Так кнопка работает в любом браузере.
+        $(document).on('click', 'a[data-intent-href]', function (e) {
+            var href = this.getAttribute('href');
+            var intent = this.getAttribute('data-intent-href');
+            if (!href || !intent) {
+                return;
+            }
+            e.preventDefault();
+            var leftPage = false;
+            var markLeft = function () {
+                if (document.hidden) {
+                    leftPage = true;
+                }
+            };
+            document.addEventListener('visibilitychange', markLeft, { once: true });
+            window.addEventListener('blur', markLeft, { once: true });
+            var timer = window.setTimeout(function () {
+                document.removeEventListener('visibilitychange', markLeft);
+                window.removeEventListener('blur', markLeft);
+                // приложение открылось — вкладка скрыта, тогда не мешаем
+                if (!leftPage && !document.hidden) {
+                    window.location.href = href;
+                }
+            }, 1500);
+            try {
+                window.location.href = intent;
+            } catch (err) {
+                window.clearTimeout(timer);
+                window.location.href = href;
+            }
+        });
+
         // Просмотр фотографий места поверх страницы (затемнение + снимок по центру)
         function closeLightbox() {
             $('#cms-lightbox').removeClass('show');

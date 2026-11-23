@@ -14,6 +14,11 @@
 $small = $small ?? false;
 $outline = $outline ?? true;
 $google = google_calendar_link($meeting);
+// На Android основной href оставляем веб-ссылкой (работает всегда), а рядом
+// кладём intent: — app.js сначала пробует приложение и через секунду откатывается
+$googleIntent = $google !== '' && is_android_client()
+    ? android_app_intent($google, 'com.google.android.calendar')
+    : '';
 $ics = url('meeting_ics', ['id' => (int)$meeting['id']]);
 $btnClass = ($small ? 'btn-sm ' : '') . ($outline ? 'btn-outline-success' : 'btn-success');
 ?>
@@ -26,7 +31,11 @@ $btnClass = ($small ? 'btn-sm ' : '') . ($outline ? 'btn-outline-success' : 'btn
     <ul class="dropdown-menu">
         <?php if ($google !== ''): ?>
             <li>
-                <a class="dropdown-item" href="<?= e($google) ?>">Google Календарь</a>
+                <a class="dropdown-item" href="<?= e($google) ?>"
+                   <?= $googleIntent !== '' ? 'data-intent-href="' . e($googleIntent) . '"' : '' ?>
+                   <?= $googleIntent !== '' ? 'title="Открыть в приложении Google Календарь"' : '' ?>>
+                    Google Календарь
+                </a>
             </li>
             <li><hr class="dropdown-divider"></li>
         <?php endif; ?>

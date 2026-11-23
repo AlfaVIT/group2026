@@ -1170,6 +1170,35 @@ function google_calendar_link(array $meeting): string
     return 'https://calendar.google.com/calendar/render?' . $query;
 }
 
+/** Клиент — Android? (определение по User-Agent). */
+function is_android_client(): bool
+{
+    return (bool)preg_match('/Android/i', (string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+}
+
+/**
+ * intent:-ссылка на приложение Android для обычного https-адреса.
+ *
+ * Chrome и другие браузеры на Android по intent: открывают приложение даже там,
+ * где не срабатывают app links (например, Яндекс.Браузер): приложение Google
+ * Календаря объявляет calendar.google.com в assetlinks.json. Если приложение
+ * не установлено, браузер сам уйдёт на browser_fallback_url; для браузеров,
+ * которые intent: молча игнорируют, в app.js есть таймер с откатом на href.
+ */
+function android_app_intent(string $url, string $package): string
+{
+    $parts = parse_url($url);
+    if ($parts === false || ($parts['scheme'] ?? '') !== 'https' || empty($parts['host'])) {
+        return '';
+    }
+    $path = (string)($parts['path'] ?? '/');
+    if (($parts['query'] ?? '') !== '') {
+        $path .= '?' . $parts['query'];
+    }
+    return 'intent://' . $parts['host'] . $path . '#Intent;scheme=https;package=' . $package
+        . ';S.browser_fallback_url=' . rawurlencode($url) . ';end';
+}
+
 /** Клиент — iOS (iPhone/iPad/iPod)? */
 function is_ios_client(): bool
 {
