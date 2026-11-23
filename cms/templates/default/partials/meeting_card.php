@@ -84,17 +84,7 @@ $maps = safe_url($meeting['geo_link'] ?? '') ?: yandex_maps_link($meeting);
            title="Подробнее о встрече" aria-label="Подробнее о встрече">
             <?= ui_icon('eye') ?><span class="cms-btn-label">Подробнее</span>
         </a>
-        <?php
-        // как на странице встречи: Android — intent в календарь, остальные — файл .ics
-        $calHref = is_android_client() ? android_calendar_intent($meeting) : '';
-        if ($calHref === '') {
-            $calHref = url('meeting_ics', ['id' => $meeting['id']]);
-        }
-        ?>
-        <a class="btn btn-sm btn-success cms-btn-icon" href="<?= e($calHref) ?>"
-           title="Добавить в календарь" aria-label="Добавить в календарь">
-            <?= ui_icon('calendar') ?><span class="cms-btn-label">Добавить в календарь</span>
-        </a>
+        <?php partial('calendar_menu', ['meeting' => $meeting, 'small' => true, 'outline' => false]); ?>
         <?php $streamLink = meeting_stream_url($meeting); ?>
         <?php if ($streamLink !== ''): ?>
             <?php $streamCommon = meeting_stream_is_common($meeting); ?>

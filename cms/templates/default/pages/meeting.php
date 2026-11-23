@@ -132,18 +132,7 @@ foreach ($attendance as $a) {
                             <?= ui_icon('video') ?><span class="cms-btn-label"><?= $streamCommon ? 'Подключиться к трансляции' : 'Смотреть трансляцию' ?></span>
                         </a>
                     <?php endif; ?>
-                    <?php
-                    $isAndroid = is_android_client();
-                    $calHref = $isAndroid ? android_calendar_intent($m) : '';
-                    if ($calHref === '') {
-                        // iPhone и прочие — файл .ics (iOS открывает календарь, остальные скачивают)
-                        $calHref = url('meeting_ics', ['id' => $m['id']]);
-                    }
-                    ?>
-                    <a class="btn btn-outline-success cms-btn-icon" href="<?= e($calHref) ?>"
-                       title="Добавить в календарь" aria-label="Добавить в календарь">
-                        <?= ui_icon('calendar') ?><span class="cms-btn-label">Добавить в календарь</span>
-                    </a>
+                    <?php partial('calendar_menu', ['meeting' => $m]); ?>
                 </div>
             </div>
         </div>

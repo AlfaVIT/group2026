@@ -1170,55 +1170,6 @@ function google_calendar_link(array $meeting): string
     return 'https://calendar.google.com/calendar/render?' . $query;
 }
 
-/**
- * Android intent-ссылка для добавления встречи в календарь по умолчанию
- * (ACTION_INSERT, нативное окно события). Если приложения нет — откат на веб-ссылку.
- */
-function android_calendar_intent(array $meeting): string
-{
-    $ts = strtotime((string)($meeting['date'] ?? ''));
-    if ($ts === false) {
-        return '';
-    }
-    $begin = $ts * 1000;
-    $end = ($ts + 2 * 3600) * 1000;
-
-    $type = trim((string)($meeting['meeting_type'] ?? ''));
-    $topic = trim((string)($meeting['topic'] ?? ''));
-    $title = $type !== '' ? $type : ($topic !== '' ? $topic : 'Встреча');
-    $location = implode(', ', address_parts($meeting, true));
-
-    $desc = [];
-    if ($type !== '' && $topic !== '') {
-        $desc[] = 'Тема: ' . $topic;
-    }
-    if (!empty($meeting['senior_name'])) {
-        $desc[] = 'Старший на встрече: ' . $meeting['senior_name'];
-    }
-    if (!empty($meeting['stream_url'])) {
-        $desc[] = 'Трансляция: ' . $meeting['stream_url'];
-    }
-
-    $intent = 'intent://#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/event'
-        . ';S.title=' . rawurlencode($title)
-        . ';l.beginTime=' . $begin
-        . ';l.endTime=' . $end
-        . ';S.eventLocation=' . rawurlencode($location)
-        . ';S.description=' . rawurlencode(implode("\n", $desc));
-
-    $fallback = google_calendar_link($meeting);
-    if ($fallback !== '') {
-        $intent .= ';S.browser_fallback_url=' . rawurlencode($fallback);
-    }
-    return $intent . ';end';
-}
-
-/** Клиент — Android? (определение по User-Agent). */
-function is_android_client(): bool
-{
-    return (bool)preg_match('/Android/i', (string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
-}
-
 /** Клиент — iOS (iPhone/iPad/iPod)? */
 function is_ios_client(): bool
 {
