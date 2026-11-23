@@ -26,12 +26,17 @@ $m = $meeting;
         </a>
     </div>
     <div class="card-body">
-        <p class="small text-body-secondary mb-3">
-            Текст предоставляется приложением molitva.app и соответствует дате встречи
-            (вид Литургии — Златоуста, Василия Великого или Преждеосвященные Дары — приложение
-            выбирает по церковному календарю).
-        </p>
-        <iframe class="cms-vespers-frame" src="<?= e($frameUrl) ?>" title="Текст Литургии на molitva.app"
-                loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <?php if ($liturgyInline ?? false): ?>
+            <div class="cms-vespers-text"><?= $liturgyHtml ?></div>
+        <?php else: ?>
+            <p class="small text-body-secondary mb-3">
+                Для будних дней и особых дней (Великий пост, Пасха, Рождество, Богоявление,
+                праздники с особыми частями чина) текст показывается во встроенном окне
+                приложения molitva.app — там он точный. Локально текст собирается для обычных
+                воскресных дней.
+            </p>
+            <iframe class="cms-vespers-frame" src="<?= e($frameUrl) ?>" title="Текст Литургии на molitva.app"
+                    loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <?php endif; ?>
     </div>
 </div>

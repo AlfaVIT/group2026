@@ -24,12 +24,15 @@ class LiturgyController
 
         $frameDate = date('Y-m-d', strtotime($meeting['date']));
         $frameUrl = 'https://molitva.app/#/date/' . $frameDate . '/service/' . rawurlencode('Литургия');
+        $html = liturgy_text_html($frameDate);
 
         view('liturgy', [
             'title' => 'Литургия',
             'meeting' => $meeting,
             'frameDate' => $frameDate,
             'frameUrl' => $frameUrl,
+            'liturgyInline' => $html !== '',
+            'liturgyHtml' => $html,
         ]);
     }
 }
