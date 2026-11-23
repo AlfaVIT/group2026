@@ -1091,6 +1091,34 @@
         $form.find('input[name="status"][value="' + status + '"]').prop('checked', true).trigger('change');
     });
 
+    // Встреча: при изменении даты и времени подставляем текст служения
+    // (до 12:00 — Литургия), пока пользователь не выбрал его вручную
+    $(function () {
+        var $date = $('#date');
+        var $types = $('input[name="service_type"]');
+        if (!$date.length || !$types.length) {
+            return;
+        }
+        var manual = false;
+        $types.on('change', function () {
+            manual = true;
+        });
+        $date.on('change input', function () {
+            if (manual) {
+                return;
+            }
+            var value = String($date.val() || '');
+            if (value.indexOf('T') < 0) {
+                return;
+            }
+            var hour = parseInt(value.split('T')[1].slice(0, 2), 10);
+            if (isNaN(hour)) {
+                return;
+            }
+            $types.filter('[value="' + (hour < 12 ? 'liturgy' : 'vespers') + '"]').prop('checked', true);
+        });
+    });
+
     // Настройки → «Обслуживание»: показываем поле, которое относится к
     // выбранной периодичности бекапа (день недели или число месяца)
     $(function () {

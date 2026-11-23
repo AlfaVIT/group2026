@@ -18,6 +18,23 @@ $isEdit = (bool)$meeting;
     </div>
 
     <div class="col-md-6">
+        <label class="form-label d-block">Текст служения</label>
+        <div class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="service_type" id="service_liturgy"
+                       value="liturgy" <?= ($serviceType ?? 'liturgy') === 'liturgy' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="service_liturgy">Литургия</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="service_type" id="service_vespers"
+                       value="vespers" <?= ($serviceType ?? '') === 'vespers' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="service_vespers">Вечерня</label>
+            </div>
+        </div>
+        <div class="form-text">По умолчанию: начало до 12:00 — Литургия, позже — Вечерня.</div>
+    </div>
+
+    <div class="col-md-6">
         <label class="form-label" for="place_id">Место проведения</label>
         <select class="form-select" id="place_id" name="place_id">
             <option value="">— не выбрано —</option>

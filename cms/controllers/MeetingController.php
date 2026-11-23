@@ -235,6 +235,7 @@ class MeetingController
             'title' => $meeting ? 'Редактирование встречи' : 'Новая встреча',
             'meeting' => $meeting,
             'data' => $data,
+            'serviceType' => meeting_service_type($data),
             'places' => $places,
             'tags' => $tags,
             'meetingTypes' => $meetingTypes,
@@ -257,6 +258,11 @@ class MeetingController
         $topic = input('topic');
         $tag = trim(input('tag'));
         $meetingType = trim(input('meeting_type'));
+        $serviceType = input('service_type');
+        if (!in_array($serviceType, ['liturgy', 'vespers'], true)) {
+            // форма без поля (старая) — решаем по времени начала
+            $serviceType = meeting_default_service_type($date);
+        }
         $streamUrl = input('stream_url');
         $seniorUserId = (int)post('senior_user_id', 0);
 
@@ -330,6 +336,7 @@ class MeetingController
                     'topic' => $topic,
                     'tag' => $tag,
                     'meeting_type' => $meetingType,
+                    'service_type' => $serviceType,
                     'materials' => json_encode($materials, JSON_UNESCAPED_UNICODE),
                     'guests' => $guests,
                     'stream_url' => $streamUrl,
@@ -346,6 +353,7 @@ class MeetingController
             'topic' => $topic,
             'tag' => $tag,
             'meeting_type' => $meetingType,
+            'service_type' => $serviceType,
             'materials' => json_encode($materials, JSON_UNESCAPED_UNICODE),
             'guests' => $guests,
             'senior_user_id' => $seniorUserId ?: null,

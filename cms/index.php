@@ -19,6 +19,7 @@ $routes = [
     'meeting'         => ['MeetingController', 'view', ['any']],
     'meeting_ics'     => ['MeetingController', 'ics', ['any']],
     'vespers'         => ['VespersController', 'view', ['any']],
+    'liturgy'         => ['LiturgyController', 'view', ['any']],
     'note_save'       => ['NoteController', 'save', ['write_notes']],
     'note_delete'     => ['NoteController', 'delete', ['write_notes']],
     'note_file_delete' => ['NoteController', 'fileDelete', ['write_notes']],

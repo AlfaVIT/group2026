@@ -119,10 +119,18 @@ foreach ($attendance as $a) {
                 <?php endif; ?>
 
                 <div class="d-flex flex-wrap gap-2 mt-3">
-                    <a class="btn btn-outline-primary cms-btn-icon" href="<?= url('vespers', ['meeting_id' => $m['id']]) ?>"
-                       title="Вечерня братским чином" aria-label="Вечерня братским чином">
-                        <?= ui_icon('book') ?><span class="cms-btn-label">Вечерня братским чином</span>
-                    </a>
+                    <?php $serviceType = meeting_service_type($m); ?>
+                    <?php if ($serviceType === 'liturgy'): ?>
+                        <a class="btn btn-outline-primary cms-btn-icon" href="<?= url('liturgy', ['meeting_id' => $m['id']]) ?>"
+                           title="Текст Литургии" aria-label="Текст Литургии">
+                            <?= ui_icon('book') ?><span class="cms-btn-label">Литургия</span>
+                        </a>
+                    <?php else: ?>
+                        <a class="btn btn-outline-primary cms-btn-icon" href="<?= url('vespers', ['meeting_id' => $m['id']]) ?>"
+                           title="Вечерня братским чином" aria-label="Вечерня братским чином">
+                            <?= ui_icon('book') ?><span class="cms-btn-label">Вечерня братским чином</span>
+                        </a>
+                    <?php endif; ?>
                     <?php $streamLink = meeting_stream_url($m); ?>
                     <?php if ($streamLink !== ''): ?>
                         <?php $streamCommon = meeting_stream_is_common($m); ?>

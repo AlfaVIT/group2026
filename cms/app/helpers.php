@@ -1059,6 +1059,27 @@ function meeting_stream_is_common(array $meeting): bool
         && safe_url(Setting::streamUrl()) !== '';
 }
 
+/**
+ * Какой текст служения показывать для встречи: 'liturgy' или 'vespers'.
+ * Если у встречи ещё не выбрано, решает время начала: до 12:00 — Литургия.
+ */
+function meeting_service_type(array $meeting): string
+{
+    $type = (string)($meeting['service_type'] ?? '');
+    if (in_array($type, ['liturgy', 'vespers'], true)) {
+        return $type;
+    }
+    return meeting_default_service_type((string)($meeting['date'] ?? ''));
+}
+
+/** Значение по умолчанию для даты-времени встречи (см. meeting_service_type). */
+function meeting_default_service_type(string $date): string
+{
+    $ts = $date !== '' ? strtotime($date) : false;
+    $hour = $ts !== false ? (int)date('G', $ts) : 9;
+    return $hour < 12 ? 'liturgy' : 'vespers';
+}
+
 /** Формирует событие iCalendar для встречи (добавление в календарь устройства). */
 function build_meeting_ics(array $meeting): string
 {

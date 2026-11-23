@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS meetings (
     topic TEXT DEFAULT '',
     tag TEXT DEFAULT '',
     meeting_type TEXT DEFAULT '',
+    service_type TEXT DEFAULT '',
     materials TEXT DEFAULT '[]',
     guests TEXT DEFAULT '',
     participants_count INTEGER DEFAULT 0,
@@ -250,7 +251,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_day', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '28')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '29')");
 
     // предустановленные статьи расходов
     foreach (EXPENSE_ARTICLES as $preset) {
@@ -266,7 +267,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 28) {
+        if ($version >= 29) {
             return;
         }
         if ($version >= 21) {
@@ -277,6 +278,7 @@ function run_migrations(): void
             migrate_v26();
             migrate_v27();
             migrate_v28();
+            migrate_v29();
             return;
         }
 
@@ -429,6 +431,7 @@ function run_migrations(): void
         migrate_v26();
         migrate_v27();
         migrate_v28();
+        migrate_v29();
     } catch (Throwable $e) {
     }
 }
@@ -581,6 +584,17 @@ function migrate_v28(): void
     }
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '28')");
     Db::q("UPDATE settings SET value = '28' WHERE key = 'schema_version'");
+}
+
+/** v29: выбор текста служения для встречи (Литургия или Вечерня). */
+function migrate_v29(): void
+{
+    $cols = array_column(Db::fetchAll('PRAGMA table_info(meetings)'), 'name');
+    if (!in_array('service_type', $cols, true)) {
+        Db::q("ALTER TABLE meetings ADD COLUMN service_type TEXT DEFAULT ''");
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '29')");
+    Db::q("UPDATE settings SET value = '29' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */
