@@ -1351,12 +1351,13 @@ function send_email(string $to, string $subject, string $html): bool
     $headers = 'From: ' . mailer_from() . "\r\n"
         . 'Content-Type: text/html; charset=UTF-8' . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n";
-    return mail_transport_send($to, $subject, $headers, $html);
+    // все письма уходят в общем оформлении сайта
+    return mail_transport_send($to, $subject, $headers, email_html($subject, $html));
 }
 
 /**
- * Письмо с вложением (multipart/mixed, base64). Нужно для бекапов базы:
- * send_email() умеет только HTML-тело без файлов.
+ * Письмо с вложением: multipart/mixed, внутри multipart/alternative
+ * (текст + HTML в оформлении сайта), затем файл base64.
  */
 function send_email_attachment(string $to, string $subject, string $text, string $filePath, string $filename, string $mime = 'application/octet-stream'): bool
 {
@@ -1372,13 +1373,23 @@ function send_email_attachment(string $to, string $subject, string $text, string
         $safeName = 'attachment.bin';
     }
     $boundary = 'cms-' . bin2hex(random_bytes(12));
+    $altBoundary = 'cms-alt-' . bin2hex(random_bytes(8));
+    $html = email_html($subject, '<p style="margin:0 0 12px;">' . nl2br(e($text)) . '</p>');
+
     $headers = 'From: ' . mailer_from() . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n"
         . 'Content-Type: multipart/mixed; boundary="' . $boundary . '"' . "\r\n";
     $body = '--' . $boundary . "\r\n"
+        . 'Content-Type: multipart/alternative; boundary="' . $altBoundary . '"' . "\r\n\r\n"
+        . '--' . $altBoundary . "\r\n"
         . "Content-Type: text/plain; charset=UTF-8\r\n"
         . "Content-Transfer-Encoding: 8bit\r\n\r\n"
         . $text . "\r\n"
+        . '--' . $altBoundary . "\r\n"
+        . "Content-Type: text/html; charset=UTF-8\r\n"
+        . "Content-Transfer-Encoding: 8bit\r\n\r\n"
+        . $html . "\r\n"
+        . '--' . $altBoundary . "--\r\n"
         . '--' . $boundary . "\r\n"
         . 'Content-Type: ' . $mime . '; name="' . $safeName . '"' . "\r\n"
         . "Content-Transfer-Encoding: base64\r\n"

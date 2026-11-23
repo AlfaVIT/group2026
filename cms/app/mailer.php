@@ -37,6 +37,109 @@ function mailer_from(): string
     return mail_from();
 }
 
+/** Базовый адрес сайта для ссылок в письмах (в cron HTTP_HOST нет — вернёт ''). */
+function email_site_url(): string
+{
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    if ($host === '' || !preg_match('/^[a-z0-9.\-:]+$/i', $host)) {
+        return '';
+    }
+    $https = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+        || strpos(strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')), 'https') === 0;
+    return ($https ? 'https://' : 'http://') . $host . base_url() . '/';
+}
+
+/**
+ * HTML-письмо в оформлении сайта: палитра (navy/gold/cream), Georgia в
+ * заголовках, табличная вёрстка (её понимают почтовые клиенты), инлайн-стили.
+ *
+ * $contentHtml — уже готовый HTML (не экранируется).
+ */
+function email_html(string $title, string $contentHtml): string
+{
+    $siteName = Setting::siteName();
+    $site = e($siteName);
+
+    // в теме письма часто есть «— Название сайта»; в заголовке карточки это лишнее
+    $cleanTitle = trim($title);
+    $suffix = ' — ' . $siteName;
+    if ($suffix !== ' — ' && mb_substr($cleanTitle, -mb_strlen($suffix)) === $suffix) {
+        $cleanTitle = rtrim(mb_substr($cleanTitle, 0, mb_strlen($cleanTitle) - mb_strlen($suffix)));
+    }
+    $titleHtml = e($cleanTitle !== '' ? $cleanTitle : $siteName);
+
+    $siteUrl = email_site_url();
+    $footer = $siteUrl !== ''
+        ? 'Письмо отправлено автоматически с сайта <a href="' . e($siteUrl) . '" style="color:#1e3a5f;">'
+            . e($siteUrl) . '</a>.'
+        : 'Письмо отправлено автоматически с сайта «' . $site . '».';
+    $date = date('d.m.Y H:i');
+
+    return <<<HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{$titleHtml}</title>
+<style>
+    body { margin: 0; padding: 0; }
+    .cms-mail-body a { color: #1e3a5f; text-decoration: underline; }
+    @media only screen and (max-width: 600px) {
+        .cms-mail-pad { padding: 18px 16px !important; }
+        .cms-mail-card-head { padding: 18px 20px !important; }
+    }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#f6f1e6;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f6f1e6;">
+<tr>
+<td align="center" class="cms-mail-pad" style="padding:24px 12px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="width:100%;max-width:600px;background-color:#fffdf6;border:1px solid #e6dbbd;border-radius:12px;">
+        <tr>
+            <td style="height:5px;background-color:#b08a2e;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+        <tr>
+            <td class="cms-mail-card-head" style="background-color:#1e3a5f;padding:20px 28px;">
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.3;color:#f6f1e6;">{$site}</div>
+                <div style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.4;color:#c9a54a;margin-top:4px;">
+                    Координация деятельности группы катехизации
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:26px 28px 10px;">
+                <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.35;font-weight:normal;color:#152b46;">
+                    {$titleHtml}
+                </h1>
+                <div class="cms-mail-body" style="font-family:'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.6;color:#33405a;">
+                    {$contentHtml}
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:18px 28px 26px;">
+                <div style="border-top:1px solid #e6dbbd;padding-top:14px;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.5;color:#7b8398;">
+                    {$footer}<br>
+                    {$date}
+                </div>
+            </td>
+        </tr>
+    </table>
+    <div style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.4;color:#9aa1b0;padding:12px 8px 0;">
+        Пожалуйста, не отвечайте на это письмо.
+    </div>
+</td>
+</tr>
+</table>
+</body>
+</html>
+HTML;
+}
+
 /**
  * Отправляет готовое письмо (headers без To/Subject, тело как есть).
  * Возвращает true/false; текст последней ошибки — в настройке mail_last_error.
@@ -160,7 +263,10 @@ function smtp_send_message(array $c, string $to, string $subject, string $header
     if (substr($headers, -2) !== "\r\n") {
         $headers .= "\r\n";
     }
-    $safeBody = preg_replace('/^\./m', '..', $body) ?? $body;
+    // SMTP требует CRLF в DATA, а HTML-шаблон собирается с LF
+    $normalized = str_replace(["\r\n", "\r"], "\n", $body);
+    $normalized = str_replace("\n", "\r\n", $normalized);
+    $safeBody = preg_replace('/^\./m', '..', $normalized) ?? $normalized;
     $data = 'To: ' . $to . "\r\n"
         . 'Subject: =?UTF-8?B?' . base64_encode($subject) . "?=\r\n"
         . $headers . "\r\n"
