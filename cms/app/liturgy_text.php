@@ -43,6 +43,12 @@ function liturgy_can_local(string $date): bool
         return false;
     }
 
+    // без данных календаря и чтений локальный текст будет неполным
+    $day = vespers_day($date);
+    if (empty($day['glas']) || empty($day['readings']['Литургия'])) {
+        return false;
+    }
+
     // Великий пост, Страстная и Светлая седмицы — другие чины
     $offset = vespers_offset_days($date);
     if ($offset >= -48 && $offset <= 7) {
