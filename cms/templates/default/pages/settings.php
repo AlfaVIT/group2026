@@ -358,6 +358,59 @@ if ($canViewStats ?? false) {
                             Любая попытка входа с логином admin — удачная или нет (не чаще раза в 30 минут).
                         </div>
                     </div>
+
+                    <hr>
+                    <h2 class="h6">Почта (SMTP)</h2>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="smtp_enabled"
+                               name="smtp_enabled" value="1"
+                               <?= !empty($smtp['enabled']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="smtp_enabled">
+                            Отправлять письма через SMTP-сервер
+                        </label>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-8">
+                            <label class="form-label" for="smtp_host">Сервер</label>
+                            <input class="form-control" type="text" id="smtp_host" name="smtp_host"
+                                   value="<?= e($smtp['host'] ?? '') ?>" placeholder="smtp.mail.ru">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label" for="smtp_port">Порт</label>
+                            <input class="form-control" type="number" id="smtp_port" name="smtp_port"
+                                   min="1" max="65535" value="<?= e($smtp['port'] ?? '465') ?>">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label" for="smtp_secure">Шифрование</label>
+                            <select class="form-select" id="smtp_secure" name="smtp_secure">
+                                <option value="ssl" <?= ($smtp['secure'] ?? 'ssl') === 'ssl' ? 'selected' : '' ?>>SSL (465)</option>
+                                <option value="tls" <?= ($smtp['secure'] ?? '') === 'tls' ? 'selected' : '' ?>>STARTTLS (587)</option>
+                                <option value="" <?= ($smtp['secure'] ?? '') === '' ? 'selected' : '' ?>>Без шифрования</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="form-label" for="smtp_user">Логин (адрес почты)</label>
+                            <input class="form-control" type="email" id="smtp_user" name="smtp_user"
+                                   value="<?= e($smtp['user'] ?? '') ?>" placeholder="noreply@opensite.su">
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="form-label" for="smtp_pass">Пароль</label>
+                            <input class="form-control" type="password" id="smtp_pass" name="smtp_pass"
+                                   autocomplete="new-password"
+                                   placeholder="<?= !empty($smtp['has_pass']) ? 'сохранён — оставьте пустым, чтобы не менять' : 'пароль почтового ящика' ?>">
+                        </div>
+                    </div>
+                    <div class="form-text mt-2">
+                        При включённом SMTP адрес отправителя совпадает с логином — иначе провайдер
+                        отклонит письмо или испортит SPF. Для Mail.ru: smtp.mail.ru, 465, SSL,
+                        пароль приложения (не основной пароль аккаунта).
+                    </div>
+                    <?php if (($mailLastError ?? '') !== ''): ?>
+                        <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                            Последняя ошибка почты: <?= e($mailLastError) ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <div class="card-footer">
                     <button class="btn btn-primary" type="submit">Сохранить</button>
@@ -402,6 +455,14 @@ if ($canViewStats ?? false) {
                         <button class="btn btn-outline-secondary w-100" type="submit"
                                 onclick="return confirm('Старый URL перестанет работать. Обновить токен?');">
                             Обновить токен
+                        </button>
+                    </form>
+                    <form method="post" action="<?= url('settings_save') ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="section" value="maintenance">
+                        <input type="hidden" name="action" value="mail_test">
+                        <button class="btn btn-outline-success w-100" type="submit">
+                            Отправить тестовое письмо
                         </button>
                     </form>
                 </div>

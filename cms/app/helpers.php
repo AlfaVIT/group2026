@@ -1348,11 +1348,10 @@ function send_email(string $to, string $subject, string $html): bool
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
-    $from = mail_from();
-    $headers = 'From: ' . $from . "\r\n"
+    $headers = 'From: ' . mailer_from() . "\r\n"
         . 'Content-Type: text/html; charset=UTF-8' . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n";
-    return (bool)@mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $html, $headers);
+    return mail_transport_send($to, $subject, $headers, $html);
 }
 
 /**
@@ -1373,7 +1372,7 @@ function send_email_attachment(string $to, string $subject, string $text, string
         $safeName = 'attachment.bin';
     }
     $boundary = 'cms-' . bin2hex(random_bytes(12));
-    $headers = 'From: ' . mail_from() . "\r\n"
+    $headers = 'From: ' . mailer_from() . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n"
         . 'Content-Type: multipart/mixed; boundary="' . $boundary . '"' . "\r\n";
     $body = '--' . $boundary . "\r\n"
@@ -1386,5 +1385,5 @@ function send_email_attachment(string $to, string $subject, string $text, string
         . 'Content-Disposition: attachment; filename="' . $safeName . '"' . "\r\n\r\n"
         . chunk_split(base64_encode($data), 76, "\r\n")
         . '--' . $boundary . "--";
-    return (bool)@mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers);
+    return mail_transport_send($to, $subject, $headers, $body);
 }

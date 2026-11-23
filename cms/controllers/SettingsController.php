@@ -88,6 +88,15 @@ class SettingsController
             'cronCommand' => $cronCommand,
             'notifyBruteforce' => (string)Setting::get('notify_bruteforce', '1') === '1',
             'notifyAdminLogin' => (string)Setting::get('notify_admin_login', '1') === '1',
+            'smtp' => [
+                'enabled' => (string)Setting::get('smtp_enabled', '0') === '1',
+                'host'    => (string)Setting::get('smtp_host', 'smtp.mail.ru'),
+                'port'    => (string)Setting::get('smtp_port', '465'),
+                'secure'  => (string)Setting::get('smtp_secure', 'ssl'),
+                'user'    => (string)Setting::get('smtp_user', ''),
+                'has_pass' => (string)Setting::get('smtp_pass', '') !== '',
+            ],
+            'mailLastError' => (string)Setting::get('mail_last_error', ''),
         ], $stats));
     }
 
@@ -269,6 +278,24 @@ class SettingsController
             return;
         }
 
+        if ($action === 'mail_test') {
+            $to = Setting::adminEmail();
+            if ($to === '') {
+                set_flash('Сначала укажите «Почту администратора» на вкладке «Общее»', 'danger');
+                return;
+            }
+            $ok = send_email($to, 'Тестовое письмо — ' . Setting::siteName(), '<p>Это тестовое письмо с сайта «'
+                . e(Setting::siteName()) . '».</p><p>Если вы его получили, отправка почты настроена правильно.</p>');
+            $err = (string)Setting::get('mail_last_error', '');
+            set_flash(
+                $ok
+                    ? 'Тестовое письмо отправлено на ' . $to
+                    : 'Не удалось отправить: ' . ($err !== '' ? $err : 'неизвестная ошибка'),
+                $ok ? 'success' : 'danger'
+            );
+            return;
+        }
+
         $enabled = input('backup_enabled') === '1';
         $freq = input('backup_freq', 'daily');
         if (!in_array($freq, ['daily', 'weekly', 'monthly'], true)) {
@@ -294,6 +321,38 @@ class SettingsController
         Setting::set('backup_day', (string)$day);
         Setting::set('notify_bruteforce', input('notify_bruteforce') === '1' ? '1' : '0');
         Setting::set('notify_admin_login', input('notify_admin_login') === '1' ? '1' : '0');
+
+        // SMTP: From при включении = логин ящика, иначе провайдер отклонит письмо
+        $smtpEnabled = input('smtp_enabled') === '1';
+        $smtpHost = trim(input('smtp_host'));
+        $smtpPort = (int)input('smtp_port', '465');
+        if ($smtpPort < 1 || $smtpPort > 65535) {
+            $smtpPort = 465;
+        }
+        $smtpSecure = input('smtp_secure', 'ssl');
+        if (!in_array($smtpSecure, ['ssl', 'tls', ''], true)) {
+            $smtpSecure = 'ssl';
+        }
+        $smtpUser = trim(input('smtp_user'));
+        if ($smtpUser !== '' && !filter_var($smtpUser, FILTER_VALIDATE_EMAIL)) {
+            set_flash('Укажите корректный логин SMTP (адрес почты)', 'danger');
+            return;
+        }
+        // пароль из поля не тримим: пробелы могут быть значимыми
+        $smtpPass = (string)($_POST['smtp_pass'] ?? '');
+        if ($smtpPass !== '') {
+            Setting::set('smtp_pass', $smtpPass);
+        }
+        Setting::set('smtp_enabled', $smtpEnabled ? '1' : '0');
+        Setting::set('smtp_host', $smtpHost);
+        Setting::set('smtp_port', (string)$smtpPort);
+        Setting::set('smtp_secure', $smtpSecure);
+        Setting::set('smtp_user', $smtpUser);
+
+        if ($smtpEnabled && ($smtpHost === '' || $smtpUser === '' || (string)Setting::get('smtp_pass', '') === '')) {
+            set_flash('SMTP включён, но не заполнены сервер, логин или пароль — письма не отправятся', 'warning');
+            return;
+        }
 
         if ($enabled && Setting::adminEmail() === '') {
             set_flash('Расписание сохранено, но бекапы не будут отправляться: заполните «Почту администратора» на вкладке «Общее»', 'warning');

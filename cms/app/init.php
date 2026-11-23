@@ -11,6 +11,7 @@ require_once __DIR__ . '/articles.php';
 require_once __DIR__ . '/vespers_text.php';
 require_once __DIR__ . '/telegram.php';
 require_once __DIR__ . '/maintenance.php';
+require_once __DIR__ . '/mailer.php';
 
 foreach (glob(__DIR__ . '/../controllers/*.php') ?: [] as $controllerFile) {
     require_once $controllerFile;
