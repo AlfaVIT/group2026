@@ -1348,11 +1348,21 @@ function send_email(string $to, string $subject, string $html): bool
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
+    $logo = email_logo_path();
+    $body = email_html($subject, $html, $logo !== '' ? 'cid:cms-fish' : '');
+
+    if ($logo !== '') {
+        $boundary = 'cms-' . bin2hex(random_bytes(10));
+        $headers = 'From: ' . mailer_from() . "\r\n"
+            . 'MIME-Version: 1.0' . "\r\n"
+            . 'Content-Type: multipart/related; boundary="' . $boundary . '"' . "\r\n";
+        return mail_transport_send($to, $subject, $headers, email_related_body($body, $logo, $boundary));
+    }
+
     $headers = 'From: ' . mailer_from() . "\r\n"
         . 'Content-Type: text/html; charset=UTF-8' . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n";
-    // все письма уходят в общем оформлении сайта
-    return mail_transport_send($to, $subject, $headers, email_html($subject, $html));
+    return mail_transport_send($to, $subject, $headers, $body);
 }
 
 /**
@@ -1374,11 +1384,37 @@ function send_email_attachment(string $to, string $subject, string $text, string
     }
     $boundary = 'cms-' . bin2hex(random_bytes(12));
     $altBoundary = 'cms-alt-' . bin2hex(random_bytes(8));
-    $html = email_html($subject, '<p style="margin:0 0 12px;">' . nl2br(e($text)) . '</p>');
+    $logo = email_logo_path();
+    $html = email_html($subject, '<p style="margin:0 0 12px;">' . nl2br(e($text)) . '</p>',
+        $logo !== '' ? 'cid:cms-fish' : '');
 
     $headers = 'From: ' . mailer_from() . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n"
         . 'Content-Type: multipart/mixed; boundary="' . $boundary . '"' . "\r\n";
+
+    $attachmentPart = '--' . $boundary . "\r\n"
+        . 'Content-Type: ' . $mime . '; name="' . $safeName . '"' . "\r\n"
+        . "Content-Transfer-Encoding: base64\r\n"
+        . 'Content-Disposition: attachment; filename="' . $safeName . '"' . "\r\n\r\n"
+        . chunk_split(base64_encode($data), 76, "\r\n")
+        . '--' . $boundary . "--";
+
+    if ($logo !== '') {
+        $relBoundary = 'cms-rel-' . bin2hex(random_bytes(8));
+        $body = '--' . $boundary . "\r\n"
+            . 'Content-Type: multipart/alternative; boundary="' . $altBoundary . '"' . "\r\n\r\n"
+            . '--' . $altBoundary . "\r\n"
+            . "Content-Type: text/plain; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: 8bit\r\n\r\n"
+            . $text . "\r\n"
+            . '--' . $altBoundary . "\r\n"
+            . 'Content-Type: multipart/related; boundary="' . $relBoundary . '"' . "\r\n\r\n"
+            . email_related_body($html, $logo, $relBoundary) . "\r\n"
+            . '--' . $altBoundary . "--\r\n"
+            . $attachmentPart;
+        return mail_transport_send($to, $subject, $headers, $body);
+    }
+
     $body = '--' . $boundary . "\r\n"
         . 'Content-Type: multipart/alternative; boundary="' . $altBoundary . '"' . "\r\n\r\n"
         . '--' . $altBoundary . "\r\n"
@@ -1390,11 +1426,6 @@ function send_email_attachment(string $to, string $subject, string $text, string
         . "Content-Transfer-Encoding: 8bit\r\n\r\n"
         . $html . "\r\n"
         . '--' . $altBoundary . "--\r\n"
-        . '--' . $boundary . "\r\n"
-        . 'Content-Type: ' . $mime . '; name="' . $safeName . '"' . "\r\n"
-        . "Content-Transfer-Encoding: base64\r\n"
-        . 'Content-Disposition: attachment; filename="' . $safeName . '"' . "\r\n\r\n"
-        . chunk_split(base64_encode($data), 76, "\r\n")
-        . '--' . $boundary . "--";
+        . $attachmentPart;
     return mail_transport_send($to, $subject, $headers, $body);
 }

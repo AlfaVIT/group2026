@@ -49,13 +49,42 @@ function email_site_url(): string
     return ($https ? 'https://' : 'http://') . $host . base_url() . '/';
 }
 
+/** PNG-рыбка для писем (если файла нет — письмо уйдёт без логотипа). */
+function email_logo_path(): string
+{
+    $path = BASE_PATH . '/assets/img/mail-fish.png';
+    return is_file($path) ? $path : '';
+}
+
+/**
+ * multipart/related: HTML-часть + встроенная картинка с Content-ID.
+ * Почтовые клиенты не показывают SVG и режут data:, поэтому логотип
+ * вкладывается отдельной частью и подставляется через cid:.
+ */
+function email_related_body(string $html, string $logoPath, string $boundary): string
+{
+    $data = (string)@file_get_contents($logoPath);
+    return '--' . $boundary . "\r\n"
+        . "Content-Type: text/html; charset=UTF-8\r\n"
+        . "Content-Transfer-Encoding: 8bit\r\n\r\n"
+        . $html . "\r\n"
+        . '--' . $boundary . "\r\n"
+        . 'Content-Type: image/png; name="fish.png"' . "\r\n"
+        . "Content-Transfer-Encoding: base64\r\n"
+        . "Content-ID: <cms-fish>\r\n"
+        . 'Content-Disposition: inline; filename="fish.png"' . "\r\n\r\n"
+        . chunk_split(base64_encode($data), 76, "\r\n")
+        . '--' . $boundary . '--';
+}
+
 /**
  * HTML-письмо в оформлении сайта: палитра (navy/gold/cream), Georgia в
  * заголовках, табличная вёрстка (её понимают почтовые клиенты), инлайн-стили.
  *
  * $contentHtml — уже готовый HTML (не экранируется).
+ * $logoSrc — 'cid:...' для встроенной рыбки или '' без логотипа.
  */
-function email_html(string $title, string $contentHtml): string
+function email_html(string $title, string $contentHtml, string $logoSrc = ''): string
 {
     $siteName = Setting::siteName();
     $site = e($siteName);
@@ -74,6 +103,13 @@ function email_html(string $title, string $contentHtml): string
             . e($siteUrl) . '</a>.'
         : 'Письмо отправлено автоматически с сайта «' . $site . '».';
     $date = date('d.m.Y H:i');
+
+    $logoCell = $logoSrc !== ''
+        ? '<td width="44" valign="middle" style="padding:0 12px 0 0;">'
+            . '<img src="' . e($logoSrc) . '" width="32" height="32" alt="" '
+            . 'style="display:block;width:32px;height:32px;border:0;outline:none;text-decoration:none;">'
+            . '</td>'
+        : '';
 
     return <<<HTML
 <!DOCTYPE html>
@@ -104,10 +140,15 @@ function email_html(string $title, string $contentHtml): string
         </tr>
         <tr>
             <td class="cms-mail-card-head" style="background-color:#1e3a5f;padding:20px 28px;">
-                <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.3;color:#f6f1e6;">{$site}</div>
-                <div style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.4;color:#c9a54a;margin-top:4px;">
-                    Координация деятельности группы катехизации
-                </div>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                    {$logoCell}
+                    <td valign="middle">
+                        <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.3;color:#f6f1e6;">{$site}</div>
+                        <div style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.4;color:#c9a54a;margin-top:4px;">
+                            Координация деятельности группы катехизации
+                        </div>
+                    </td>
+                </tr></table>
             </td>
         </tr>
         <tr>
