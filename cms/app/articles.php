@@ -14,6 +14,9 @@ class Article
 {
     public const KINDS = ['income' => 'Поступление', 'expense' => 'Расход'];
 
+    /** Кеш «сколько записей и на какую сумму» на время запроса. */
+    private static array $usageCache = [];
+
     /** Таблица и колонка, где хранятся названия статей данного вида. */
     private static function storage(string $kind): array
     {
@@ -200,18 +203,22 @@ class Article
     public static function usage(array $article): array
     {
         [$table, $column] = self::storage($article['kind']);
-        $count = 0;
-        $sum = 0.0;
-        foreach (Db::fetchAll(
-            "SELECT $column AS value, COUNT(*) AS cnt, COALESCE(SUM(amount), 0) AS total
-             FROM $table GROUP BY $column"
-        ) as $r) {
-            if (article_key((string)$r['value']) === $article['key']) {
-                $count += (int)$r['cnt'];
-                $sum += (float)$r['total'];
+        // amount зашифрован: SUM()/GROUP BY в SQL по нему не работают.
+        // Считаем один раз за запрос — страница спрашивает это для каждой статьи.
+        if (!isset(self::$usageCache[$table])) {
+            $cache = [];
+            foreach (Db::fetchAll("SELECT $column AS value, amount FROM $table") as $r) {
+                $key = article_key((string)$r['value']);
+                if ($key === '') {
+                    continue;
+                }
+                $cache[$key]['count'] = ($cache[$key]['count'] ?? 0) + 1;
+                $cache[$key]['sum'] = ($cache[$key]['sum'] ?? 0) + amount_cents($r['amount']);
             }
+            self::$usageCache[$table] = $cache;
         }
-        return ['count' => $count, 'sum' => $sum];
+        $row = self::$usageCache[$table][$article['key']] ?? ['count' => 0, 'sum' => 0];
+        return ['count' => (int)$row['count'], 'sum' => cents_amount((int)$row['sum'])];
     }
 
     /** Подсказки по похожести для поля ввода. */

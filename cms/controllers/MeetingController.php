@@ -26,12 +26,12 @@ class MeetingController
             return;
         }
 
-        $roles = Db::fetchAll(
+        $roles = sort_by_name(Db::fetchAll(
             'SELECT mr.meeting_id, mr.role, mr.user_id, u.name, u.address_term
              FROM meeting_roles mr JOIN users u ON u.id = mr.user_id
-             WHERE mr.meeting_id = ? ORDER BY u.name',
+             WHERE mr.meeting_id = ?',
             [$id]
-        );
+        ));
 
         // Отметившихся участников видят все, причину отсутствия — только те,
         // у кого есть право смотреть явку (Старший/Помощник).
@@ -76,8 +76,18 @@ class MeetingController
                  WHERE e.meeting_id = ? ORDER BY e.created_at DESC',
                 [$id]
             );
-            $expensesTotal = (float)(Db::value('SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE meeting_id = ?', [$id]) ?? 0);
-            $myExpensesTotal = (float)(Db::value('SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE meeting_id = ? AND user_id = ?', [$id, Auth::id()]) ?? 0);
+            // amount зашифрован — SUM() в SQL не работает; копейки дают точный итог
+            $totalCents = 0;
+            $myCents = 0;
+            foreach ($expenses as $e) {
+                $cents = amount_cents($e['amount']);
+                $totalCents += $cents;
+                if ((int)$e['user_id'] === Auth::id()) {
+                    $myCents += $cents;
+                }
+            }
+            $expensesTotal = cents_amount($totalCents);
+            $myExpensesTotal = cents_amount($myCents);
             if (!Auth::can('view_expenses')) {
                 $expenses = array_values(array_filter($expenses, fn($e) => (int)$e['user_id'] === Auth::id()));
                 $expensesTotal = $myExpensesTotal;

@@ -65,10 +65,10 @@ class MaterialController
         $materials = array_slice($materials, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
 
         $tags = array_column(Db::fetchAll("SELECT DISTINCT tag FROM materials WHERE tag != '' ORDER BY tag"), 'tag');
-        $authors = Db::fetchAll(
+        $authors = sort_by_name(Db::fetchAll(
             'SELECT DISTINCT u.id, u.address_term, u.name
-             FROM materials m JOIN users u ON u.id = m.user_id ORDER BY u.name'
-        );
+             FROM materials m JOIN users u ON u.id = m.user_id'
+        ));
 
         $editMaterial = null;
         $edit = (int)($_GET['edit'] ?? 0);

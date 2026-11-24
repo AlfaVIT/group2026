@@ -111,16 +111,15 @@ class VespersController
     private function presentUsers(int $meetingId): array
     {
         $ph = implode(',', array_fill(0, count(ATTENDANCE_ROLES), '?'));
-        return Db::fetchAll(
+        return sort_by_name(Db::fetchAll(
             "SELECT u.id, u.address_term, u.name, u.avatar FROM users u
              WHERE u.is_active = 1 AND u.role IN ($ph)
                AND EXISTS (
                    SELECT 1 FROM attendance a
                    WHERE a.meeting_id = ? AND a.user_id = u.id
                      AND a.status = 'present'
-               )
-             ORDER BY u.name",
+               )",
             array_merge(ATTENDANCE_ROLES, [$meetingId])
-        );
+        ));
     }
 }

@@ -167,9 +167,14 @@ $entryRaw = Db::fetchAllRaw('SELECT * FROM treasury_entries WHERE id = ?', [$eid
 if ($on) {
     check('примечание казны зашифровано', Crypto::isEncrypted($entryRaw['note']));
     check('подпись плательщика зашифрована', Crypto::isEncrypted($entryRaw['from_text']));
+    check('сумма зашифрована', Crypto::isEncrypted($entryRaw['amount']), (string)$entryRaw['amount']);
 }
-check('сумма осталась числом', is_numeric($entryRaw['amount']), var_export($entryRaw['amount'], true));
-eq('сумма не изменилась', 1500.5, (float)Db::value('SELECT SUM(amount) FROM treasury_entries'));
+// SUM() по зашифрованной сумме в SQL не работает — складываем в PHP и в копейках
+$sumCents = 0;
+foreach (Db::fetchAll('SELECT amount FROM treasury_entries') as $tr) {
+    $sumCents += amount_cents($tr['amount']);
+}
+eq('сумма читается и складывается', 1500.5, cents_amount($sumCents));
 eq('статья не зашифрована (нужна для группировки)', 'Регулярный взнос', $entryRaw['purpose']);
 
 $vid = Db::insert('visits', ['user_id' => $id, 'ip' => '10.1.2.3', 'user_agent' => 'Test UA']);

@@ -69,47 +69,6 @@ class TreasuryController
              ORDER BY t.date DESC, t.id DESC"
         , $params);
 
-        // Сводка по статьям за выбранный период (те же фильтры, что у списков)
-        $incomeByKey = [];
-        foreach (Db::fetchAll(
-            "SELECT t.purpose AS article, SUM(t.amount) AS total
-             FROM treasury_entries t $wSql GROUP BY t.purpose",
-            $params
-        ) as $r) {
-            $key = article_key((string)$r['article']);
-            if ($key !== '') {
-                $incomeByKey[$key] = ($incomeByKey[$key] ?? 0) + (float)$r['total'];
-            }
-        }
-        $expenseByKey = [];
-        foreach (Db::fetchAll(
-            "SELECT type AS article, SUM(amount) AS total FROM treasury_expenses $expW GROUP BY type",
-            $expParams
-        ) as $r) {
-            $key = article_key((string)$r['article']);
-            if ($key !== '') {
-                $expenseByKey[$key] = ($expenseByKey[$key] ?? 0) + (float)$r['total'];
-            }
-        }
-
-        $incomeNames = collect_articles('treasury_entries', 'purpose');
-        $expenseNames = collect_articles('treasury_expenses', 'type');
-        $articleStats = [];
-        foreach (array_unique(array_merge(array_keys($incomeByKey), array_keys($expenseByKey))) as $key) {
-            $name = $incomeNames[$key] ?? $expenseNames[$key] ?? $key;
-            $income = $incomeByKey[$key] ?? 0.0;
-            $expense = $expenseByKey[$key] ?? 0.0;
-            $articleStats[$name] = [
-                'income' => $income,
-                'expense' => $expense,
-                'balance' => $income - $expense,
-            ];
-        }
-        uksort($articleStats, fn($a, $b) => mb_strtolower((string)$a) <=> mb_strtolower((string)$b));
-        $incomeTotal = (float)array_sum(array_column($articleStats, 'income'));
-        $expenseTotal = (float)array_sum(array_column($articleStats, 'expense'));
-        $balanceTotal = $incomeTotal - $expenseTotal;
-
         $expenses = Db::fetchAll(
             "SELECT treasury_expenses.*, u.address_term AS to_term, u.name AS to_name
              FROM treasury_expenses
@@ -117,8 +76,49 @@ class TreasuryController
              $expW ORDER BY date DESC, id DESC",
             $expParams
         );
-        $expensesTotal = (float)(Db::value("SELECT COALESCE(SUM(amount), 0) FROM treasury_expenses $expW", $expParams) ?? 0);
-        $incomeEntriesTotal = (float)(Db::value("SELECT COALESCE(SUM(t.amount), 0) FROM treasury_entries t $wSql", $params) ?? 0);
+
+        // Суммы считаем в PHP и в копейках: поле amount зашифровано (SUM() в SQL
+        // не работает), а копейки дают точный итог независимо от порядка сложения.
+        $incomeByCents = [];
+        $incomeEntriesCents = 0;
+        foreach ($entries as $r) {
+            $cents = amount_cents($r['amount']);
+            $incomeEntriesCents += $cents;
+            $key = article_key((string)$r['purpose']);
+            if ($key !== '') {
+                $incomeByCents[$key] = ($incomeByCents[$key] ?? 0) + $cents;
+            }
+        }
+        $expenseByCents = [];
+        $expensesCents = 0;
+        foreach ($expenses as $r) {
+            $cents = amount_cents($r['amount']);
+            $expensesCents += $cents;
+            $key = article_key((string)$r['type']);
+            if ($key !== '') {
+                $expenseByCents[$key] = ($expenseByCents[$key] ?? 0) + $cents;
+            }
+        }
+        $incomeEntriesTotal = cents_amount($incomeEntriesCents);
+        $expensesTotal = cents_amount($expensesCents);
+
+        $incomeNames = collect_articles('treasury_entries', 'purpose');
+        $expenseNames = collect_articles('treasury_expenses', 'type');
+        $articleStats = [];
+        foreach (array_unique(array_merge(array_keys($incomeByCents), array_keys($expenseByCents))) as $key) {
+            $name = $incomeNames[$key] ?? $expenseNames[$key] ?? $key;
+            $income = cents_amount($incomeByCents[$key] ?? 0);
+            $expense = cents_amount($expenseByCents[$key] ?? 0);
+            $articleStats[$name] = [
+                'income' => $income,
+                'expense' => $expense,
+                'balance' => amount_diff($income, $expense),
+            ];
+        }
+        uksort($articleStats, fn($a, $b) => mb_strtolower((string)$a) <=> mb_strtolower((string)$b));
+        $incomeTotal = cents_amount(array_sum($incomeByCents));
+        $expenseTotal = cents_amount(array_sum($expenseByCents));
+        $balanceTotal = amount_diff($incomeTotal, $expenseTotal);
 
         $meetingExpenses = [];
         foreach (Db::fetchAll(
@@ -133,22 +133,30 @@ class TreasuryController
                 $meetingExpenses[$mid] = [
                     'date' => $e['m_date'],
                     'topic' => $e['m_topic'],
-                    'total' => 0.0,
+                    'total' => 0,
                     'users' => [],
                 ];
             }
-            $meetingExpenses[$mid]['total'] += (float)$e['amount'];
+            $meetingExpenses[$mid]['total'] += amount_cents($e['amount']);
             $uid = $e['user_id'] ? (int)$e['user_id'] : 0;
             if (!isset($meetingExpenses[$mid]['users'][$uid])) {
                 $meetingExpenses[$mid]['users'][$uid] = [
                     'name' => $e['user_id'] ? ($e['u_term'] . ' ' . $e['u_name']) : 'Без указания',
-                    'total' => 0.0,
+                    'total' => 0,
                     'items' => [],
                 ];
             }
-            $meetingExpenses[$mid]['users'][$uid]['total'] += (float)$e['amount'];
+            $meetingExpenses[$mid]['users'][$uid]['total'] += amount_cents($e['amount']);
             $meetingExpenses[$mid]['users'][$uid]['items'][] = $e;
         }
+        // итоги накапливались в копейках — в рубли переводим один раз
+        foreach ($meetingExpenses as &$me) {
+            $me['total'] = cents_amount($me['total']);
+            foreach ($me['users'] as &$pu) {
+                $pu['total'] = cents_amount($pu['total']);
+            }
+        }
+        unset($me, $pu);
 
         // Списки статей — из справочника (скрытые статьи не предлагаем)
         $purposes = Article::names('income');
@@ -261,7 +269,7 @@ class TreasuryController
                 $row[] = ['n' => true, 'v' => $num($vz), 'b' => false];
                 if ($hasExpByArt[$a]) {
                     $row[] = ['n' => true, 'v' => $num($vo), 'b' => false];
-                    $row[] = ['n' => true, 'v' => $num($vz - $vo), 'b' => false];
+                    $row[] = ['n' => true, 'v' => $num(amount_diff($vz, $vo)), 'b' => false];
                 }
             }
             $row[] = ['n' => true, 'v' => $num($d['userExpenseTotal'][$uid] ?? 0), 'b' => false];
@@ -275,10 +283,10 @@ class TreasuryController
             $tot[] = ['n' => true, 'v' => $num($inc), 'b' => true];
             if ($hasExpByArt[$a]) {
                 $tot[] = ['n' => true, 'v' => $num($exp), 'b' => true];
-                $tot[] = ['n' => true, 'v' => $num($inc - $exp), 'b' => true];
+                $tot[] = ['n' => true, 'v' => $num(amount_diff($inc, $exp)), 'b' => true];
             }
         }
-        $tot[] = ['n' => true, 'v' => $num(array_sum($d['userExpenseTotal'])), 'b' => true];
+        $tot[] = ['n' => true, 'v' => $num($d['expenseGrandTotal']), 'b' => true];
         $rows[] = $tot;
 
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -405,7 +413,7 @@ class TreasuryController
                 $row[] = $num($vz);
                 if ($hasExp) {
                     $row[] = $num($vo);
-                    $row[] = $num($vz - $vo);
+                    $row[] = $num(amount_diff($vz, $vo));
                 }
             }
             $row[] = $num($d['userExpenseTotal'][$uid] ?? 0);
@@ -420,10 +428,10 @@ class TreasuryController
             $tot[] = $num($inc);
             if ($hasExp) {
                 $tot[] = $num($exp);
-                $tot[] = $num($inc - $exp);
+                $tot[] = $num(amount_diff($inc, $exp));
             }
         }
-        $tot[] = $num(array_sum($d['userExpenseTotal']));
+        $tot[] = $num($d['expenseGrandTotal']);
         fputcsv($out, $tot, $sep, '"', '');
 
         rewind($out);
@@ -437,34 +445,56 @@ class TreasuryController
     {
         $df = $mode === 'budget' ? 'period' : 'date';
 
-        $contrib = [];        // [uid][article] => взнос
-        $expense = [];        // [uid][article] => возмещено
-        $articleTotals = [];  // [article] => ['income'=>, 'expense'=>]
+        $contribCents = [];   // [uid][article] => копейки
+        $expenseCents = [];   // [uid][article] => копейки
+        $articleCents = [];   // [article] => ['income'=>копейки, 'expense'=>копейки]
 
         foreach (Db::fetchAll(
-            "SELECT from_user_id AS uid, purpose AS article, SUM(amount) AS total
+            "SELECT from_user_id AS uid, purpose AS article, amount
              FROM treasury_entries
              WHERE from_user_id IS NOT NULL AND $df >= ? AND $df <= ?
-             GROUP BY from_user_id, purpose",
+             ORDER BY id",
             [$from, $to]
         ) as $r) {
             $uid = (int)$r['uid'];
             $art = (string)$r['article'];
-            $contrib[$uid][$art] = ($contrib[$uid][$art] ?? 0) + (float)$r['total'];
-            $articleTotals[$art]['income'] = ($articleTotals[$art]['income'] ?? 0) + (float)$r['total'];
+            $cents = amount_cents($r['amount']);
+            $contribCents[$uid][$art] = ($contribCents[$uid][$art] ?? 0) + $cents;
+            $articleCents[$art]['income'] = ($articleCents[$art]['income'] ?? 0) + $cents;
         }
 
         foreach (Db::fetchAll(
-            "SELECT to_user_id AS uid, type AS article, SUM(amount) AS total
+            "SELECT to_user_id AS uid, type AS article, amount
              FROM treasury_expenses
              WHERE to_user_id IS NOT NULL AND $df >= ? AND $df <= ?
-             GROUP BY to_user_id, type",
+             ORDER BY id",
             [$from, $to]
         ) as $r) {
             $uid = (int)$r['uid'];
             $art = (string)$r['article'];
-            $expense[$uid][$art] = ($expense[$uid][$art] ?? 0) + (float)$r['total'];
-            $articleTotals[$art]['expense'] = ($articleTotals[$art]['expense'] ?? 0) + (float)$r['total'];
+            $cents = amount_cents($r['amount']);
+            $expenseCents[$uid][$art] = ($expenseCents[$uid][$art] ?? 0) + $cents;
+            $articleCents[$art]['expense'] = ($articleCents[$art]['expense'] ?? 0) + $cents;
+        }
+
+        $contrib = [];
+        foreach ($contribCents as $uid => $byArt) {
+            foreach ($byArt as $art => $cents) {
+                $contrib[$uid][$art] = cents_amount($cents);
+            }
+        }
+        $expense = [];
+        foreach ($expenseCents as $uid => $byArt) {
+            foreach ($byArt as $art => $cents) {
+                $expense[$uid][$art] = cents_amount($cents);
+            }
+        }
+        $articleTotals = [];
+        foreach ($articleCents as $art => $byKind) {
+            $articleTotals[$art] = [
+                'income' => cents_amount($byKind['income'] ?? 0),
+                'expense' => cents_amount($byKind['expense'] ?? 0),
+            ];
         }
 
         $articles = array_keys($articleTotals);
@@ -478,20 +508,28 @@ class TreasuryController
                 OR id IN (SELECT from_user_id FROM treasury_entries
                           WHERE from_user_id IS NOT NULL AND $df >= ? AND $df <= ?)
                 OR id IN (SELECT to_user_id FROM treasury_expenses
-                          WHERE to_user_id IS NOT NULL AND $df >= ? AND $df <= ?)
-             ORDER BY is_active DESC, name",
+                          WHERE to_user_id IS NOT NULL AND $df >= ? AND $df <= ?)",
             [$from, $to, $from, $to]
         );
+        // имя зашифровано: порядок «сначала активные, затем по имени» — в PHP
+        usort($users, static function (array $a, array $b): int {
+            $byActive = (int)$b['is_active'] <=> (int)$a['is_active'];
+            return $byActive !== 0 ? $byActive : strcmp((string)$a['name'], (string)$b['name']);
+        });
 
         $userExpenseTotal = [];
-        foreach ($expense as $uid => $byArt) {
-            $userExpenseTotal[$uid] = array_sum($byArt);
+        $expenseGrandCents = 0;
+        foreach ($expenseCents as $uid => $byArt) {
+            $sum = array_sum($byArt); // копейки — целые, порядок не важен
+            $userExpenseTotal[$uid] = cents_amount($sum);
+            $expenseGrandCents += $sum;
         }
 
         return [
             'users' => $users,
             'articles' => $articles,
             'articleTotals' => $articleTotals,
+            'expenseGrandTotal' => cents_amount($expenseGrandCents),
             'contrib' => $contrib,
             'expense' => $expense,
             'userExpenseTotal' => $userExpenseTotal,
@@ -500,19 +538,20 @@ class TreasuryController
 
     private function buildChart(): array
     {
+        // копейки: сумма по дню/статье не зависит от порядка
         $income = [];
         foreach (Db::fetchAll('SELECT date, purpose AS article, amount FROM treasury_entries ORDER BY date, id') as $r) {
             if ($r['article'] === '') {
                 continue;
             }
-            $income[$r['date']][$r['article']] = ($income[$r['date']][$r['article']] ?? 0) + (float)$r['amount'];
+            $income[$r['date']][$r['article']] = ($income[$r['date']][$r['article']] ?? 0) + amount_cents($r['amount']);
         }
         $expense = [];
         foreach (Db::fetchAll('SELECT date, type AS article, amount FROM treasury_expenses ORDER BY date, id') as $r) {
             if ($r['article'] === '') {
                 continue;
             }
-            $expense[$r['date']][$r['article']] = ($expense[$r['date']][$r['article']] ?? 0) + (float)$r['amount'];
+            $expense[$r['date']][$r['article']] = ($expense[$r['date']][$r['article']] ?? 0) + amount_cents($r['amount']);
         }
 
         $articleSet = [];
@@ -532,12 +571,12 @@ class TreasuryController
         $dates = array_unique(array_merge(array_keys($income), array_keys($expense)));
         sort($dates, SORT_STRING);
 
-        $cum = array_fill_keys($articles, 0.0);
+        $cum = array_fill_keys($articles, 0);
         $series = array_fill_keys($articles, []);
         foreach ($dates as $date) {
             foreach ($articles as $a) {
                 $cum[$a] += ($income[$date][$a] ?? 0) - ($expense[$date][$a] ?? 0);
-                $series[$a][] = ['date' => $date, 'balance' => round($cum[$a], 2)];
+                $series[$a][] = ['date' => $date, 'balance' => round($cum[$a] / 100, 2)];
             }
         }
         return ['series' => $series, 'articles' => $articles];

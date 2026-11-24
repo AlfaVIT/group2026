@@ -294,7 +294,12 @@ function crypto_sweep(int $seconds = 5): array
                 $upd = [];
                 foreach ($map[$table] as $column) {
                     $value = $row[$column] ?? null;
-                    if (is_string($value) && $value !== '' && !Crypto::isEncrypted($value)) {
+                    if ($value === null || is_bool($value)) {
+                        continue;
+                    }
+                    // числовые поля (суммы) тоже шифруем: они приходят не строкой
+                    $value = is_float($value) ? json_encode($value) : (string)$value;
+                    if ($value !== '' && !Crypto::isEncrypted($value)) {
                         $upd[$column] = $value;
                     }
                 }

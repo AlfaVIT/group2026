@@ -24,9 +24,9 @@ class Db
         'visits' => ['ip', 'user_agent'],
         'meeting_notes' => ['body'],
         'meeting_checklist' => ['comment'],
-        'treasury_entries' => ['note', 'from_text'],
-        'treasury_expenses' => ['description', 'to_text'],
-        'expenses' => ['description'],
+        'treasury_entries' => ['note', 'from_text', 'amount'],
+        'treasury_expenses' => ['description', 'to_text', 'amount'],
+        'expenses' => ['description', 'amount'],
     ];
 
     private static ?PDO $pdo = null;
@@ -140,7 +140,8 @@ class Db
             if (!array_key_exists($field, $data) || $data[$field] === null) {
                 continue;
             }
-            $value = (string)$data[$field];
+            // float -> строка без потери точности (иначе (string) режет до precision=14)
+            $value = is_float($data[$field]) ? json_encode($data[$field]) : (string)$data[$field];
             if ($value === '' || Crypto::isEncrypted($value)) {
                 continue;
             }

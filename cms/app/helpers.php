@@ -533,6 +533,38 @@ function money($amount): string
     return number_format((float)$amount, 0, ',', ' ') . ' ₽';
 }
 
+/**
+ * Денежная сумма в копейках (целое). Суммы складываем в копейках, а не в float:
+ * иначе итог зависит от порядка сложения и может разойтись на рубль
+ * (например, 232 871,50 при разном порядке даёт 232 871 или 232 872).
+ */
+function amount_cents($amount): int
+{
+    return (int)round((float)$amount * 100);
+}
+
+/** Копейки обратно в рубли — для вывода и сравнений. */
+function cents_amount(int $cents): float
+{
+    return $cents / 100;
+}
+
+/** Сумма набора сумм через копейки: результат не зависит от порядка. */
+function amount_sum(array $values): float
+{
+    $cents = 0;
+    foreach ($values as $value) {
+        $cents += amount_cents($value);
+    }
+    return cents_amount($cents);
+}
+
+/** Разность двух сумм через копейки. */
+function amount_diff($a, $b): float
+{
+    return cents_amount(amount_cents($a) - amount_cents($b));
+}
+
 /** Статья расхода по типу встречи: Встреча группы → Трапеза, Агапа → Агапа, иначе Прочее. */
 function expense_article_for_meeting_type(string $meetingType): string
 {

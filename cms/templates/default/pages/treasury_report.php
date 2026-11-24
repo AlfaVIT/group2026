@@ -99,10 +99,10 @@ $modeLabel = $mode === 'budget' ? 'бюджетный (по периоду)' : '
                     <td class="text-end"><?= money($inc) ?></td>
                     <?php if ($hasExp): ?>
                         <td class="text-end"><?= money($exp) ?></td>
-                        <td class="text-end <?= ($inc - $exp) < 0 ? 'text-danger' : '' ?>"><?= money($inc - $exp) ?></td>
+                        <td class="text-end <?= ($inc - $exp) < 0 ? 'text-danger' : '' ?>"><?= money(amount_diff($inc, $exp)) ?></td>
                     <?php endif; ?>
                 <?php endforeach; ?>
-                <td class="text-end"><?= money(array_sum($userExpenseTotal)) ?></td>
+                <td class="text-end"><?= money($expenseGrandTotal) ?></td>
             </tr>
             </tfoot>
         </table>
