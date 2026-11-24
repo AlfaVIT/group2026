@@ -43,6 +43,9 @@
 
 - Поля из `Db::ENCRYPTED` шифруются AES-256-GCM на уровне `Db`; в файле базы они
   лежат как `e1:...`. Код, шаблоны и SQL-выборки работают с обычными строками.
+- Секреты в `settings` (`smtp_pass`, `smtp_user`, `cron_token`, `telegram_bot_token`,
+  `telegram_webhook_secret`, `admin_email`) шифруются в `Setting::set` и расшифровываются
+  на чтении; список — `Setting::secretKeys()`.
 - Ключ: `cms/data/keys/master.key` (0600, каталог 0700, в git не попадает).
   Копию ключа хранить **вне репозитория и вне почты**. Потеря ключа = потеря данных.
 - Включается файлом-маркером `cms/data/keys/enabled` (создать/удалить по FTP).

@@ -214,6 +214,31 @@ if ($on) {
     check('открытые значения остались', crypto_count_open() > 0);
 }
 
+echo "\nСекреты в настройках\n";
+$legacyToken = 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+Db::q("INSERT OR REPLACE INTO settings (key, value) VALUES ('cron_token', ?)", [$legacyToken]);
+check('открытый секрет виден в статусе', crypto_count_open() > 0);
+$rawToken = Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'cron_token'")[0]['value'];
+if ($on) {
+    check('секрет пока открыт', !Crypto::isEncrypted($rawToken));
+    $res = crypto_sweep();
+    check('перешифровка секретов выполнена', $res['ok'] && $res['done'], var_export($res, true));
+    $rawToken = Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'cron_token'")[0]['value'];
+    check('секрет зашифрован', Crypto::isEncrypted($rawToken), (string)$rawToken);
+    eq('секрет читается', $legacyToken, Setting::get('cron_token'));
+    eq('обычная настройка осталась открытой', '30', (string)Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'schema_version'")[0]['value']);
+    Setting::set('smtp_pass', 'p@ssw0rd');
+    $rawPass = Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'smtp_pass'")[0]['value'];
+    check('новый пароль SMTP пишется зашифрованным', Crypto::isEncrypted($rawPass));
+    eq('пароль SMTP читается', 'p@ssw0rd', Setting::get('smtp_pass'));
+    Setting::set('site_name', 'Проверка');
+    eq('site_name пишется открытым', 'Проверка', Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'site_name'")[0]['value']);
+} else {
+    eq('при выключенном шифровании секрет остаётся открытым', $legacyToken, $rawToken);
+    Setting::set('smtp_pass', 'p@ssw0rd');
+    eq('пароль SMTP читается', 'p@ssw0rd', Setting::get('smtp_pass'));
+}
+
 echo "\nПовторная миграция\n";
 Db::q("UPDATE settings SET value = '29' WHERE key = 'schema_version'");
 run_migrations();

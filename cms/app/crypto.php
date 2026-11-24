@@ -238,7 +238,7 @@ function crypto_has_encrypted_data(): bool
     return false;
 }
 
-/** Сколько ещё открытых (не зашифрованных) значений в шифруемых полях. */
+/** Сколько ещё открытых (не зашифрованных) значений в шифруемых полях и настройках. */
 function crypto_count_open(): int
 {
     $total = 0;
@@ -248,6 +248,14 @@ function crypto_count_open(): int
                 "SELECT COUNT(*) FROM $table
                  WHERE COALESCE($column, '') <> '' AND substr($column, 1, 3) <> 'e1:'"
             );
+        }
+    }
+    // секреты в settings (пароль SMTP, токены, почта администратора)
+    foreach (Setting::secretKeys() as $key) {
+        $row = Db::fetchAllRaw('SELECT value FROM settings WHERE key = ?', [$key]);
+        $value = $row[0]['value'] ?? null;
+        if (is_string($value) && $value !== '' && !Crypto::isEncrypted($value)) {
+            $total++;
         }
     }
     return $total;
@@ -317,6 +325,15 @@ function crypto_sweep(int $seconds = 5): array
     }
     Setting::set('crypto_sweep_pos', '');
     Setting::set('crypto_sweep_done', '1');
+    // Секреты в settings: пароль SMTP, токены бота и планировщика, почта админа.
+    foreach (Setting::secretKeys() as $key) {
+        $row = Db::fetchAllRaw('SELECT value FROM settings WHERE key = ?', [$key]);
+        $value = $row[0]['value'] ?? null;
+        if (is_string($value) && $value !== '' && !Crypto::isEncrypted($value)) {
+            Setting::set($key, $value);
+            $encrypted++;
+        }
+    }
     // В свободных страницах SQLite остаются прежние открытые значения:
     // переписываем файл целиком, чтобы после перешифровки их там не было.
     try {
