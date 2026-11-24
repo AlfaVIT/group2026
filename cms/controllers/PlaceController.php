@@ -20,7 +20,7 @@ class PlaceController
             'apartment' => '', 'intercom' => '', 'geo_link' => '', 'note' => '',
         ];
 
-        $owners = Db::fetchAll("SELECT id, address_term, name FROM users WHERE is_active = 1 AND role != 'Гость' ORDER BY name");
+        $owners = sort_by_name(Db::fetchAll("SELECT id, address_term, name FROM users WHERE is_active = 1 AND role != 'Гость'"));
         $photos = $place ? Db::fetchAll('SELECT * FROM place_photos WHERE place_id = ? ORDER BY sort, id', [$id]) : [];
 
         view('place_edit', [

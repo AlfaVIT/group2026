@@ -66,10 +66,7 @@ class ProfileController
                 set_flash('Укажите корректный email', 'danger');
                 redirect(url('profile'));
             }
-            if ($email !== '' && Db::fetch(
-                'SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?',
-                [$email, $id]
-            )) {
+            if ($email !== '' && user_email_taken($email, $id)) {
                 set_flash('Пользователь с таким email уже существует', 'danger');
                 redirect(url('profile'));
             }

@@ -9,10 +9,7 @@ class AuthController
             // логины и email у нас хранятся в нижнем регистре — сравниваем так же,
             // чтобы вход не зависел от регистра даже в кириллице
             $email = mb_strtolower(input('email'));
-            $user = Db::fetch(
-                'SELECT id, email, login, role FROM users WHERE lower(email) = ? OR (login != \'\' AND lower(login) = ?)',
-                [$email, $email]
-            );
+            $user = user_find_by_login($email);
             $error = 'Неверный логин или пароль';
             if ($user && Auth::attempt($email, (string)($_POST['password'] ?? ''))) {
                 log_visit((int)$user['id']);
@@ -65,10 +62,7 @@ class AuthController
         $this->ensure_valid_session();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = mb_strtolower(trim(input('email')));
-            $user = Db::fetch(
-                'SELECT * FROM users WHERE lower(email) = lower(?) AND is_active = 1',
-                [$email]
-            );
+            $user = user_find_by_email($email);
             if ($user) {
                 $token = bin2hex(random_bytes(32));
                 Db::q('DELETE FROM password_resets WHERE user_id = ?', [$user['id']]);

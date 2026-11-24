@@ -156,7 +156,7 @@ class TreasuryController
 
         $chart = $this->buildChart();
 
-        $users = Db::fetchAll('SELECT id, address_term, name FROM users WHERE is_active = 1 ORDER BY name');
+        $users = sort_by_name(Db::fetchAll('SELECT id, address_term, name FROM users WHERE is_active = 1'));
 
         view('treasury', [
             'title' => 'Казна',

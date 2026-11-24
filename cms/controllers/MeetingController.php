@@ -86,9 +86,9 @@ class MeetingController
 
         $activeUsers = [];
         if (Auth::can('view_attendance') || Auth::can('assign_roles')) {
-            $activeUsers = Db::fetchAll(
-                'SELECT id, address_term, name FROM users WHERE is_active = 1 ORDER BY name'
-            );
+            $activeUsers = sort_by_name(Db::fetchAll(
+                'SELECT id, address_term, name FROM users WHERE is_active = 1'
+            ));
         }
 
         $my = Db::fetch('SELECT * FROM attendance WHERE meeting_id = ? AND user_id = ?', [$id, Auth::id()]);
@@ -178,7 +178,7 @@ class MeetingController
         $tags = Db::fetchAll("SELECT DISTINCT tag FROM meetings WHERE tag != '' ORDER BY tag");
         $usedTypes = array_column(Db::fetchAll("SELECT DISTINCT meeting_type FROM meetings WHERE meeting_type != '' ORDER BY meeting_type"), 'meeting_type');
         $meetingTypes = array_values(array_unique(array_merge(MEETING_TYPE_PRESETS, $usedTypes)));
-        $guestUsers = Db::fetchAll("SELECT id, address_term, name FROM users WHERE role = 'Гость' AND is_active = 1 ORDER BY name");
+        $guestUsers = sort_by_name(Db::fetchAll("SELECT id, address_term, name FROM users WHERE role = 'Гость' AND is_active = 1"));
         $prev = $_SESSION['meeting_form'] ?? null;
         unset($_SESSION['meeting_form']);
 
@@ -201,20 +201,20 @@ class MeetingController
         $seniorCandidates = [];
         $ph = implode(',', array_fill(0, count(ATTENDANCE_ROLES), '?'));
         if ($id) {
-            $presentMembers = Db::fetchAll(
+            $presentMembers = sort_by_name(Db::fetchAll(
                 "SELECT id, address_term, name FROM users
                  WHERE is_active = 1 AND role IN ($ph)
                    AND EXISTS (SELECT 1 FROM attendance a
                                WHERE a.meeting_id = ? AND a.user_id = users.id
-                                 AND a.status = 'present') ORDER BY name",
+                                 AND a.status = 'present')",
                 array_merge(ATTENDANCE_ROLES, [$id])
-            );
+            ));
         } else {
-            $presentMembers = Db::fetchAll(
+            $presentMembers = sort_by_name(Db::fetchAll(
                 "SELECT id, address_term, name FROM users
-                 WHERE is_active = 1 AND role IN ($ph) ORDER BY name",
+                 WHERE is_active = 1 AND role IN ($ph)",
                 ATTENDANCE_ROLES
-            );
+            ));
         }
         foreach (array_merge($presentMembers, $guestUsers) as $cu) {
             $seniorCandidates[(int)$cu['id']] = $cu;

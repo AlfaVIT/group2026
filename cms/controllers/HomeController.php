@@ -67,9 +67,12 @@ class HomeController
         if ($canViewPd) {
             foreach (Db::fetchAll(
                 "SELECT id, address_term, name, avatar, birthday FROM users
-                 WHERE is_active = 1 AND personal_consent = 1 AND birthday != ''"
+                 WHERE is_active = 1 AND personal_consent = 1"
             ) as $u) {
-                $b = $u['birthday'];
+                $b = (string)$u['birthday'];
+                if ($b === '') {
+                    continue;
+                }
                 $noYear = !birthday_has_year($b);
                 $ts = strtotime($noYear ? '2000-' . substr($b, 5) : $b);
                 if ($ts === false) {
@@ -107,17 +110,20 @@ class HomeController
 
         // Телефон показываем только тем, кто его не скрыл, но участник с email
         // или Telegram должен оставаться в списке контактов, даже скрыв телефон.
-        $contacts = $canViewPd ? Db::fetchAll(
-            "SELECT name, address_term, avatar, phone, hide_phone, email, telegram, id
-             FROM users
-             WHERE is_active = 1 AND personal_consent = 1
-               AND (
-                    (hide_phone = 0 AND COALESCE(phone, '') != '')
-                    OR COALESCE(email, '') != ''
-                    OR COALESCE(telegram, '') != ''
-               )
-             ORDER BY name"
-        ) : [];
+        $contacts = $canViewPd ? sort_by_name(array_values(array_filter(
+            Db::fetchAll(
+                "SELECT name, address_term, avatar, phone, hide_phone, email, telegram, id
+                 FROM users
+                 WHERE is_active = 1 AND personal_consent = 1"
+            ),
+            // контакты показываем тем, у кого есть телефон (не скрыт), email или Telegram;
+            // проверяем в PHP: телефон и email зашифрованы, в SQL их не отфильтровать
+            static function (array $u): bool {
+                return ((int)$u['hide_phone'] === 0 && (string)$u['phone'] !== '')
+                    || (string)$u['email'] !== ''
+                    || (string)$u['telegram'] !== '';
+            }
+        ))) : [];
 
         view('home', [
             'title' => Setting::siteName(),

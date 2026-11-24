@@ -467,6 +467,83 @@ if ($canViewStats ?? false) {
                     </form>
                 </div>
             </div>
+
+            <?php if (!empty($crypto)): ?>
+            <div class="card shadow-sm mt-3">
+                <div class="card-header fw-semibold">Шифрование персональных данных</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <div class="small">
+                        <div>
+                            Шифр:
+                            <?php if ($crypto['available']): ?>
+                                <span class="badge text-bg-success">AES-256-GCM</span>
+                            <?php else: ?>
+                                <span class="badge text-bg-danger">openssl недоступен</span>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            Ключ:
+                            <?php if ($crypto['key_valid']): ?>
+                                <span class="badge text-bg-success">на месте</span>
+                            <?php elseif ($crypto['key_exists']): ?>
+                                <span class="badge text-bg-danger">повреждён</span>
+                            <?php else: ?>
+                                <span class="badge text-bg-danger">нет файла</span>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            Режим:
+                            <?php if ($crypto['enabled']): ?>
+                                <span class="badge text-bg-success">включён</span>
+                            <?php else: ?>
+                                <span class="badge text-bg-secondary">выключен</span>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            Открытых значений:
+                            <span class="badge text-bg-<?= $crypto['open'] > 0 ? 'warning' : 'success' ?>">
+                                <?= (int)$crypto['open'] ?>
+                            </span>
+                        </div>
+                    </div>
+                    <?php if (!$crypto['enabled'] && $crypto['key_valid']): ?>
+                        <div class="alert alert-secondary small mb-0">
+                            Шифрование выключено: новые данные пишутся открыто. Чтобы включить,
+                            создайте пустой файл <code>data/keys/enabled</code> рядом с ключом
+                            и нажмите «Зашифровать оставшиеся данные».
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!$crypto['key_exists'] && $crypto['has_encrypted']): ?>
+                        <div class="alert alert-danger small mb-0">
+                            В базе есть зашифрованные данные, но файла ключа нет. Восстановите
+                            <code>data/keys/master.key</code> из сохранённой копии — без него
+                            персональные данные прочитать нельзя.
+                        </div>
+                    <?php elseif (!$crypto['key_exists']): ?>
+                        <div class="alert alert-danger small mb-0">
+                            Файла ключа нет. Пока он не создан, шифрование не включится.
+                            Ключ создаётся при обновлении базы — обновите страницу после миграции.
+                        </div>
+                    <?php elseif ($crypto['key_valid']): ?>
+                        <div class="alert alert-warning small mb-0">
+                            Сохраните копию файла <code>data/keys/master.key</code> отдельно
+                            от базы. Без ключа данные восстановить невозможно.
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($crypto['enabled'] && $crypto['open'] > 0): ?>
+                        <form method="post" action="<?= url('settings_save') ?>">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="section" value="maintenance">
+                            <input type="hidden" name="action" value="crypto_sweep">
+                            <button class="btn btn-outline-warning w-100" type="submit"
+                                    onclick="return confirm('Зашифровать оставшиеся персональные данные? Отменить это без копии базы нельзя.');">
+                                Зашифровать оставшиеся данные
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 <?php elseif ($tab === 'stats'): ?>

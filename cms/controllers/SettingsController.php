@@ -17,10 +17,9 @@ class SettingsController
 
         // список пользователей содержит учётные данные — только администратору
         $users = $canManage
-            ? Db::fetchAll('SELECT id, address_term, name, role, is_active, phone, hide_phone,
+            ? self::sortUsersByRole(Db::fetchAll('SELECT id, address_term, name, role, is_active, phone, hide_phone,
                                    birthday, email, telegram, telegram_chat_id, avatar, login
-                            FROM users
-                            ORDER BY CASE role WHEN \'Старший\' THEN 0 WHEN \'Помощник\' THEN 1 WHEN \'Казначей\' THEN 2 ELSE 3 END, name')
+                            FROM users'))
             : [];
         $places = Db::fetchAll(
             'SELECT p.*, u.name AS owner_name, u.address_term AS owner_term, u.avatar AS owner_avatar,
@@ -86,6 +85,7 @@ class SettingsController
             'backupNext' => $backupNext,
             'cronUrl' => $cronUrl,
             'cronCommand' => $cronCommand,
+            'crypto' => ($canManage && $tab === 'maintenance') ? crypto_status() : [],
             'notifyBruteforce' => (string)Setting::get('notify_bruteforce', '1') === '1',
             'notifyAdminLogin' => (string)Setting::get('notify_admin_login', '1') === '1',
             'smtp' => [
@@ -104,6 +104,18 @@ class SettingsController
     public function stats(): void
     {
         redirect(url('settings', ['tab' => 'stats']));
+    }
+
+    /** Сортировка списка сотрудников: сначала по роли, внутри — по имени. */
+    private static function sortUsersByRole(array $users): array
+    {
+        $order = ['Старший' => 0, 'Помощник' => 1, 'Казначей' => 2];
+        usort($users, static function (array $a, array $b) use ($order): int {
+            $ra = $order[(string)($a['role'] ?? '')] ?? 3;
+            $rb = $order[(string)($b['role'] ?? '')] ?? 3;
+            return $ra <=> $rb ?: strcmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+        });
+        return $users;
     }
 
     /**
@@ -275,6 +287,22 @@ class SettingsController
         if ($action === 'rotate_token') {
             Setting::set('cron_token', bin2hex(random_bytes(24)));
             set_flash('Токен обновлён: старый URL больше не работает', 'info');
+            return;
+        }
+
+        if ($action === 'crypto_sweep') {
+            $res = crypto_sweep();
+            if (!$res['ok']) {
+                set_flash((string)$res['error'], 'danger');
+                return;
+            }
+            $n = (int)$res['encrypted'];
+            set_flash(
+                $res['done']
+                    ? 'Готово: зашифровано записей — ' . $n . '. Открытых значений больше нет.'
+                    : 'Зашифровано записей — ' . $n . '. Осталось ещё: нажмите кнопку ещё раз.',
+                'success'
+            );
             return;
         }
 

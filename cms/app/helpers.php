@@ -251,6 +251,81 @@ function resolve_login_email(string $value): array
     return ['email' => '', 'login' => $value, 'error' => null];
 }
 
+/**
+ * Готов ли слепой индекс email (миграция v30). Пока нет — ищем по открытому
+ * полю, чтобы выкладка кода сама по себе не ломала вход.
+ */
+function crypto_ready(): bool
+{
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = (string)Setting::get('crypto_ready', '0') === '1';
+        } catch (Throwable $e) {
+            $ready = false;
+        }
+    }
+    return $ready;
+}
+
+/** Пользователь по логину или email (регистр не важен). */
+function user_find_by_login(string $identifier): ?array
+{
+    $key = mb_strtolower(trim($identifier));
+    if ($key === '') {
+        return null;
+    }
+    if (crypto_ready()) {
+        return Db::fetch(
+            'SELECT * FROM users WHERE email_idx = ? OR (login != \'\' AND lower(login) = ?)',
+            [Crypto::blindIndex('users.email', $key), $key]
+        );
+    }
+    return Db::fetch(
+        'SELECT * FROM users WHERE lower(email) = ? OR (login != \'\' AND lower(login) = ?)',
+        [$key, $key]
+    );
+}
+
+/** Активный пользователь по email (восстановление пароля). */
+function user_find_by_email(string $email): ?array
+{
+    $key = mb_strtolower(trim($email));
+    if ($key === '') {
+        return null;
+    }
+    if (crypto_ready()) {
+        return Db::fetch('SELECT * FROM users WHERE email_idx = ? AND is_active = 1', [Crypto::blindIndex('users.email', $key)]);
+    }
+    return Db::fetch('SELECT * FROM users WHERE lower(email) = lower(?) AND is_active = 1', [$key]);
+}
+
+/** Занят ли email другим пользователем. */
+function user_email_taken(string $email, int $exceptId = 0): bool
+{
+    $key = mb_strtolower(trim($email));
+    if ($key === '') {
+        return false;
+    }
+    if (crypto_ready()) {
+        return (bool)Db::value(
+            'SELECT id FROM users WHERE email_idx = ? AND id != ?',
+            [Crypto::blindIndex('users.email', $key), $exceptId]
+        );
+    }
+    return (bool)Db::value('SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?', [$key, $exceptId]);
+}
+
+/**
+ * Сортировка по имени в PHP. Имена зашифрованы, поэтому ORDER BY name в SQL
+ * больше не даёт алфавитный порядок; strcmp повторяет BINARY-сортировку SQLite.
+ */
+function sort_by_name(array $rows, string $key = 'name'): array
+{
+    usort($rows, static fn(array $a, array $b): int => strcmp((string)($a[$key] ?? ''), (string)($b[$key] ?? '')));
+    return $rows;
+}
+
 function user_font_size(?array $user = null): int
 {
     $user ??= Auth::user();
@@ -713,13 +788,17 @@ function birthday_parts(string $stored): array
 /** Ранее введённые годы рождения участников (для datalist поля ГГГГ). */
 function birthday_year_options(): array
 {
-    return array_map('strval', array_column(
-        Db::fetchAll(
-            "SELECT DISTINCT substr(birthday, 1, 4) AS y FROM users
-             WHERE birthday != '' AND substr(birthday, 1, 4) != '0000' ORDER BY y DESC"
-        ),
-        'y'
-    ));
+    // birthday зашифрован, поэтому substr() в SQL не работает — разбираем в PHP
+    $years = [];
+    foreach (Db::fetchAll("SELECT birthday FROM users WHERE birthday != ''") as $u) {
+        $year = substr((string)$u['birthday'], 0, 4);
+        if ($year !== '' && $year !== '0000' && ctype_digit($year)) {
+            $years[$year] = true;
+        }
+    }
+    $years = array_keys($years);
+    rsort($years, SORT_STRING);
+    return array_map('strval', $years);
 }
 
 /**
@@ -785,11 +864,11 @@ function role_badge_class(string $role): string
 function attendance_eligible(): array
 {
     $ph = implode(',', array_fill(0, count(ATTENDANCE_ROLES), '?'));
-    return Db::fetchAll(
+    return sort_by_name(Db::fetchAll(
         "SELECT id, address_term, name, role FROM users
-         WHERE is_active = 1 AND role IN ($ph) ORDER BY name",
+         WHERE is_active = 1 AND role IN ($ph)",
         ATTENDANCE_ROLES
-    );
+    ));
 }
 
 function attendance_badge_class(string $status): string

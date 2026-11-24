@@ -242,14 +242,30 @@ function security_send_mail(string $subject, array $lines): bool
     }
 }
 
+/** Значение для журнала попыток: HMAC вместо открытого логина/IP/браузера. */
+function security_attempt_key(string $scope, string $value): string
+{
+    $value = trim($value);
+    if ($scope === 'login_attempts.identifier') {
+        $value = mb_strtolower($value);
+    }
+    if ($value === '') {
+        return '';
+    }
+    if (!is_file(Crypto::keyPath())) {
+        return $value; // ключ ещё не создан — пишем как раньше
+    }
+    return Crypto::blindIndex($scope, $value);
+}
+
 /** Запоминает неудачную попытку входа (для подсчёта серии). */
 function security_log_failure(string $identifier, string $ip, string $ua): void
 {
     try {
         Db::insert('login_attempts', [
-            'identifier' => mb_substr(mb_strtolower(trim($identifier)), 0, 190),
-            'ip'         => mb_substr($ip, 0, 45),
-            'user_agent' => $ua,
+            'identifier' => security_attempt_key('login_attempts.identifier', $identifier),
+            'ip'         => security_attempt_key('login_attempts.ip', $ip),
+            'user_agent' => security_attempt_key('login_attempts.user_agent', $ua),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
         // журнал нужен только для подсчёта свежих серий
@@ -291,7 +307,11 @@ function security_notify_bruteforce(string $identifier, string $ip): void
         $since = date('Y-m-d H:i:s', time() - 600);
         $count = (int)Db::value(
             'SELECT COUNT(*) FROM login_attempts WHERE created_at >= ? AND (identifier = ? OR ip = ?)',
-            [$since, mb_strtolower(trim($identifier)), $ip]
+            [
+                $since,
+                security_attempt_key('login_attempts.identifier', $identifier),
+                security_attempt_key('login_attempts.ip', $ip),
+            ]
         );
     } catch (Throwable $e) {
         return;

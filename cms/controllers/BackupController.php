@@ -22,6 +22,21 @@ class BackupController
         }
 
         $s = backup_schedule();
+
+        // ?crypto=1 — довести шифрование персональных данных до конца (порциями).
+        // Тот же токен, что и у бекапов: отдельного доступа не нужно.
+        if (get_str('crypto') === '1') {
+            $res = crypto_sweep(20);
+            echo json_encode([
+                'ok'        => $res['ok'],
+                'done'      => $res['done'],
+                'encrypted' => $res['encrypted'],
+                'left'      => crypto_count_open(),
+                'error'     => $res['error'] ?? null,
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         if (get_str('dry') === '1') {
             $slot = backup_last_slot($s);
             $next = backup_next_slot($s);

@@ -4,10 +4,10 @@ class TelegramController
 {
     public function index(): void
     {
-        $users = Db::fetchAll(
+        $users = sort_by_name(Db::fetchAll(
             "SELECT id, address_term, name, role, telegram, telegram_username, telegram_chat_id
-             FROM users WHERE is_active = 1 ORDER BY name"
-        );
+             FROM users WHERE is_active = 1"
+        ));
         $meetings = Db::fetchAll('SELECT id, date, topic, tag FROM meetings ORDER BY date DESC LIMIT 100');
         // токен бота и его настройки — только администратору
         $canManage = Auth::can('manage_settings');
@@ -82,7 +82,8 @@ class TelegramController
         $recipients = [];
         foreach (Db::fetchAll(
             'SELECT id, address_term, name, telegram_chat_id FROM users
-             WHERE is_active = 1 AND telegram_chat_id IS NOT NULL AND telegram_chat_id != 0'
+             WHERE is_active = 1 AND telegram_chat_id IS NOT NULL
+               AND telegram_chat_id != 0 AND telegram_chat_id != \'\''
         ) as $u) {
             $recipients[(int)$u['telegram_chat_id']] = $u;
         }

@@ -155,10 +155,7 @@ class UserController
         if ($email !== '') {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'Укажите корректный email';
-            } elseif (Db::fetch(
-                'SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?',
-                [$email, $id]
-            )) {
+            } elseif (user_email_taken($email, $id)) {
                 $errors[] = 'Пользователь с таким email уже существует';
             }
         }

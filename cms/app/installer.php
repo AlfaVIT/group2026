@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
     personal_consent INTEGER NOT NULL DEFAULT 0,
     remember_token TEXT DEFAULT '',
     remember_expires TEXT,
+    email_idx TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -237,6 +238,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_login_attempts_created ON login_attempts (created_at);
+CREATE INDEX IF NOT EXISTS idx_users_email_idx ON users (email_idx);
 SQL;
 
     $pdo->exec($schema);
@@ -251,7 +253,19 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_day', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '29')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '30')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('crypto_ready', '1')");
+
+    // ключ шифрования создаётся сразу: без него данные некуда будет перешифровать.
+    // Никогда не пересоздаём ключ, если в базе уже есть зашифрованные значения —
+    // новый ключ сделал бы их нечитаемыми.
+    if (!is_file(Crypto::keyPath()) && !crypto_has_encrypted_data()) {
+        try {
+            Crypto::createKey();
+        } catch (Throwable $e) {
+            error_log('Crypto: не удалось создать ключ: ' . $e->getMessage());
+        }
+    }
 
     // предустановленные статьи расходов
     foreach (EXPENSE_ARTICLES as $preset) {
@@ -267,7 +281,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 29) {
+        if ($version >= 30) {
             return;
         }
         if ($version >= 21) {
@@ -279,6 +293,7 @@ function run_migrations(): void
             migrate_v27();
             migrate_v28();
             migrate_v29();
+            migrate_v30();
             return;
         }
 
@@ -432,6 +447,7 @@ function run_migrations(): void
         migrate_v27();
         migrate_v28();
         migrate_v29();
+        migrate_v30();
     } catch (Throwable $e) {
     }
 }
@@ -597,6 +613,53 @@ function migrate_v29(): void
     Db::q("UPDATE settings SET value = '29' WHERE key = 'schema_version'");
 }
 
+/**
+ * v30: шифрование персональных данных (см. app/crypto.php).
+ *
+ * Здесь только подготовка: колонка слепого индекса для входа по email,
+ * ключ шифрования и разовый расчёт индекса. Сами данные остаются открытыми
+ * до включения CRYPTO_ENABLED и запуска перешифровки из «Обслуживания».
+ */
+function migrate_v30(): void
+{
+    $cols = array_column(Db::fetchAll('PRAGMA table_info(users)'), 'name');
+    if (!in_array('email_idx', $cols, true)) {
+        Db::q("ALTER TABLE users ADD COLUMN email_idx TEXT NOT NULL DEFAULT ''");
+    }
+    Db::q('CREATE INDEX IF NOT EXISTS idx_users_email_idx ON users (email_idx)');
+
+    // Ключ создаётся один раз. Если в базе уже есть зашифрованные значения,
+    // а файла нет — новый ключ не создаём: это не восстановит данные, а только
+    // замаскирует потерю. Файл нужно было сохранить отдельно от базы.
+    if (!is_file(Crypto::keyPath())) {
+        if (crypto_has_encrypted_data()) {
+            error_log('Crypto: файл ключа отсутствует, но в базе есть зашифрованные данные: ' . Crypto::keyPath());
+        } else {
+            try {
+                Crypto::createKey();
+            } catch (Throwable $e) {
+                error_log('Crypto: не удалось создать ключ: ' . $e->getMessage());
+            }
+        }
+    }
+
+    // Индекс нужен уже сейчас — до включения шифрования, иначе вход по email
+    // перестанет находить пользователей.
+    if (is_file(Crypto::keyPath())) {
+        foreach (Db::fetchAll("SELECT id, email FROM users WHERE email != '' AND (email_idx IS NULL OR email_idx = '')") as $u) {
+            $email = mb_strtolower(trim((string)$u['email']));
+            if ($email === '') {
+                continue;
+            }
+            Db::q('UPDATE users SET email_idx = ? WHERE id = ?', [Crypto::blindIndex('users.email', $email), (int)$u['id']]);
+        }
+        Setting::set('crypto_ready', '1');
+    }
+
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '30')");
+    Db::q("UPDATE settings SET value = '30' WHERE key = 'schema_version'");
+}
+
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */
 function migrate_v22(): void
 {
@@ -638,10 +701,10 @@ function install_create_admin(array $data): array
 {
     $errors = install_validate_admin_data($data);
     $loe = resolve_login_email($data['login_or_email'] ?? '');
-    if (!$errors && Db::fetch(
-        "SELECT id FROM users WHERE lower(login) = lower(?) OR (email != '' AND lower(email) = lower(?))",
-        [$loe['login'], $loe['email']]
-    )) {
+    $loginTaken = $loe['login'] !== ''
+        && (bool)Db::fetch('SELECT id FROM users WHERE lower(login) = lower(?)', [$loe['login']]);
+    $emailTaken = $loe['email'] !== '' && user_email_taken($loe['email']);
+    if (!$errors && ($loginTaken || $emailTaken)) {
         $errors[] = 'Пользователь с таким логином или email уже существует';
     }
     if ($errors) {

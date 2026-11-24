@@ -1,7 +1,14 @@
 <?php
 
 define('BASE_PATH', __DIR__);
-define('DB_PATH', BASE_PATH . '/data/cms.sqlite');
+define('DB_PATH', getenv('CMS_DB_PATH') ?: BASE_PATH . '/data/cms.sqlite');
+
+// Шифрование чувствительных полей (см. app/crypto.php).
+// Боевой переключатель — файл data/keys/enabled рядом с ключом (его наличие
+// включает шифрование). Константа ниже принудительно включает режим и нужна
+// только для отладки: CMS_CRYPTO=1 php ...
+define('CRYPTO_ENABLED', filter_var(getenv('CMS_CRYPTO') ?: '0', FILTER_VALIDATE_BOOLEAN));
+define('CRYPTO_KEY_FILE', getenv('CMS_CRYPTO_KEY_FILE') ?: BASE_PATH . '/data/keys/master.key');
 define('UPLOAD_DIR', BASE_PATH . '/uploads');
 define('UPLOAD_URL', 'uploads');
 define('DEFAULT_THEME', 'default');
