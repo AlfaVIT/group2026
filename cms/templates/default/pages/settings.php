@@ -174,6 +174,7 @@ if ($canViewStats ?? false) {
                 <th>Хозяин</th>
                 <th>Адрес</th>
                 <th>Фото</th>
+                <th>Статус</th>
                 <th class="text-end">Действия</th>
             </tr>
             </thead>
@@ -195,6 +196,13 @@ if ($canViewStats ?? false) {
                     <td class="small"><?= $p['owner_name'] ? e(full_name(['address_term' => $p['owner_term'], 'name' => $p['owner_name']])) : '—' ?></td>
                     <td class="small"><?= e((string)$p['locality']) . ($p['street'] ? ', ' . e($p['street']) . ' ' . e($p['house'] . $p['house_letter']) : '') ?></td>
                     <td class="small"><?= (int)$p['photos_count'] ?></td>
+                    <td class="small">
+                        <?php if (!empty($p['is_active'])): ?>
+                            <span class="badge text-bg-success">Активно</span>
+                        <?php else: ?>
+                            <span class="badge text-bg-secondary">Неактивно</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="text-end text-nowrap">
                         <a class="btn btn-sm btn-outline-secondary" href="<?= url('place_edit', ['id' => $p['id']]) ?>"
                            title="Изменить" aria-label="Изменить"><?= ui_icon('edit') ?></a>

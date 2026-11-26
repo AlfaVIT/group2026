@@ -99,6 +99,15 @@ $mapsPreview = safe_url($data['geo_link'] ?? '');
     </div>
 
     <div class="col-12">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1"
+                <?= ($data['is_active'] ?? 1) ? 'checked' : '' ?>>
+            <label class="form-check-label" for="is_active">Активно</label>
+            <div class="form-text">Неактивные места не предлагаются при регистрации встречи, но остаются в истории.</div>
+        </div>
+    </div>
+
+    <div class="col-12">
         <label class="form-label">Фотографии</label>
         <input class="form-control" type="file" name="photos[]" id="photos" multiple accept="image/jpeg,image/png,image/gif,image/webp">
         <div class="form-text">Можно выбрать несколько изображений (до 10 МБ каждое).</div>

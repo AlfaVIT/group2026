@@ -53,7 +53,7 @@ echo "\nУстановка\n";
 install_schema();
 $on = Crypto::enabled();
 echo $on ? "  → шифрование ВКЛЮЧЕНО\n" : "  → шифрование выключено\n";
-eq('версия схемы', '30', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
+eq('версия схемы', '31', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
 check('ключ создан', is_file(Crypto::keyPath()));
 check('ключ валиден', Crypto::keyIsValid());
 check('crypto_ready', crypto_ready());
@@ -148,6 +148,7 @@ if ($on) {
 }
 eq('адрес читается', 'ул. Ленина', Db::value('SELECT street FROM places WHERE id = ?', [$pid]));
 check('название места открыто (по нему сортировка)', $placeRaw['title'] === 'Дом Ивана');
+eq('новое место активно по умолчанию', 1, (int)$placeRaw['is_active']);
 
 $mid = Db::insert('meetings', ['date' => '2026-01-10']);
 $nid = Db::insert('meeting_notes', [
@@ -226,7 +227,7 @@ if ($on) {
     $rawToken = Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'cron_token'")[0]['value'];
     check('секрет зашифрован', Crypto::isEncrypted($rawToken), (string)$rawToken);
     eq('секрет читается', $legacyToken, Setting::get('cron_token'));
-    eq('обычная настройка осталась открытой', '30', (string)Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'schema_version'")[0]['value']);
+    eq('обычная настройка осталась открытой', '31', (string)Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'schema_version'")[0]['value']);
     Setting::set('smtp_pass', 'p@ssw0rd');
     $rawPass = Db::fetchAllRaw("SELECT value FROM settings WHERE key = 'smtp_pass'")[0]['value'];
     check('новый пароль SMTP пишется зашифрованным', Crypto::isEncrypted($rawPass));
@@ -242,7 +243,7 @@ if ($on) {
 echo "\nПовторная миграция\n";
 Db::q("UPDATE settings SET value = '29' WHERE key = 'schema_version'");
 run_migrations();
-eq('версия схемы снова 30', '30', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
+eq('версия схемы снова 31', '31', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
 eq('вход после повторной миграции', $id, (int)(user_find_by_login('ivan2@example.com')['id'] ?? 0));
 
 echo "\nПроизводительность на реальных выборках\n";

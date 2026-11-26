@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS places (
     intercom TEXT DEFAULT '',
     geo_link TEXT DEFAULT '',
     note TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -253,7 +254,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_day', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '30')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '31')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('crypto_ready', '1')");
 
     // ключ шифрования создаётся сразу: без него данные некуда будет перешифровать.
@@ -281,7 +282,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 30) {
+        if ($version >= 31) {
             return;
         }
         if ($version >= 21) {
@@ -294,6 +295,7 @@ function run_migrations(): void
             migrate_v28();
             migrate_v29();
             migrate_v30();
+            migrate_v31();
             return;
         }
 
@@ -448,6 +450,7 @@ function run_migrations(): void
         migrate_v28();
         migrate_v29();
         migrate_v30();
+        migrate_v31();
     } catch (Throwable $e) {
     }
 }
@@ -658,6 +661,22 @@ function migrate_v30(): void
 
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '30')");
     Db::q("UPDATE settings SET value = '30' WHERE key = 'schema_version'");
+}
+
+/**
+ * v31: у места встречи появился флаг активности.
+ *
+ * Неактивные места остаются в истории встреч, но в форме регистрации новой
+ * встречи не предлагаются (см. MeetingController::edit).
+ */
+function migrate_v31(): void
+{
+    $cols = array_column(Db::fetchAll('PRAGMA table_info(places)'), 'name');
+    if (!in_array('is_active', $cols, true)) {
+        Db::q('ALTER TABLE places ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1');
+    }
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '31')");
+    Db::q("UPDATE settings SET value = '31' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

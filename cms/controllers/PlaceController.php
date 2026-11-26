@@ -17,7 +17,7 @@ class PlaceController
         $data = $prev ?? $place ?? [
             'title' => '', 'owner_id' => '', 'region' => '', 'district' => '', 'locality' => '',
             'street' => '', 'house' => '', 'house_letter' => '', 'entrance' => '', 'floor' => '',
-            'apartment' => '', 'intercom' => '', 'geo_link' => '', 'note' => '',
+            'apartment' => '', 'intercom' => '', 'geo_link' => '', 'note' => '', 'is_active' => 1,
         ];
 
         $owners = sort_by_name(Db::fetchAll("SELECT id, address_term, name FROM users WHERE is_active = 1 AND role != 'Гость'"));
@@ -56,6 +56,7 @@ class PlaceController
             'intercom' => input('intercom'),
             'geo_link' => expand_yandex_maps_link(input('geo_link')),
             'note' => input('note'),
+            'is_active' => input('is_active') ? 1 : 0,
         ];
 
         $errors = [];

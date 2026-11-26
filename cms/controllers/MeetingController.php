@@ -184,7 +184,6 @@ class MeetingController
             return;
         }
 
-        $places = Db::fetchAll('SELECT * FROM places ORDER BY title');
         $tags = Db::fetchAll("SELECT DISTINCT tag FROM meetings WHERE tag != '' ORDER BY tag");
         $usedTypes = array_column(Db::fetchAll("SELECT DISTINCT meeting_type FROM meetings WHERE meeting_type != '' ORDER BY meeting_type"), 'meeting_type');
         $meetingTypes = array_values(array_unique(array_merge(MEETING_TYPE_PRESETS, $usedTypes)));
@@ -202,6 +201,14 @@ class MeetingController
             'guests' => '',
             'stream_url' => '',
         ];
+
+        // в форме — только активные места; уже выбранное (в т.ч. у старой встречи)
+        // показываем всегда, чтобы редактирование не теряло место
+        $currentPlaceId = (int)($data['place_id'] ?? 0);
+        $places = Db::fetchAll(
+            'SELECT * FROM places WHERE is_active = 1 OR id = ? ORDER BY title',
+            [$currentPlaceId]
+        );
 
         $guestIds = array_values(array_filter(
             array_map('trim', explode(',', (string)($data['guests'] ?? ''))),
@@ -302,8 +309,20 @@ class MeetingController
         if ($streamUrl !== '' && (!filter_var($streamUrl, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $streamUrl))) {
             $errors[] = 'Ссылка на трансляцию должна начинаться с http:// или https://';
         }
-        if ($placeId && !Db::fetch('SELECT id FROM places WHERE id = ?', [$placeId])) {
-            $errors[] = 'Указанное место не найдено';
+        if ($placeId) {
+            $placeRow = Db::fetch('SELECT id, is_active FROM places WHERE id = ?', [$placeId]);
+            if (!$placeRow) {
+                $errors[] = 'Указанное место не найдено';
+            } elseif (!(int)$placeRow['is_active']) {
+                // место могло быть деактивировано уже после создания встречи —
+                // такую встречу разрешаем сохранить с прежним местом
+                $currentPlaceId = $id
+                    ? (int)(Db::value('SELECT place_id FROM meetings WHERE id = ?', [$id]) ?? 0)
+                    : 0;
+                if ($currentPlaceId !== $placeId) {
+                    $errors[] = 'Выбранное место встречи неактивно';
+                }
+            }
         }
         if ($seniorUserId && !Db::fetch('SELECT id FROM users WHERE id = ? AND is_active = 1', [$seniorUserId])) {
             $errors[] = 'Указан некорректный старший на встрече';

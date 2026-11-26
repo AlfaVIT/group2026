@@ -41,7 +41,7 @@ $isEdit = (bool)$meeting;
             <?php foreach ($places as $p): ?>
                 <option value="<?= (int)$p['id'] ?>"
                     <?= (int)($data['place_id'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>>
-                    <?= e($p['title']) ?>
+                    <?= e($p['title']) ?><?= empty($p['is_active']) ? ' (неактивно)' : '' ?>
                 </option>
             <?php endforeach; ?>
         </select>
