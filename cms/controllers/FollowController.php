@@ -34,28 +34,32 @@ class FollowController
         $userId = (int)$user['id'];
         $canLead = follow_is_senior($user);
 
-        follow_clear_stale($meetingId);
+        // Опрос состояния (poll=1) ничего не пишет в базу: у следящих он идёт
+        // каждые 0,5 с, и лишние записи только мешали бы.
+        if (!isset($_POST['poll'])) {
+            follow_clear_stale($meetingId);
 
-        $pos = null;
-        if (isset($_POST['pos']) && is_scalar($_POST['pos'])) {
-            $pos = (float)$_POST['pos'];
-            if (!is_finite($pos)) {
-                $pos = null;
+            $pos = null;
+            if (isset($_POST['pos']) && is_scalar($_POST['pos'])) {
+                $pos = (float)$_POST['pos'];
+                if (!is_finite($pos)) {
+                    $pos = null;
+                }
             }
-        }
 
-        $lead = $_POST['lead'] ?? null;
-        if ($lead !== null && is_scalar($lead) && $canLead) {
-            follow_set_leader($meetingId, $userId, (string)$lead === '1', $pos ?? 0.0);
-        } elseif ($pos !== null) {
-            follow_update_position($meetingId, $userId, $pos);
-        } else {
-            follow_heartbeat($meetingId, $userId);
-        }
+            $lead = $_POST['lead'] ?? null;
+            if ($lead !== null && is_scalar($lead) && $canLead) {
+                follow_set_leader($meetingId, $userId, (string)$lead === '1', $pos ?? 0.0);
+            } elseif ($pos !== null) {
+                follow_update_position($meetingId, $userId, $pos);
+            } else {
+                follow_heartbeat($meetingId, $userId);
+            }
 
-        $follow = $_POST['follow'] ?? null;
-        if ($follow !== null && is_scalar($follow)) {
-            follow_set_follower($meetingId, $userId, (string)$follow === '1');
+            $follow = $_POST['follow'] ?? null;
+            if ($follow !== null && is_scalar($follow)) {
+                follow_set_follower($meetingId, $userId, (string)$follow === '1');
+            }
         }
 
         echo json_encode(
