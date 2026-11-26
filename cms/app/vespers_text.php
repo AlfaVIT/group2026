@@ -3,10 +3,11 @@
 /**
  * Парсер текста вечерни molitva.app («Вечерня братским чином»).
  *
- * По дате встречи собирает HTML стандартного чина вечерни (модуль 1127
- * приложения) из API api.c.psmb.ru и локальных фрагментов. Для особых
- * периодов (посты, Пасха, Страстная, Рождество, Крещение и т.п.) возвращает
- * признак необходимости iframe-фолбэка на molitva.app.
+ * По дате встречи собирает HTML чина вечерни (модуль 1127 приложения и его
+ * постная ветка) из API api.c.psmb.ru и локальных фрагментов. Для особых дней
+ * (Страстная, Пасха и пасхальный период, Рождество, Крещение, Благовещение,
+ * Прощёное воскресенье, Димитриевская суббота) возвращает признак
+ * необходимости iframe-фолбэка на molitva.app.
  *
  * Использует кэш файлового типа в data/cache/vespers/.
  */
@@ -17,7 +18,8 @@
 
 function vespers_cache_dir(): string
 {
-    $dir = BASE_PATH . '/data/cache/vespers';
+    // каталог можно переопределить (тесты пишут кэш во временную папку)
+    $dir = getenv('CMS_VESPERS_CACHE') ?: (BASE_PATH . '/data/cache/vespers');
     if (!is_dir($dir)) {
         @mkdir($dir, 0775, true);
     }
@@ -147,27 +149,77 @@ function vespers_fast_period(string $W): string
     return '';
 }
 
+/** Великий праздник по данным календаря: API помечает день иконкой «служба великому празднику». */
+function vespers_is_great_feast_day(string $W): bool
+{
+    $day = vespers_day($W);
+    return strpos((string)($day['saints'] ?? ''), 'Совершается служба великому празднику') !== false;
+}
+
+/** Благовещение (7 апреля по новому стилю). */
+function vespers_is_annunciation_day(string $W): bool
+{
+    return date('m-d', strtotime($W)) === '04-07';
+}
+
+/**
+ * Нужен ли для этой даты постный чин вечерни.
+ *
+ * Соответствует выбору скрипта в molitva.app: в будни постов служится постный
+ * чин, а субботы, великие праздники и Благовещение остаются по обычному чину.
+ */
+function vespers_lent_script(string $dateA): bool
+{
+    $W = date('Y-m-d', strtotime($dateA . ' +1 day'));
+    $offsetW = vespers_offset_days($W);
+    // Сырная седмица приложением тоже считается постной ветвью
+    $sirnaja = $offsetW >= -55 && $offsetW <= -50;
+    if (vespers_fast_period($W) === '' && !$sirnaja) {
+        return false;
+    }
+    $dowA = (int)date('w', strtotime($dateA));
+    if ($dowA === 6) {
+        return false; // суббота — обычный чин
+    }
+    if (vespers_is_great_feast_day($W) || vespers_is_annunciation_day($W)) {
+        return false;
+    }
+    $greatLent = vespers_fast_period($W) === 'velikiy';
+    if (!$greatLent && $dowA === 5) {
+        return false; // пятница вне Великого поста — обычный чин
+    }
+    return true;
+}
+
+/** Великий пост (Страстная неделя всегда показывается из приложения). */
+function vespers_is_great_lent(string $dateA): bool
+{
+    $W = date('Y-m-d', strtotime($dateA . ' +1 day'));
+    return vespers_fast_period($W) === 'velikiy';
+}
+
 /** Нужен ли iframe-фолбэк для даты вечерни (URL-дата a). */
 function vespers_needs_iframe(string $dateA): bool
 {
     $W = date('Y-m-d', strtotime($dateA . ' +1 day'));
     $dayW = vespers_day($W);
     $title = (string)($dayW['title'] ?? '');
-    $lent = $dayW['lent'] ?? null;
 
     if ($title === 'Рождество Христово' || $title === 'Рождество Господа нашего Иисуса Христа'
         || $title === 'Крещение Господне' || $title === 'Святое Богоявление') {
         return true;
     }
-    if ($lent !== null && $lent !== '') {
-        return true;
-    }
-    if (vespers_fast_period($W) !== '') {
+    if (vespers_is_annunciation_day($W)) {
         return true;
     }
 
-    $offset = vespers_offset_days($dateA);
-    if ($offset >= -57 && $offset <= 50) {
+    $offset = vespers_offset_days($W);
+    // Прощёное воскресенье: в этот вечер служится чин прощения с псалмом 136
+    if ($offset === -48) {
+        return true;
+    }
+    // Вербное воскресенье, Страстная, Пасха и пасхальный период (до отдания)
+    if ($offset >= -7 && $offset <= 50) {
         return true;
     }
 
@@ -181,6 +233,7 @@ function vespers_needs_iframe(string $dateA): bool
         }
     }
 
+    // посты и обычные дни собираются локально (см. vespers_text_html)
     return false;
 }
 
@@ -517,8 +570,11 @@ function vespers_reader_slots(string $dateA): array
     $mdW = date('n-j', strtotime($W));
     $isCross = $mdW === '9-27';
     $isTransfig = $mdW === '8-19';
-    $skipPrayers = ($isCross || $isTransfig) && $dowA !== 0 && $dowA !== 6;
-    $isHoliday = $dowA === 6 || array_key_exists('vespers', $partsW);
+    $lent = vespers_lent_script($dateA);
+    $greatLent = $lent && vespers_is_great_lent($dateA);
+    // в постном чине нет ни псалма 103, ни кафизмы, ни великой ектеньи
+    $skipPrayers = !$lent && ($isCross || $isTransfig) && $dowA !== 0 && $dowA !== 6;
+    $isHoliday = !$lent && ($dowA === 6 || array_key_exists('vespers', $partsW));
 
     $slots = [];
     if ($isHoliday) {
@@ -533,7 +589,8 @@ function vespers_reader_slots(string $dateA): array
         if ($isHoliday || $dowA === 4) $slots[] = ['key' => 'prayer4', 'label' => 'Молитва (4)'];
         if ($isHoliday || $dowA === 5) $slots[] = ['key' => 'prayer5', 'label' => 'Молитва (5)'];
         if ($isHoliday) $slots[] = ['key' => 'prayer6', 'label' => 'Молитва (6)'];
-        if ($isHoliday || $dowA === 0) $slots[] = ['key' => 'prayer7', 'label' => 'Молитва (7)'];
+        $showPrayer7 = $lent ? ($dowA === 0 && !$greatLent) : ($isHoliday || $dowA === 0);
+        if ($showPrayer7) $slots[] = ['key' => 'prayer7', 'label' => 'Молитва (7)'];
     }
     $slots[] = ['key' => 'prayer8', 'label' => 'Молитва (8)'];
     $slots[] = ['key' => 'vechernie_psalmi', 'label' => 'Вечерние псалмы'];
@@ -558,7 +615,8 @@ function vespers_reader_slots(string $dateA): array
 /* ------------------------------------------------------------------ */
 
 /**
- * Собирает HTML стандартного чина вечерни для URL-даты a (Y-m-d).
+ * Собирает HTML чина вечерни для URL-даты a (Y-m-d): обычный чин или, в будни
+ * постов, постный (та же вечерня с постными вставками — см. vespers_lent_script).
  * $readers — карта «нормализованная ссылка отрывка => имя чтеца»; имя выводится
  * перед соответствующим отрывком чтения. $readerAvatars — карта «ключ => URL
  * аватара чтеца» (необязательно).
@@ -583,9 +641,15 @@ function vespers_text_html(string $dateA, array $readers = [], array $readerAvat
     $mdW = date('n-j', strtotime($W)); // месяц-день W
     $isCross = $mdW === '9-27';        // Воздвижение
     $isTransfig = $mdW === '8-19';     // Преображение
-    $skipPrayers = ($isCross || $isTransfig) && $dowA !== 0 && $dowA !== 6;
+    $lent = vespers_lent_script($dateA);
+    // без данных календаря постный чин собрать нельзя — отдаём текст приложения
+    if ($lent && empty($dayW['glas'])) {
+        return '';
+    }
+    $greatLent = $lent && vespers_is_great_lent($dateA);
+    $skipPrayers = !$lent && ($isCross || $isTransfig) && $dowA !== 0 && $dowA !== 6;
 
-    $isHoliday = $dowA === 6 || array_key_exists('vespers', $partsW);
+    $isHoliday = !$lent && ($dowA === 6 || array_key_exists('vespers', $partsW));
 
     $out = '';
 
@@ -607,7 +671,8 @@ function vespers_text_html(string $dateA, array $readers = [], array $readerAvat
         if ($isHoliday || $dowA === 4) $out .= $readerLine('prayer4') . vespers_frag('prayer4') . "\n";
         if ($isHoliday || $dowA === 5) $out .= $readerLine('prayer5') . vespers_frag('prayer5') . "\n";
         if ($isHoliday) $out .= $readerLine('prayer6') . vespers_frag('prayer6') . "\n";
-        if ($isHoliday || $dowA === 0) $out .= $readerLine('prayer7') . vespers_frag('prayer7') . "\n";
+        $showPrayer7 = $lent ? ($dowA === 0 && !$greatLent) : ($isHoliday || $dowA === 0);
+        if ($showPrayer7) $out .= $readerLine('prayer7') . vespers_frag('prayer7') . "\n";
     }
 
     $out .= $readerLine('prayer8') . vespers_frag('prayer8') . "\n";
@@ -628,8 +693,9 @@ function vespers_text_html(string $dateA, array $readers = [], array $readerAvat
         $out .= $gvHtml;
     }
 
-    // Вход
-    $out .= vespers_frag('vhod') . "\n";
+    // Вход: в постном чине заголовок «Вход» остаётся только в воскресенье Великого поста
+    $showVhodHeading = !$lent || ($dowA === 0 && $greatLent);
+    $out .= vespers_frag($showVhodHeading ? 'vhod' : 'vhod_lent') . "\n";
     $out .= vespers_frag('jasni_svet') . "\n";
 
     // Чтения
@@ -663,8 +729,11 @@ function vespers_text_html(string $dateA, array $readers = [], array $readerAvat
     $out .= $readerLine('prayer_katekhumens') . vespers_frag('prayer_katekhumens') . "\n";
     $out .= '<p class="P"><span class="Red">П</span> Оглашаемые, отступи́те!</p>' . "\n";
 
-    $out .= vespers_frag('sugubaja') . "\n";
-    $out .= $readerLine('udostoi') . vespers_frag('udostoi') . "\n";
+    if (!$lent) {
+        $out .= vespers_frag('sugubaja') . "\n";
+    }
+    $udostoiFrag = $lent ? 'udostoi_lent' : 'udostoi';
+    $out .= $readerLine('udostoi') . vespers_frag($udostoiFrag) . "\n";
 
     // Заключение
     $out .= '<h2 class="H2">Заключение</h2>' . "\n";
@@ -691,31 +760,41 @@ function vespers_text_html(string $dateA, array $readers = [], array $readerAvat
     }
 
     // Ныне отпускаешь + Трисвятое
-    $out .= $readerLine('prayer_simeona') . vespers_frag('prayer_simeona') . "\n";
+    $simeonaFrag = $lent ? 'prayer_simeona_lent' : 'prayer_simeona';
+    $out .= $readerLine('prayer_simeona') . vespers_frag($simeonaFrag) . "\n";
     $out .= $readerLine('strisvatogo') . vespers_frag('strisvatogo') . "\n";
 
-    // Тропари
-    $out .= '<h3 class="H3">Тропари</h3>' . "\n";
-    $trop = vespers_parts_block($partsW, 'shared.Тропари');
-    $tropHtml = '';
-    foreach ($trop['values'] as $v) {
-        $tropHtml .= vespers_clean($v) . "\n";
-    }
-    if ($tropHtml !== '') {
-        if ($dowW === 0 && !$trop['replace']) {
-            $out .= vespers_frag('glas' . $glas) . "\n";
-        }
-        $out .= $tropHtml;
+    if ($greatLent) {
+        // Постный чин Великого поста: вместо тропарей и «Слава Тебе, Христе Боже» —
+        // постное окончание с молитвой Ефрема Сирина (воскресенье и будни различаются).
+        $out .= vespers_frag($dowA === 0 ? 'lent_ending2' : 'lent_ending3') . "\n";
     } else {
-        if ($dowW === 0) {
-            $out .= vespers_frag('glas' . $glas) . "\n";
-        } else {
-            $out .= vespers_frag('day' . $dowW) . "\n";
+        // Тропари
+        $out .= '<h3 class="H3">Тропари</h3>' . "\n";
+        $trop = vespers_parts_block($partsW, 'shared.Тропари');
+        $tropHtml = '';
+        foreach ($trop['values'] as $v) {
+            $tropHtml .= vespers_clean($v) . "\n";
         }
+        if ($tropHtml !== '') {
+            if ($dowW === 0 && !$trop['replace']) {
+                $out .= vespers_frag('glas' . $glas) . "\n";
+            }
+            $out .= $tropHtml;
+        } else {
+            if ($dowW === 0) {
+                $out .= vespers_frag('glas' . $glas) . "\n";
+            } else {
+                $out .= vespers_frag('day' . $dowW) . "\n";
+            }
+        }
+        if ($lent) {
+            $out .= vespers_frag('sugubaja_kratkaja') . "\n";
+        }
+        $out .= vespers_frag('ending_static') . "\n";
     }
 
     // Отпуст
-    $out .= vespers_frag('ending_static') . "\n";
     $otp = vespers_parts_block($partsW, 'shared.Отпуст Синаксарный');
     $otpHtml = '';
     foreach ($otp['values'] as $v) {

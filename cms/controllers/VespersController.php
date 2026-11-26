@@ -53,12 +53,24 @@ class VespersController
             }
         }
 
+        $vespersHtml = '';
+        if ($inline) {
+            $vespersHtml = vespers_text_html($frameDate, $readerMap, $readerAvatarMap);
+        }
+        if ($inline && trim($vespersHtml) === '') {
+            // данных календаря не хватило — показываем текст приложения во фрейме
+            $inline = false;
+            $presentUsers = [];
+            $slots = [];
+            $readerAssignments = [];
+        }
+
         view('vespers', [
             'title' => 'Вечерня братским чином',
             'meeting' => $meeting,
             'frameDate' => $frameDate,
             'vespersInline' => $inline,
-            'vespersHtml' => $inline ? vespers_text_html($frameDate, $readerMap, $readerAvatarMap) : '',
+            'vespersHtml' => $vespersHtml,
             'presentUsers' => $presentUsers,
             'slots' => $slots,
             'readerAssignments' => $readerAssignments,
