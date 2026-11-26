@@ -81,3 +81,7 @@ $frameUrl = 'https://molitva.app/#/date/' . $frameDate . '/service/vespers';
         </div>
     </div>
 <?php endif; ?>
+
+<?php if (!empty($vespersInline)): ?>
+    <?php partial('follow_panel', ['meetingId' => (int)$m['id'], 'follow' => $follow ?? null]); ?>
+<?php endif; ?>

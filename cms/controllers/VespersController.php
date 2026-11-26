@@ -74,6 +74,7 @@ class VespersController
             'presentUsers' => $presentUsers,
             'slots' => $slots,
             'readerAssignments' => $readerAssignments,
+            'follow' => $inline ? follow_state($meetingId, Auth::id(), follow_can_lead()) : null,
         ]);
     }
 

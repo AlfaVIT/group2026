@@ -33,6 +33,7 @@ class LiturgyController
             'frameUrl' => $frameUrl,
             'liturgyInline' => $html !== '',
             'liturgyHtml' => $html,
+            'follow' => $html !== '' ? follow_state($meetingId, Auth::id(), follow_can_lead()) : null,
         ]);
     }
 }

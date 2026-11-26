@@ -9,6 +9,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/view.php';
 require_once __DIR__ . '/installer.php';
 require_once __DIR__ . '/articles.php';
+require_once __DIR__ . '/follow.php';
 require_once __DIR__ . '/vespers_text.php';
 require_once __DIR__ . '/liturgy_text.php';
 require_once __DIR__ . '/telegram.php';

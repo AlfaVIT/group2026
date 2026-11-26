@@ -128,6 +128,7 @@ $schemeCss = theme_scheme_css($user);
 <script src="<?= e(asset_url('vendor/jquery/jquery.min.js')) ?>"></script>
 <script src="<?= e(asset_url('vendor/bootstrap/js/bootstrap.bundle.min.js')) ?>"></script>
 <script src="<?= e(asset_url('js/app.js')) ?>"></script>
+<script src="<?= e(asset_url('js/follow.js')) ?>"></script>
 <?php partial('cookie_banner'); ?>
 </body>
 </html>

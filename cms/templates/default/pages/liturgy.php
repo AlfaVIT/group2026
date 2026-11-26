@@ -40,3 +40,7 @@ $m = $meeting;
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($liturgyInline)): ?>
+    <?php partial('follow_panel', ['meetingId' => (int)$m['id'], 'follow' => $follow ?? null]); ?>
+<?php endif; ?>

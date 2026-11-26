@@ -33,6 +33,7 @@ $routes = [
     'stats'           => ['SettingsController', 'stats', ['view_stats']],
     'meeting_edit'    => ['MeetingController', 'edit', ['manage_meetings']],
     'meeting_save'    => ['MeetingController', 'save', ['manage_meetings']],
+    'follow_sync'     => ['FollowController', 'sync', ['any']],
     'meeting_delete'  => ['MeetingController', 'delete', ['manage_meetings']],
     'place_edit'      => ['PlaceController', 'edit', ['manage_places']],
     'place_save'      => ['PlaceController', 'save', ['manage_places']],
@@ -116,7 +117,7 @@ $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 
 // Действия, меняющие состояние, принимаем только POST: иначе GET-ссылка
 // (?p=logout, ?p=telegram_save, ?p=telegram_webhook) выполнит их без CSRF-метки.
-$postOnly = ['logout', 'telegram_save', 'telegram_webhook'];
+$postOnly = ['logout', 'telegram_save', 'telegram_webhook', 'follow_sync'];
 if (!$isPost && in_array($page, $postOnly, true)) {
     http_response_code(405);
     exit('Метод не поддерживается');
@@ -155,6 +156,7 @@ if ($isPost) {
 
     $saveMethod = [
         'meeting_save' => 'save',
+        'follow_sync' => 'sync',
         'place_save' => 'save',
         'user_save' => 'save',
         'attendance_save' => 'save',

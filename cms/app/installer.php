@@ -101,6 +101,15 @@ CREATE TABLE IF NOT EXISTS meeting_roles (
     UNIQUE (meeting_id, user_id, role)
 );
 
+CREATE TABLE IF NOT EXISTS meeting_follow (
+    meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    is_leader INTEGER NOT NULL DEFAULT 0,
+    position REAL NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (meeting_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
@@ -254,7 +263,7 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_day', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '31')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '32')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('crypto_ready', '1')");
 
     // ключ шифрования создаётся сразу: без него данные некуда будет перешифровать.
@@ -282,7 +291,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 31) {
+        if ($version >= 32) {
             return;
         }
         if ($version >= 21) {
@@ -296,6 +305,7 @@ function run_migrations(): void
             migrate_v29();
             migrate_v30();
             migrate_v31();
+            migrate_v32();
             return;
         }
 
@@ -451,6 +461,7 @@ function run_migrations(): void
         migrate_v29();
         migrate_v30();
         migrate_v31();
+        migrate_v32();
     } catch (Throwable $e) {
     }
 }
@@ -677,6 +688,21 @@ function migrate_v31(): void
     }
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '31')");
     Db::q("UPDATE settings SET value = '31' WHERE key = 'schema_version'");
+}
+
+/** v32: состояние слежения за старшим (см. app/follow.php). */
+function migrate_v32(): void
+{
+    Db::q('CREATE TABLE IF NOT EXISTS meeting_follow (
+        meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        is_leader INTEGER NOT NULL DEFAULT 0,
+        position REAL NOT NULL DEFAULT 0,
+        updated_at INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (meeting_id, user_id)
+    )');
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '32')");
+    Db::q("UPDATE settings SET value = '32' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */
