@@ -1,11 +1,12 @@
 <?php
 
 /**
- * Тест обслуживания: бекап запускается внешним планировщиком (php tests/backup_test.php).
+ * Тест обслуживания: бекап запускается внешним планировщиком и управляется
+ * переключателем отправки (php tests/backup_test.php).
  *
- * Проверяет, что расписания внутри сайта больше нет: настройки периодичности
- * удаляются миграцией, статус бекапов ограничен «последней отправкой», а
- * создание снимка базы работает как раньше.
+ * Проверяет, что расписания внутри сайта нет (только «отправлять / не
+ * отправлять»), миграция не теряет выключатель, а при выключенной отправке
+ * бекап не создаётся и не уходит.
  */
 
 $tmpDir = sys_get_temp_dir() . '/cms-backup-' . getmypid();
@@ -40,46 +41,48 @@ function eq(string $name, $expected, $actual): void
     check($name, $expected === $actual, 'ожидалось ' . var_export($expected, true) . ', получено ' . var_export($actual, true));
 }
 
-function backupKeys(): array
+function settingsValue(string $key): ?string
 {
-    return array_column(
-        Db::fetchAll("SELECT key FROM settings WHERE key LIKE 'backup\\_%' ESCAPE '\\' ORDER BY key"),
-        'key'
-    );
+    $value = Db::value('SELECT value FROM settings WHERE key = ?', [$key]);
+    return $value === null ? null : (string)$value;
 }
 
 echo "Установка\n";
 install_schema();
-eq('версия схемы', '33', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
-check('настроек расписания нет', !array_intersect(
-    ['backup_enabled', 'backup_freq', 'backup_time', 'backup_weekday', 'backup_day'],
-    backupKeys()
-), implode(',', backupKeys()));
+eq('версия схемы', '34', settingsValue('schema_version'));
+eq('отправка включена по умолчанию', '1', settingsValue('backup_enabled'));
+check('расписания внутри сайта нет', settingsValue('backup_freq') === null
+    && settingsValue('backup_time') === null
+    && settingsValue('backup_weekday') === null
+    && settingsValue('backup_day') === null);
 
-echo "\nМиграция со старой версии\n";
-Db::q("INSERT OR REPLACE INTO settings (key, value) VALUES
-    ('backup_enabled', '1'), ('backup_freq', 'weekly'), ('backup_time', '04:30'),
-    ('backup_weekday', '2'), ('backup_day', '10')");
-Db::q("UPDATE settings SET value = '32' WHERE key = 'schema_version'");
-run_migrations();
-eq('версия схемы после миграции', '33', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
-check('настройки периодичности удалены', !array_intersect(
-    ['backup_enabled', 'backup_freq', 'backup_time', 'backup_weekday', 'backup_day'],
-    backupKeys()
-), implode(',', backupKeys()));
-
-echo "\nСтатус и отправка\n";
 $status = backup_status();
-eq('поля статуса', ['last', 'last_error'], array_keys($status));
+eq('поля статуса', ['enabled', 'last', 'last_error'], array_keys($status));
+eq('включено', true, $status['enabled']);
 eq('последней отправки нет', '', $status['last']);
 
-Setting::set('backup_last', '2026-11-27 03:10:00');
-Setting::set('backup_last_error', 'тестовая ошибка');
-$status = backup_status();
-eq('последняя отправка читается', '2026-11-27 03:10:00', $status['last']);
-eq('последняя ошибка читается', 'тестовая ошибка', $status['last_error']);
+echo "\nМиграция со старой версии\n";
+// имитируем базу v33, где выключателя не было
+Db::q("DELETE FROM settings WHERE key = 'backup_enabled'");
+Db::q("UPDATE settings SET value = '33' WHERE key = 'schema_version'");
+run_migrations();
+eq('версия схемы после миграции', '34', settingsValue('schema_version'));
+eq('выключатель появился включённым', '1', settingsValue('backup_enabled'));
 
-Setting::set('backup_last_error', '');
+echo "\nВыключенная отправка\n";
+Setting::set('backup_enabled', '0');
+$status = backup_status();
+eq('выключатель читается', false, $status['enabled']);
+
+Setting::set('backup_last', '2026-11-27 03:10:00');
+$res = backup_send();
+eq('статус — выключено', 'disabled', $res['status']);
+eq('без ошибки', true, $res['ok']);
+eq('последняя отправка не изменилась', '2026-11-27 03:10:00', settingsValue('backup_last'));
+check('сообщение про выключенную отправку', strpos($res['message'], 'выключена') !== false, $res['message']);
+
+echo "\nВключённая отправка\n";
+Setting::set('backup_enabled', '1');
 $res = backup_send();
 eq('без почты администратора — ошибка', false, $res['ok']);
 eq('статус ошибки', 'error', $res['status']);

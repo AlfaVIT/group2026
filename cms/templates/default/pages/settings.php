@@ -279,6 +279,17 @@ if ($canViewStats ?? false) {
                 <input type="hidden" name="action" value="save">
                 <div class="card-header fw-semibold">Резервные копии базы</div>
                 <div class="card-body">
+                    <?php $backupOn = !empty($backup['enabled']); ?>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="backup_enabled"
+                               name="backup_enabled" value="1"
+                               <?= $backupOn ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="backup_enabled">Отправлять бекап базы на почту</label>
+                        <div class="form-text">
+                            Когда выключено, письма не уходят, даже если внешний планировщик вызывает URL.
+                        </div>
+                    </div>
+
                     <p class="mb-2">
                         Расписание задаётся не на сайте: бекап создаётся и отправляется по каждому
                         вызову внешнего планировщика (cron хостинга или внешний сервис) — командой
@@ -404,10 +415,15 @@ if ($canViewStats ?? false) {
                         <input type="hidden" name="section" value="maintenance">
                         <input type="hidden" name="action" value="backup_now">
                         <button class="btn btn-outline-primary w-100" type="submit"
+                                <?= $backupOn ? '' : 'disabled' ?>
+                                <?= $backupOn ? '' : 'title="Отправка выключена в настройках"' ?>
                                 onclick="return confirm('Отправить бекап базы сейчас?');">
                             Отправить бекап сейчас
                         </button>
                     </form>
+                    <?php if (!$backupOn): ?>
+                        <div class="form-text">Отправка выключена — включите переключатель выше.</div>
+                    <?php endif; ?>
                     <form method="post" action="<?= url('settings_save') ?>">
                         <?= csrf_field() ?>
                         <input type="hidden" name="section" value="maintenance">

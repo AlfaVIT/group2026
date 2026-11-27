@@ -40,6 +40,7 @@ class BackupController
             $status = backup_status();
             echo json_encode([
                 'ok'         => true,
+                'enabled'    => $status['enabled'],
                 'has_email'  => Setting::adminEmail() !== '',
                 'last'       => $status['last'],
                 'last_error' => $status['last_error'],

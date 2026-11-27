@@ -278,7 +278,8 @@ class SettingsController
 
         if ($action === 'backup_now') {
             $res = backup_send();
-            set_flash($res['message'], $res['ok'] ? 'success' : 'danger');
+            $type = $res['ok'] ? (($res['status'] ?? '') === 'disabled' ? 'warning' : 'success') : 'danger';
+            set_flash($res['message'], $type);
             return;
         }
 
@@ -324,6 +325,7 @@ class SettingsController
 
         Setting::set('notify_bruteforce', input('notify_bruteforce') === '1' ? '1' : '0');
         Setting::set('notify_admin_login', input('notify_admin_login') === '1' ? '1' : '0');
+        Setting::set('backup_enabled', input('backup_enabled') === '1' ? '1' : '0');
 
         // SMTP: From при включении = логин ящика, иначе провайдер отклонит письмо
         $smtpEnabled = input('smtp_enabled') === '1';

@@ -13,10 +13,17 @@
 /* Резервные копии                                                    */
 /* ------------------------------------------------------------------ */
 
-/** Состояние бекапов: когда последний раз отправляли и была ли ошибка. */
+/** Отправлять ли бекапы на почту (переключатель в настройках). */
+function backup_enabled(): bool
+{
+    return (string)Setting::get('backup_enabled', '1') === '1';
+}
+
+/** Состояние бекапов: включена ли отправка, когда последний раз отправляли и была ли ошибка. */
 function backup_status(): array
 {
     return [
+        'enabled'    => backup_enabled(),
         'last'       => (string)Setting::get('backup_last', ''),
         'last_error' => (string)Setting::get('backup_last_error', ''),
     ];
@@ -69,6 +76,10 @@ function backup_snapshot(): array
  */
 function backup_send(): array
 {
+    if (!backup_enabled()) {
+        return ['ok' => true, 'status' => 'disabled', 'message' => 'Отправка бекапов выключена в настройках'];
+    }
+
     $to = Setting::adminEmail();
     if ($to === '') {
         return ['ok' => false, 'status' => 'error', 'message' => 'Сначала укажите почту администратора в «Настройки» → «Общее»'];

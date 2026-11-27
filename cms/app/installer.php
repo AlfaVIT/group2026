@@ -256,9 +256,10 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_enabled', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '33')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '34')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('crypto_ready', '1')");
 
     // ключ шифрования создаётся сразу: без него данные некуда будет перешифровать.
@@ -286,7 +287,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 33) {
+        if ($version >= 34) {
             return;
         }
         if ($version >= 21) {
@@ -302,6 +303,7 @@ function run_migrations(): void
             migrate_v31();
             migrate_v32();
             migrate_v33();
+            migrate_v34();
             return;
         }
 
@@ -459,6 +461,7 @@ function run_migrations(): void
         migrate_v31();
         migrate_v32();
         migrate_v33();
+        migrate_v34();
     } catch (Throwable $e) {
     }
 }
@@ -713,6 +716,19 @@ function migrate_v33(): void
     Db::q("DELETE FROM settings WHERE key IN ('backup_enabled', 'backup_freq', 'backup_time', 'backup_weekday', 'backup_day')");
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '33')");
     Db::q("UPDATE settings SET value = '33' WHERE key = 'schema_version'");
+}
+
+/**
+ * v34: выключатель отправки бекапа на почту.
+ *
+ * Расписания по-прежнему нет (его задаёт внешний планировщик), но письма
+ * можно выключить одним переключателем. По умолчанию включено.
+ */
+function migrate_v34(): void
+{
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_enabled', '1')");
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '34')");
+    Db::q("UPDATE settings SET value = '34' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */
