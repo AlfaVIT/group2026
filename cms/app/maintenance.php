@@ -3,110 +3,23 @@
 /**
  * Обслуживание сайта: резервные копии базы и системные уведомления.
  *
- * Бекап запускается по расписанию из настроек (вкладка «Обслуживание»):
- * либо cron-скриптом cms/cron/backup.php, либо по URL с токеном
- * (?p=backup_cron&token=...). Скрипт и URL можно вызывать часто (например,
- * раз в час) — письмо уйдёт только когда наступил запланированный момент.
+ * Расписания внутри сайта нет: бекап создаётся и отправляется по каждому
+ * вызову внешнего планировщика — cron-скриптом cms/cron/backup.php или по URL
+ * с токеном (?p=backup_cron&token=...). Периодичность задаётся снаружи
+ * (crontab хостинга, внешний сервис).
  */
 
 /* ------------------------------------------------------------------ */
 /* Резервные копии                                                    */
 /* ------------------------------------------------------------------ */
 
-/** Текущие настройки расписания бекапов. */
-function backup_schedule(): array
+/** Состояние бекапов: когда последний раз отправляли и была ли ошибка. */
+function backup_status(): array
 {
-    $freq = (string)Setting::get('backup_freq', 'daily');
-    if (!in_array($freq, ['daily', 'weekly', 'monthly'], true)) {
-        $freq = 'daily';
-    }
-    $time = trim((string)Setting::get('backup_time', '03:00'));
-    if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
-        $time = '03:00';
-    }
-    $weekday = (int)Setting::get('backup_weekday', '1');
-    if ($weekday < 1 || $weekday > 7) {
-        $weekday = 1;
-    }
-    $day = (int)Setting::get('backup_day', '1');
-    if ($day < 1 || $day > 28) {
-        $day = 1;
-    }
     return [
-        'enabled'    => (string)Setting::get('backup_enabled', '0') === '1',
-        'freq'       => $freq,
-        'time'       => $time,
-        'weekday'    => $weekday,
-        'day'        => $day,
         'last'       => (string)Setting::get('backup_last', ''),
         'last_error' => (string)Setting::get('backup_last_error', ''),
     ];
-}
-
-/**
- * Последний запланированный момент не позже $now (или null при ошибке даты).
- * Именно с ним сравнивается backup_last, чтобы не зависеть от частоты вызова cron.
- */
-function backup_last_slot(array $s, ?int $now = null): ?int
-{
-    $now = $now ?? time();
-    $slot = strtotime(date('Y-m-d', $now) . ' ' . $s['time']);
-    if ($slot === false) {
-        return null;
-    }
-    if ($s['freq'] === 'daily') {
-        if ($slot > $now) {
-            $slot = strtotime('-1 day', $slot);
-        }
-        return $slot;
-    }
-    if ($s['freq'] === 'weekly') {
-        $delta = (int)date('N', $now) - (int)$s['weekday']; // 0 — сегодня
-        $slot -= $delta * 86400;
-        if ($slot > $now) {
-            $slot -= 7 * 86400;
-        }
-        return $slot;
-    }
-    // monthly: число ограничено 1..28, чтобы не зависеть от длины месяца
-    $slot = strtotime(sprintf('%s-%02d %s', date('Y-m', $now), (int)$s['day'], $s['time']));
-    if ($slot === false) {
-        return null;
-    }
-    if ($slot > $now) {
-        $slot = strtotime('-1 month', $slot);
-    }
-    return $slot;
-}
-
-/** Следующий запланированный момент после $now (для подсказки в настройках). */
-function backup_next_slot(array $s, ?int $now = null): ?int
-{
-    $last = backup_last_slot($s, $now);
-    if ($last === null) {
-        return null;
-    }
-    $next = match ($s['freq']) {
-        'weekly'  => strtotime('+1 week', $last),
-        'monthly' => strtotime('+1 month', $last),
-        default   => strtotime('+1 day', $last),
-    };
-    return $next === false ? null : $next;
-}
-
-/** Пора ли отправлять бекап: включено, есть адрес и наступил новый слот. */
-function backup_is_due(?array $s = null, ?int $now = null): bool
-{
-    $s = $s ?? backup_schedule();
-    if (!$s['enabled'] || Setting::adminEmail() === '') {
-        return false;
-    }
-    $slot = backup_last_slot($s, $now);
-    if ($slot === null) {
-        return false;
-    }
-    $last = $s['last'] !== '' ? strtotime($s['last']) : false;
-    return $last === false || $last < $slot;
 }
 
 /**
@@ -149,19 +62,16 @@ function backup_snapshot(): array
 
 /**
  * Создаёт и отправляет бекап на почту администратора.
- * $force = true — отправить сейчас, не глядя на расписание.
+ * Вызывается только внешним планировщиком (URL с токеном или cron-скрипт):
+ * расписания внутри сайта нет, поэтому каждый вызов — это отправка.
  *
  * @return array{ok: bool, status: string, message: string}
  */
-function backup_send(bool $force = false, ?array $s = null): array
+function backup_send(): array
 {
-    $s = $s ?? backup_schedule();
     $to = Setting::adminEmail();
     if ($to === '') {
         return ['ok' => false, 'status' => 'error', 'message' => 'Сначала укажите почту администратора в «Настройки» → «Общее»'];
-    }
-    if (!$force && !backup_is_due($s)) {
-        return ['ok' => true, 'status' => 'skipped', 'message' => 'По расписанию отправлять пока нечего'];
     }
 
     $snap = backup_snapshot();

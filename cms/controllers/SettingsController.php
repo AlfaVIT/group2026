@@ -59,9 +59,8 @@ class SettingsController
 
         $stats = $tab === 'stats' ? $this->statsData() : [];
 
-        // вкладка «Обслуживание»: расписание бекапов, токен запуска и уведомления
-        $backup = $canManage ? backup_schedule() : [];
-        $backupNext = $backup ? backup_next_slot($backup) : null;
+        // вкладка «Обслуживание»: состояние бекапов, токен запуска и уведомления
+        $backup = $canManage ? backup_status() : [];
         $cronUrl = $canManage ? url('backup_cron', ['token' => Setting::cronToken()]) : '';
         $cronCommand = 'php ' . BASE_PATH . '/cron/backup.php';
 
@@ -82,7 +81,6 @@ class SettingsController
             'streamUrl' => Setting::streamUrl(),
             'financeEnabled' => Setting::financeEnabled(),
             'backup' => $backup,
-            'backupNext' => $backupNext,
             'cronUrl' => $cronUrl,
             'cronCommand' => $cronCommand,
             'crypto' => ($canManage && $tab === 'maintenance') ? crypto_status() : [],
@@ -273,13 +271,13 @@ class SettingsController
         redirect(url('settings', ['tab' => $section]));
     }
 
-    /** Вкладка «Обслуживание»: расписание бекапов, уведомления, ручные действия. */
+    /** Вкладка «Обслуживание»: бекапы по внешнему расписанию, уведомления, ручные действия. */
     private function saveMaintenance(): void
     {
         $action = input('action', 'save');
 
         if ($action === 'backup_now') {
-            $res = backup_send(true);
+            $res = backup_send();
             set_flash($res['message'], $res['ok'] ? 'success' : 'danger');
             return;
         }
@@ -324,29 +322,6 @@ class SettingsController
             return;
         }
 
-        $enabled = input('backup_enabled') === '1';
-        $freq = input('backup_freq', 'daily');
-        if (!in_array($freq, ['daily', 'weekly', 'monthly'], true)) {
-            $freq = 'daily';
-        }
-        $time = input('backup_time', '03:00');
-        if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
-            $time = '03:00';
-        }
-        $weekday = (int)input('backup_weekday', '1');
-        if ($weekday < 1 || $weekday > 7) {
-            $weekday = 1;
-        }
-        $day = (int)input('backup_day', '1');
-        if ($day < 1 || $day > 28) {
-            $day = 1;
-        }
-
-        Setting::set('backup_enabled', $enabled ? '1' : '0');
-        Setting::set('backup_freq', $freq);
-        Setting::set('backup_time', $time);
-        Setting::set('backup_weekday', (string)$weekday);
-        Setting::set('backup_day', (string)$day);
         Setting::set('notify_bruteforce', input('notify_bruteforce') === '1' ? '1' : '0');
         Setting::set('notify_admin_login', input('notify_admin_login') === '1' ? '1' : '0');
 

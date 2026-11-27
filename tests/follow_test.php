@@ -53,7 +53,7 @@ function add_user(string $name, string $role, string $term = 'брат'): int
 
 echo "Установка\n";
 install_schema();
-eq('версия схемы', '32', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
+eq('версия схемы', '33', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
 $cols = array_column(Db::fetchAll('PRAGMA table_info(meeting_follow)'), 'name');
 check('таблица meeting_follow есть', $cols !== [], implode(',', $cols));
 check('колонки на месте', !array_diff(['meeting_id', 'user_id', 'is_leader', 'position', 'updated_at'], $cols), implode(',', $cols));

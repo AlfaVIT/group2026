@@ -57,7 +57,7 @@ function placesForForm(int $currentPlaceId): array
 
 echo "Установка схемы\n";
 install_schema();
-eq('версия схемы', '32', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
+eq('версия схемы', '33', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
 check('колонка is_active есть', in_array('is_active', placeColumns(), true));
 
 $homeId = Db::insert('places', ['title' => 'Дом Ивана', 'street' => 'ул. Ленина']);
@@ -81,7 +81,7 @@ check('колонка удалена (имитация старой схемы)'
 Db::q("UPDATE settings SET value = '30' WHERE key = 'schema_version'");
 run_migrations();
 check('миграция вернула колонку', in_array('is_active', placeColumns(), true));
-eq('версия схемы после миграции', '32', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
+eq('версия схемы после миграции', '33', (string)Db::value("SELECT value FROM settings WHERE key = 'schema_version'"));
 eq('старое место осталось активным', 1, (int)Db::value('SELECT is_active FROM places WHERE id = ?', [$homeId]));
 
 echo "\n" . ($failures === 0 ? "Все проверки пройдены ($checks)" : "Провалено $failures из $checks") . "\n";

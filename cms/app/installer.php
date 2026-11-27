@@ -256,14 +256,9 @@ SQL;
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('site_name', 'Группа катехизации')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', '" . DEFAULT_THEME . "')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('mail_from', 'noreply@example.com')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_enabled', '0')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_freq', 'daily')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_time', '03:00')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_weekday', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_day', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_bruteforce', '1')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('notify_admin_login', '1')");
-    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '32')");
+    $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '33')");
     $pdo->exec("INSERT OR IGNORE INTO settings (key, value) VALUES ('crypto_ready', '1')");
 
     // ключ шифрования создаётся сразу: без него данные некуда будет перешифровать.
@@ -291,7 +286,7 @@ function run_migrations(): void
     }
     try {
         $version = (int)(Db::value('SELECT value FROM settings WHERE key = ?', ['schema_version']) ?? 0);
-        if ($version >= 32) {
+        if ($version >= 33) {
             return;
         }
         if ($version >= 21) {
@@ -306,6 +301,7 @@ function run_migrations(): void
             migrate_v30();
             migrate_v31();
             migrate_v32();
+            migrate_v33();
             return;
         }
 
@@ -462,6 +458,7 @@ function run_migrations(): void
         migrate_v30();
         migrate_v31();
         migrate_v32();
+        migrate_v33();
     } catch (Throwable $e) {
     }
 }
@@ -703,6 +700,19 @@ function migrate_v32(): void
     )');
     Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '32')");
     Db::q("UPDATE settings SET value = '32' WHERE key = 'schema_version'");
+}
+
+/**
+ * v33: расписание бекапов переехало во внешний планировщик.
+ *
+ * Настройки расписания больше не используются — чистим ключи, чтобы в базе
+ * не оставалось «мёртвых» переключателей.
+ */
+function migrate_v33(): void
+{
+    Db::q("DELETE FROM settings WHERE key IN ('backup_enabled', 'backup_freq', 'backup_time', 'backup_weekday', 'backup_day')");
+    Db::q("INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '33')");
+    Db::q("UPDATE settings SET value = '33' WHERE key = 'schema_version'");
 }
 
 /** v22: токен «запомнить меня» в users (см. Auth::issueRemember). */

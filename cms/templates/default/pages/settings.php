@@ -265,13 +265,9 @@ if ($canViewStats ?? false) {
     </div>
 <?php elseif ($tab === 'maintenance'): ?>
     <?php
-    $freqLabels = ['daily' => 'Ежедневно', 'weekly' => 'Еженедельно', 'monthly' => 'Ежемесячно'];
-    $weekdayLabels = [1 => 'Понедельник', 2 => 'Вторник', 3 => 'Среда', 4 => 'Четверг',
-        5 => 'Пятница', 6 => 'Суббота', 7 => 'Воскресенье'];
     $lastSent = (string)($backup['last'] ?? '') !== ''
         ? date('d.m.Y H:i', strtotime((string)$backup['last']))
         : 'ещё не отправлялся';
-    $nextRun = $backupNext ? date('d.m.Y H:i', $backupNext) : '—';
     $lastError = (string)($backup['last_error'] ?? '');
     $noEmail = Setting::adminEmail() === '';
     ?>
@@ -283,64 +279,20 @@ if ($canViewStats ?? false) {
                 <input type="hidden" name="action" value="save">
                 <div class="card-header fw-semibold">Резервные копии базы</div>
                 <div class="card-body">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="backup_enabled"
-                               name="backup_enabled" value="1"
-                               <?= !empty($backup['enabled']) ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="backup_enabled">Отправлять бекап базы на почту</label>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-sm-4">
-                            <label class="form-label" for="backup_freq">Периодичность</label>
-                            <select class="form-select" id="backup_freq" name="backup_freq">
-                                <?php foreach ($freqLabels as $freqKey => $freqLabel): ?>
-                                    <option value="<?= e($freqKey) ?>"
-                                        <?= ($backup['freq'] ?? 'daily') === $freqKey ? 'selected' : '' ?>>
-                                        <?= e($freqLabel) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-4">
-                            <label class="form-label" for="backup_time">Время</label>
-                            <input class="form-control" type="time" id="backup_time" name="backup_time"
-                                   value="<?= e($backup['time'] ?? '03:00') ?>" required>
-                        </div>
-                        <div class="col-sm-4 js-backup-weekly <?= ($backup['freq'] ?? 'daily') === 'weekly' ? '' : 'd-none' ?>">
-                            <label class="form-label" for="backup_weekday">День недели</label>
-                            <select class="form-select" id="backup_weekday" name="backup_weekday">
-                                <?php foreach ($weekdayLabels as $weekdayNum => $weekdayLabel): ?>
-                                    <option value="<?= (int)$weekdayNum ?>"
-                                        <?= (int)($backup['weekday'] ?? 1) === $weekdayNum ? 'selected' : '' ?>>
-                                        <?= e($weekdayLabel) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-4 js-backup-monthly <?= ($backup['freq'] ?? 'daily') === 'monthly' ? '' : 'd-none' ?>">
-                            <label class="form-label" for="backup_day">Число месяца</label>
-                            <select class="form-select" id="backup_day" name="backup_day">
-                                <?php for ($dayNum = 1; $dayNum <= 28; $dayNum++): ?>
-                                    <option value="<?= (int)$dayNum ?>"
-                                        <?= (int)($backup['day'] ?? 1) === $dayNum ? 'selected' : '' ?>>
-                                        <?= (int)$dayNum ?>
-                                    </option>
-                                <?php endfor; ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-text mt-2">
+                    <p class="mb-2">
+                        Расписание задаётся не на сайте: бекап создаётся и отправляется по каждому
+                        вызову внешнего планировщика (cron хостинга или внешний сервис) — командой
+                        или URL из блока справа.
+                    </p>
+                    <div class="form-text mb-3">
                         Бекап уходит на «Почту администратора» (вкладка «Общее»).
                         <?php if ($noEmail): ?>
                             <span class="text-danger">Сейчас адрес не задан — отправка не сработает.</span>
                         <?php endif; ?>
                     </div>
 
-                    <ul class="list-unstyled small text-body-secondary mt-3 mb-0">
+                    <ul class="list-unstyled small text-body-secondary mb-0">
                         <li>Последняя отправка: <?= e($lastSent) ?></li>
-                        <li>Следующая по расписанию: <?= e($nextRun) ?></li>
                         <?php if ($lastError !== ''): ?>
                             <li class="text-danger">Последняя ошибка: <?= e($lastError) ?></li>
                         <?php endif; ?>
@@ -428,11 +380,11 @@ if ($canViewStats ?? false) {
 
         <div class="col-lg-5">
             <div class="card shadow-sm mb-3">
-                <div class="card-header fw-semibold">Запуск по расписанию</div>
+                <div class="card-header fw-semibold">Внешний планировщик</div>
                 <div class="card-body">
                     <p class="small text-body-secondary">
-                        Скрипт можно запускать по cron хоть каждый час — письмо уйдёт только
-                        в запланированный момент.
+                        Каждый запуск команды или URL создаёт и отправляет бекап.
+                        Периодичность задаётся снаружи — в crontab хостинга или во внешнем сервисе.
                     </p>
                     <label class="form-label small" for="cronCommand">Команда для cron</label>
                     <input class="form-control form-control-sm font-monospace" id="cronCommand" readonly

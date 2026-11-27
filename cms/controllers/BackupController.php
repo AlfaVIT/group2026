@@ -1,11 +1,12 @@
 <?php
 
 /**
- * Точка запуска обслуживания по расписанию (cron хостинга или внешний
- * планировщик): ?p=backup_cron&token=...&force=1&dry=1.
+ * Точка запуска резервной копии внешним планировщиком (cron хостинга или
+ * внешний сервис): ?p=backup_cron&token=...&dry=1.
  *
- * Токен лежит в настройках (вкладка «Обслуживание») и меняется кнопкой.
- * Без force бекап уходит только когда наступил запланированный момент.
+ * Расписания внутри сайта нет: каждый вызов (кроме dry) создаёт и отправляет
+ * бекап на почту администратора. Токен лежит в настройках (вкладка
+ * «Обслуживание») и меняется кнопкой.
  */
 class BackupController
 {
@@ -20,8 +21,6 @@ class BackupController
             echo json_encode(['ok' => false, 'error' => 'Неверный токен'], JSON_UNESCAPED_UNICODE);
             return;
         }
-
-        $s = backup_schedule();
 
         // ?crypto=1 — довести шифрование персональных данных до конца (порциями).
         // Тот же токен, что и у бекапов: отдельного доступа не нужно.
@@ -38,21 +37,17 @@ class BackupController
         }
 
         if (get_str('dry') === '1') {
-            $slot = backup_last_slot($s);
-            $next = backup_next_slot($s);
+            $status = backup_status();
             echo json_encode([
                 'ok'         => true,
-                'enabled'    => $s['enabled'],
-                'due'        => backup_is_due($s),
                 'has_email'  => Setting::adminEmail() !== '',
-                'last'       => $s['last'],
-                'last_slot'  => $slot !== null ? date('Y-m-d H:i:s', $slot) : null,
-                'next_slot'  => $next !== null ? date('Y-m-d H:i:s', $next) : null,
+                'last'       => $status['last'],
+                'last_error' => $status['last_error'],
             ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
-        $res = backup_send(get_str('force') === '1');
+        $res = backup_send();
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
     }
 }
