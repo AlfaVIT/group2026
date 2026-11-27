@@ -3,8 +3,10 @@
  *
  * Блок #cms-follow (правый нижний угол) показывает флаги «Включить слежение»
  * (старшим) и «Следить за старшим» (остальным, когда старший ведёт).
- * Позиция передаётся долей прокрутки 0..1 — у участников разный кегль и высота
- * окна, поэтому пиксели напрямую не годятся.
+ * Позиция передаётся долей 0..1, но не от всего документа, а от высоты самого
+ * текста (.cms-vespers-text): шапка, карточка с датой, блок «Чтецы» (виден
+ * только старшему) и подвал в расчёт не входят — иначе у старшего и участника
+ * одна и та же доля приходилась бы на разные строки.
  *
  * Ведущий отправляет позицию в конце каждой прокрутки (debounce), поэтому
  * доезжает даже последний сдвиг. Следящие опрашивают состояние каждые 0,5 с
@@ -50,23 +52,65 @@
     var animFrame = null;
     var wasFollowing = role === 'follower' && leader !== null;
 
+    function clampRatio(value) {
+        return Math.min(1, Math.max(0, value));
+    }
+
+    function textBox() {
+        return document.querySelector('.cms-vespers-text');
+    }
+
+    /**
+     * Доля прокрутки самого текста: 0 — верх текста поравнялся с верхом окна,
+     * 1 — низ текста с низом окна. Обвязка страницы не участвует.
+     */
     function scrollRatio() {
         var doc = document.documentElement;
-        var max = doc.scrollHeight - window.innerHeight;
-        if (max <= 0) {
+        var vh = window.innerHeight;
+        var scrollY = window.pageYOffset || doc.scrollTop || 0;
+        var box = textBox();
+        if (box) {
+            var top = box.getBoundingClientRect().top + scrollY;
+            var max = box.offsetHeight - vh;
+            if (max <= 0) {
+                return 0; // текст короче окна — прокручивать нечего
+            }
+            return clampRatio((scrollY - top) / max);
+        }
+        var maxDoc = doc.scrollHeight - vh;
+        if (maxDoc <= 0) {
             return 0;
         }
-        var y = window.pageYOffset || doc.scrollTop || 0;
-        return Math.min(1, Math.max(0, y / max));
+        return clampRatio(scrollY / maxDoc);
+    }
+
+    /** Куда прокрутиться, чтобы текст оказался на доле ratio (null — некуда). */
+    function targetY(ratio) {
+        var doc = document.documentElement;
+        var vh = window.innerHeight;
+        var scrollY = window.pageYOffset || doc.scrollTop || 0;
+        var box = textBox();
+        if (box) {
+            var top = box.getBoundingClientRect().top + scrollY;
+            var max = box.offsetHeight - vh;
+            if (max <= 0) {
+                return null;
+            }
+            return Math.round(top + clampRatio(ratio) * max);
+        }
+        var maxDoc = doc.scrollHeight - vh;
+        if (maxDoc <= 0) {
+            return null;
+        }
+        return Math.round(clampRatio(ratio) * maxDoc);
     }
 
     function animateToRatio(ratio) {
-        var doc = document.documentElement;
-        var max = doc.scrollHeight - window.innerHeight;
-        if (max <= 0) {
+        var target = targetY(ratio);
+        if (target === null) {
             return;
         }
-        var target = Math.round(ratio * max);
+        var doc = document.documentElement;
         var start = window.pageYOffset || doc.scrollTop || 0;
         if (Math.abs(start - target) <= 2) {
             return;
